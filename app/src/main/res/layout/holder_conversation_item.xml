@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.sun.conversation.CvsCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/cvs_card"
+    android:orientation="vertical" android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+</com.sun.conversation.CvsCardView>
