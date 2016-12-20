@@ -9,6 +9,7 @@ import java.util.List;
 public class RequestData {
     private String code;
     private List<String> args;
+    private String requestId;
 
     public RequestData(){
         args = new ArrayList<>();
@@ -24,5 +25,17 @@ public class RequestData {
 
     public void addArg(String arg){
         args.add(arg);
+    }
+
+    public List<String> getArgs(){
+        return args;
+    }
+
+    public String getRequestId() {
+        return requestId;
+    }
+
+    public void setRequestId(String requestId) {
+        this.requestId = requestId;
     }
 }

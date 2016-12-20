@@ -1,6 +1,7 @@
 package com.sun.utils;
 
 import java.security.MessageDigest;
+import java.text.SimpleDateFormat;
 import java.util.Locale;
 
 /**
@@ -46,5 +47,13 @@ public class Utils {
 
         return hours > 0 ? String.format(Locale.CHINA, "%02d:%02d:%02d", hours, minutes, seconds) : String.format(
                 Locale.CHINA, "%02d:%02d", minutes, seconds);
+    }
+
+    private static SimpleDateFormat simpleDateFormat;
+    public static String getFormatTime(long time){
+        if(simpleDateFormat == null){
+            simpleDateFormat = new SimpleDateFormat("HH:mm:ss", Locale.ENGLISH);
+        }
+        return simpleDateFormat.format(time);
     }
 }

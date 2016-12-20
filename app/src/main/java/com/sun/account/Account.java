@@ -7,7 +7,7 @@ import com.sun.utils.Utils;
  */
 public class Account {
     public static final Info Client = new Info("apple", "1f3870be274f6c49b3e31a0c6728957f", 2);
-    public static final Info Server = new Info("鬼魇", "1f3870be274f6c49b3e31a0c6728957f", 1);
+    public static final Info Server = new Info("鬼魇", "1a1fa8b08f04fa4d85313986e6f6d288", 1);
 
     private Info login;
 

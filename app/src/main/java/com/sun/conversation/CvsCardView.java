@@ -12,9 +12,12 @@ import com.sun.personalconnect.R;
  * Created by guoyao on 2016/12/16.
  */
 public class CvsCardView extends CardView {
+    public static final String TIP_HAS_SEND = "";//"(已发送)";
+    public static final String TIP_NO_SEND = "(正在发送)";
     private TextView mTxtName;
     private TextView mTxtTime;
     private TextView mTxtContent;
+    private TextView mTxtSend;
     public CvsCardView(Context context) {
         super(context);
         init(context);
@@ -30,11 +33,13 @@ public class CvsCardView extends CardView {
         mTxtName = (TextView)findViewById(R.id.txt_cvs_name);
         mTxtTime = (TextView)findViewById(R.id.txt_cvs_time);
         mTxtContent = (TextView)findViewById(R.id.txt_cvs_content);
+        mTxtSend = (TextView) findViewById(R.id.txt_cvs_is_send);
     }
 
     public void update(CvsNote note){
         mTxtName.setText(note.getUserName());
         mTxtContent.setText(note.getContent());
         mTxtTime.setText(note.getTimeFormat());
+        mTxtSend.setText(note.isSend() ? TIP_HAS_SEND : TIP_NO_SEND);
     }
 }

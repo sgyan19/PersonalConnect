@@ -1,5 +1,6 @@
 package com.sun.account;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
@@ -11,6 +12,7 @@ import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import com.sun.connect.RequestDataHelper;
 import com.sun.connect.ResponseData;
 import com.sun.connect.SocketCallback;
 import com.sun.connect.SocketTask;
@@ -66,7 +68,7 @@ public class AccountActivity extends AppCompatActivity implements View.OnClickLi
         SocketTask.getInstance().start(new Runnable() {
             @Override
             public void run() {
-                SocketTask.getInstance().sendMessage(SocketTask.MSG_CONNECT, null, new SocketCallback() {
+                SocketTask.getInstance().sendMessage(SocketTask.MSG_REQUEST, RequestDataHelper.CvsConnect, new SocketCallback() {
                     @Override
                     public void onError(int eventId, Throwable e) {
                         ToastUtils.show("连接失败", Toast.LENGTH_SHORT);
@@ -74,13 +76,13 @@ public class AccountActivity extends AppCompatActivity implements View.OnClickLi
 
                     @Override
                     public void onComplete(int eventId, ResponseData data) {
+                        ToastUtils.show("连接成功", Toast.LENGTH_SHORT);
+                        startActivity(new Intent(AccountActivity.this, CvsActivity.class));
+                        finish();
                     }
 
                     @Override
                     public void onConnect(int eventId) {
-                        ToastUtils.show("连接成功", Toast.LENGTH_SHORT);
-                        startActivity(new Intent(AccountActivity.this, CvsActivity.class));
-                        finish();
                     }
                 });
             }

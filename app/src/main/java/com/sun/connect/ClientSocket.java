@@ -14,7 +14,7 @@ public class ClientSocket {
     public static final String Host = "hanclt.eicp.net";
     public static final int Port = 19193;
 
-    private byte[] buffer = new byte[1024];
+    private byte[] buffer = new byte[1024 * 10];
 
     private Socket mSocket;
     private Throwable mLastException;
@@ -47,6 +47,35 @@ public class ClientSocket {
                     mSocket.getOutputStream(), "utf-8");
             writer.write(requestJson);
             writer.flush();
+            InputStream stream = mSocket.getInputStream();
+            int len  = stream.read(buffer);
+            if(len > 0) {
+                String back = new String(buffer, 0, len, "utf-8");
+                responseData = mGson.fromJson(back, ResponseData.class);
+            }
+        }catch (IOException e){
+            mLastException = e;
+            e.printStackTrace();
+        }
+        return responseData;
+    }
+
+    public void requestWithoutBack(RequestData data){
+        String requestJson = mGson.toJson(data);
+        try{
+            OutputStreamWriter writer = new OutputStreamWriter(
+                    mSocket.getOutputStream(), "utf-8");
+            writer.write(requestJson);
+            writer.flush();
+        }catch (IOException e){
+            mLastException = e;
+            e.printStackTrace();
+        }
+    }
+
+    public ResponseData receive() throws IOException{
+        ResponseData responseData = null;
+        try{
             InputStream stream = mSocket.getInputStream();
             int len  = stream.read(buffer);
             String back = new String(buffer,0,len,"utf-8");
