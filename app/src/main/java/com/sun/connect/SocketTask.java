@@ -102,6 +102,7 @@ public class SocketTask implements Runnable {
             }
         }
     }
+    private int mErrorTime;
     private SocketCallback mDupLexCallback;
     private void startReceive(MessageData data){
         mModel = MODEL_DUPLEX;
@@ -110,22 +111,33 @@ public class SocketTask implements Runnable {
         }
         mDupLexCallback = data.callback;
         mReceive = true;
+        mErrorTime = 0;
         mReceiveExecutor.execute(new Runnable() {
             @Override
             public void run() {
                 while(mReceive) {
                     if(!mCoreSocket.isConnected()){
+                        mReceive = false;
                         break;
                     }
                     try {
                         ResponseData data = mCoreSocket.receive();
-                        if(mDupLexCallback != null){
-                            mDupLexCallback.onComplete(-1, data);
+                        if(data == null){
+                            mErrorTime ++;
+                        }else {
+                            mErrorTime = 0;
+                            if(mDupLexCallback != null){
+                                mDupLexCallback.onComplete(-1, data);
+                            }
                         }
                     } catch (IOException e){
+                        mErrorTime++;
                         e.printStackTrace();
                     } catch (Exception ex){
                         ex.printStackTrace();
+                    }
+                    if(mErrorTime > 10){
+                        mReceive = false;
                     }
                 }
             }

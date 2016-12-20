@@ -75,14 +75,11 @@ public class ClientSocket {
 
     public ResponseData receive() throws IOException{
         ResponseData responseData = null;
-        try{
-            InputStream stream = mSocket.getInputStream();
-            int len  = stream.read(buffer);
-            String back = new String(buffer,0,len,"utf-8");
+        InputStream stream = mSocket.getInputStream();
+        int len  = stream.read(buffer);
+        if(len > 0) {
+            String back = new String(buffer, 0, len, "utf-8");
             responseData = mGson.fromJson(back, ResponseData.class);
-        }catch (IOException e){
-            mLastException = e;
-            e.printStackTrace();
         }
         return responseData;
     }
