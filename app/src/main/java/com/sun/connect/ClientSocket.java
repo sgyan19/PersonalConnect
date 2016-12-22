@@ -1,24 +1,27 @@
 package com.sun.connect;
 
-import com.google.gson.Gson;
+import com.sun.settings.Config;
 
+import com.google.gson.Gson;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.net.Socket;
+import java.net.SocketException;
 
 /**
  * Created by guoyao on 2016/12/13.
  */
 public class ClientSocket {
-    public static final String Host = "hanclt.eicp.net";
+    public static String Host;
     public static final int Port = 19193;
 
     private byte[] buffer = new byte[1024 * 10];
 
     private Socket mSocket;
     private Throwable mLastException;
-    private Gson mGson = new Gson();
+
+    private boolean mRemoteClosed = true;
 
     public Throwable getLastException() {
         return mLastException;
@@ -26,69 +29,83 @@ public class ClientSocket {
 
     public boolean connect()
     {
+        if(mSocket != null &&(mSocket.isClosed()|| mRemoteClosed)) {
+            try {
+                mSocket.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
         try
         {
+            Host = Config.Debug ? "192.168.137.1" :"hanclt.eicp.net";
             mSocket = new Socket(Host, Port);
         }
         catch(Exception e)
         {
+            mRemoteClosed = true;
             mLastException = e;
             return false;
         }
+        mRemoteClosed = false;
         return true;
     }
 
-    public ResponseData request(RequestData data)
+    public String request(String request)
     {
-        String requestJson = mGson.toJson(data);
-        ResponseData responseData = null;
+        String responseData = null;
         try{
             OutputStreamWriter writer = new OutputStreamWriter(
                     mSocket.getOutputStream(), "utf-8");
-            writer.write(requestJson);
+            writer.write(request);
             writer.flush();
             InputStream stream = mSocket.getInputStream();
             int len  = stream.read(buffer);
             if(len > 0) {
-                String back = new String(buffer, 0, len, "utf-8");
-                responseData = mGson.fromJson(back, ResponseData.class);
+                responseData = new String(buffer, 0, len, "utf-8");
             }
         }catch (IOException e){
             mLastException = e;
+            if(e instanceof SocketException){
+                mRemoteClosed = true;
+            }
             e.printStackTrace();
         }
         return responseData;
     }
 
-    public void requestWithoutBack(RequestData data){
-        String requestJson = mGson.toJson(data);
+    public void requestWithoutBack(String request){
         try{
             OutputStreamWriter writer = new OutputStreamWriter(
                     mSocket.getOutputStream(), "utf-8");
-            writer.write(requestJson);
+            writer.write(request);
             writer.flush();
         }catch (IOException e){
             mLastException = e;
+            if(e instanceof SocketException){
+                mRemoteClosed = true;
+            }
             e.printStackTrace();
         }
     }
 
-    public ResponseData receive() throws IOException{
-        ResponseData responseData = null;
+    public String receive() throws IOException{
+        String responseData = null;
         InputStream stream = mSocket.getInputStream();
         int len  = stream.read(buffer);
         if(len > 0) {
-            String back = new String(buffer, 0, len, "utf-8");
-            responseData = mGson.fromJson(back, ResponseData.class);
+            responseData = new String(buffer, 0, len, "utf-8");
+        }else{
+            mRemoteClosed = true;
         }
         return responseData;
     }
 
-    public boolean isConnected()
+    public boolean isConnecting()
     {
         if (mSocket != null)
         {
-            return mSocket.isConnected();
+            return !mSocket.isClosed() && !mRemoteClosed;
         }
         return false;
     }

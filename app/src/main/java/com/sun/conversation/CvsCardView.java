@@ -40,6 +40,6 @@ public class CvsCardView extends CardView {
         mTxtName.setText(note.getUserName());
         mTxtContent.setText(note.getContent());
         mTxtTime.setText(note.getTimeFormat());
-        mTxtSend.setText(note.isSend() ? TIP_HAS_SEND : TIP_NO_SEND);
+        mTxtSend.setText(CvsNoteHelper.getStatusText(note));
     }
 }

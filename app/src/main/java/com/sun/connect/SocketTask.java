@@ -4,8 +4,10 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 
-import java.io.IOError;
 import java.io.IOException;
+import java.lang.ref.WeakReference;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -16,178 +18,218 @@ public class SocketTask implements Runnable {
     public static final int MSG_CONNECT = 0;
     public static final int MSG_REQUEST = 1;
     public static final int MSG_RECEIVE = 2;
-    public static final int MSG_STOP_RECIVE = 3;
+    public static final int MSG_STOP_RECEIVE = 3;
     public static final int MSG_DISCONNECT = 9;
 
-    public static final int MODEL_NORMAL = 1;
-    public static final int MODEL_DUPLEX = 2;
+    public static final int REQUEST_KEY_NOBODY = -2;
+    public static final int REQUEST_KEY_ANLYBODY = -1;
 
     private ClientSocket mCoreSocket = new ClientSocket();
     private Thread mCoreThread;
     private SocketHandler mHandler;
-    private Runnable mReadyRunnable;
-    private static SocketTask instance;
-    private static int MessageId = 0;
-    private int mModel = MODEL_NORMAL;
+    private List<Runnable> mThreadReadyListener = new LinkedList<>();
+    private final Object ReceiveLock = new Object();
     private ExecutorService mReceiveExecutor;
-    private boolean mReceive = false;
-    public static SocketTask getInstance(){
-        if(instance == null){
-            instance = new SocketTask();
-        }
-        return instance;
-    }
-    protected SocketTask(){
-    }
+    private boolean mReceiving = false;
     public void start(){
         start(null);
     }
     public void start(Runnable runnable){
-        mCoreThread = new Thread(this);
-        //mLooper = new Looper();
-        mCoreThread.start();
-        mReadyRunnable = runnable;
+        if(mCoreThread == null) {
+            mCoreThread = new Thread(this);
+            //mLooper = new Looper();
+            mCoreThread.start();
+            if(runnable != null){
+                mThreadReadyListener.add(runnable);
+            }
+        }
+    }
+
+    public void startWithReceive(SocketCallback callback){
+        mDupLexCallback = callback;
+        start(new Runnable() {
+            @Override
+            public void run() {
+                startReceive(mDupLexCallback);
+            }
+        });
+    }
+
+    public void Ready(Runnable runnable){
+        if(runnable == null){
+            return;
+        }
+        if(mCoreThread != null){
+             runnable.run();
+        }else{
+            mThreadReadyListener.add(runnable);
+        }
     }
 
     @Override
     public void run() {
         Looper.prepare();
-        mHandler = new SocketHandler();
-        if(mReadyRunnable != null){
-            mReadyRunnable.run();
+        mHandler = new SocketHandler(this);
+        for(Runnable run : mThreadReadyListener) {
+            if (run != null) {
+                run.run();
+            }
         }
+        mThreadReadyListener.clear();
         Looper.loop();
+        mCoreThread = null;
     }
 
     public static class MessageData{
         private SocketCallback callback;
-        private RequestData requestData;
+        private String requestData;
 
-        public MessageData(SocketCallback callback, RequestData data){
+        public MessageData(SocketCallback callback, String data){
             this.callback = callback;
             this.requestData = data;
         }
     }
 
     private static class SocketHandler extends Handler{
+        private WeakReference<SocketTask> parent;
+
+        SocketHandler(SocketTask parent) {
+            this.parent = new WeakReference<>(parent);
+        }
         @Override
         public void handleMessage(Message msg) {
             int what = msg.what;
+            SocketTask st = parent.get();
+            if(st == null){
+                return;
+            }
             boolean connected;
+            SocketCallback callback = st.mReceiving ? st.mDupLexCallback :((msg.obj != null && msg.obj instanceof MessageData)? ((MessageData) msg.obj).callback : null);
             switch (what){
                 case MSG_CONNECT:
-                    getInstance().makeSureConnected(msg.arg1,  (MessageData)msg.obj);
+                    st.makeSureConnected(msg.arg1, callback, callback);
                     break;
                 case MSG_REQUEST:
-                    connected = getInstance().makeSureConnected(msg.arg1,(MessageData)msg.obj);
+                    connected = st.makeSureConnected(msg.arg1, null,callback);
                     if(connected){
-                        getInstance().request(msg.arg1, (MessageData)msg.obj);
+                        st.request(msg.arg1, (MessageData) msg.obj);
                     }
                     break;
                 case MSG_RECEIVE:
-                    connected = getInstance().makeSureConnected(msg.arg1,(MessageData)msg.obj);
+                    connected = st.makeSureConnected(msg.arg1, null,callback);
                     if(connected){
-                        getInstance().startReceive((MessageData) msg.obj);
+                        st.startReceive(callback);
                     }
                     break;
-                case MSG_STOP_RECIVE:
-                    connected = getInstance().makeSureConnected(msg.arg1,(MessageData)msg.obj);
-                    if(connected){
-                        getInstance().stopReceive();
-                    }
+                case MSG_STOP_RECEIVE:
+                    st.stopReceive();
                     break;
                 case MSG_DISCONNECT:
-                    getInstance().mCoreSocket.Close();
+                    st.stopReceive();
+                    st.mCoreSocket.Close();
                     break;
             }
         }
     }
-    private int mErrorTime;
+
     private SocketCallback mDupLexCallback;
-    private void startReceive(MessageData data){
-        mModel = MODEL_DUPLEX;
+    private void startReceive(SocketCallback callback){
         if(mReceiveExecutor == null) {
             mReceiveExecutor = Executors.newSingleThreadExecutor();
         }
-        mDupLexCallback = data.callback;
-        mReceive = true;
-        mErrorTime = 0;
+        mDupLexCallback = callback;
+        mReceiving = true;
         mReceiveExecutor.execute(new Runnable() {
             @Override
             public void run() {
-                while(mReceive) {
-                    if(!mCoreSocket.isConnected()){
-                        mReceive = false;
-                        break;
-                    }
-                    try {
-                        ResponseData data = mCoreSocket.receive();
-                        if(data == null){
-                            mErrorTime ++;
-                        }else {
-                            mErrorTime = 0;
-                            if(mDupLexCallback != null){
-                                mDupLexCallback.onComplete(-1, data);
+                while (mReceiving) {
+                    if (mCoreSocket == null || !mCoreSocket.isConnecting()) {
+                        synchronized (ReceiveLock) {
+                            try {
+                                ReceiveLock.wait();
+                            } catch (InterruptedException e) {
                             }
                         }
-                    } catch (IOException e){
-                        mErrorTime++;
-                        e.printStackTrace();
-                    } catch (Exception ex){
-                        ex.printStackTrace();
+                        continue;
                     }
-                    if(mErrorTime > 10){
-                        mReceive = false;
+                    try {
+                        String response = mCoreSocket.receive();
+                        if (response != null) {
+                            if (mDupLexCallback != null) {
+                                mDupLexCallback.onComplete(REQUEST_KEY_ANLYBODY, response);
+                            }
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
                 }
             }
         });
     }
-    private void stopReceive(){
-        mReceive = false;
-        mHandler.postDelayed(new Runnable() {
+    public void stopReceive(){
+        mReceiving = false;
+        mDupLexCallback = null;
+        synchronized (ReceiveLock){
+            ReceiveLock.notifyAll();
+        }
+        mHandler.post(new Runnable() {
             @Override
             public void run() {
-                if (mReceiveExecutor != null && !mReceiveExecutor.isShutdown()){
+                if (mReceiveExecutor != null && !mReceiveExecutor.isShutdown()) {
                     mReceiveExecutor.shutdown();
                 }
             }
-        },2000);
+        });
     }
-    public boolean makeSureConnected(int id, MessageData data){
-        boolean connected = mCoreSocket.isConnected() || mCoreSocket.connect();
-        if(data.callback != null){
-            if(connected ){
-                data.callback.onConnect(id);
-            }else{
-                data.callback.onError(id, mCoreSocket.getLastException());
+
+    public boolean makeSureConnected(int id, SocketCallback sucBack, SocketCallback errBack){
+        boolean connected ;
+        if(mCoreSocket.isConnecting()){
+            connected = true;
+        }else{
+            connected = mCoreSocket.connect();
+            if(connected && mReceiving) {
+                synchronized (ReceiveLock) {
+                    ReceiveLock.notifyAll();
+                }
+            }
+        }
+        if(connected ){
+            if(sucBack != null) {
+                sucBack.onComplete(id, null);
+            }
+        }else{
+            if(errBack != null) {
+                errBack.onError(id, mCoreSocket.getLastException());
             }
         }
         return connected;
     }
 
-    public void request(int id, MessageData messageData){
-        if(mModel == MODEL_NORMAL) {
-            ResponseData data = mCoreSocket.request(messageData.requestData);
+    private void request(int id, MessageData messageData){
+        if(mReceiving) {
+            mCoreSocket.requestWithoutBack(messageData.requestData);
+        }else {
+            String response = mCoreSocket.request(messageData.requestData);
             if (messageData.callback != null) {
-                if (data == null) {
+                if (response == null) {
                     messageData.callback.onError(id, mCoreSocket.getLastException());
                 } else {
-                    messageData.callback.onComplete(id, data);
+                    messageData.callback.onComplete(id, response);
                 }
             }
-        }else {
-            mCoreSocket.requestWithoutBack(messageData.requestData);
         }
     }
 
-    public int sendMessage(int what, RequestData data, SocketCallback callback){
-        MessageId++;
+    public void sendMessage(int what, int key, String data, SocketCallback callback){
         Message msg = new Message();
-        msg.arg1 = MessageId;
+        msg.arg1 = key;
         msg.what = what;
         msg.obj = new MessageData(callback, data);
         mHandler.sendMessage(msg);
-        return MessageId;
+    }
+
+    public void quitThreadLooper(){
+        sendMessage(MSG_DISCONNECT, REQUEST_KEY_NOBODY, null, null);
     }
 }

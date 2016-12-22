@@ -32,7 +32,7 @@ public class SocketManager {
                 iterator.remove();
                 continue;
             }
-            if(socket.isConnected()){
+            if(socket.isConnecting()){
                 result = socket;
                 break;
             }else{

@@ -6,6 +6,8 @@ import org.greenrobot.greendao.database.Database;
 import org.greenrobot.greendao.query.Query;
 
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -24,6 +26,7 @@ public class CvsHistoryManager {
     private Query<CvsNote> mCvsLast10TimeDescQuery;
 
     private List<CvsNote> mCvsCache;
+    private List<CvsNote> mWaitForSave;
 
     public void init(Context context){
         DbName = context.getPackageName();
@@ -32,11 +35,12 @@ public class CvsHistoryManager {
         daoSession = new DaoMaster(db).newSession();
         mCvsDao = daoSession.getCvsNoteDao();
 
-        mCvsLast10TimeDescQuery = mCvsDao.queryBuilder().orderDesc(CvsNoteDao.Properties.TimeStamp).limit(10).build();
+        mCvsLast10TimeDescQuery = mCvsDao.queryBuilder().orderAsc(CvsNoteDao.Properties.TimeStamp).limit(10).build();
         mCvsCache = mCvsLast10TimeDescQuery.list();
         if(mCvsCache == null){
             mCvsCache = new ArrayList<>();
         }
+        mWaitForSave = new LinkedList<>();
     }
 
     public List<CvsNote> getCache(){
@@ -53,5 +57,23 @@ public class CvsHistoryManager {
 
     public void insertCache(CvsNote note){
         mCvsCache.add(note);
+        mWaitForSave.add(note);
+    }
+
+    public void saveCache(){
+        Iterator<CvsNote> iterator = mWaitForSave.iterator();
+        while(iterator.hasNext()){
+            CvsNote note = iterator.next();
+            if(note.getSendStatus() == CvsNote.STATUS_SUC){
+                mCvsDao.insert(note);
+                iterator.remove();
+            }
+        }
+    }
+
+    public void close(){
+        if(devOpenHelper != null) {
+            devOpenHelper.close();
+        }
     }
 }

@@ -31,8 +31,14 @@
             </intent-filter>
         </activity>
 
-        <activity android:name="com.sun.conversation.CvsActivity">
+        <activity android:name="com.sun.conversation.CvsActivity"
+            android:launchMode="singleTask">
         </activity>
+
+
+        <service
+            android:name="com.sun.connect.SocketService">
+        </service>
     </application>
 
 </manifest>

@@ -1,9 +1,11 @@
 package com.sun.personalconnect;
 
 import android.content.Context;
+import android.content.Intent;
 
 import com.sun.account.Account;
 import com.sun.conversation.CvsHistoryManager;
+import com.sun.connect.SocketService;
 
 /**
  * Created by guoyao on 2016/12/13.
@@ -22,6 +24,7 @@ public class Application extends android.app.Application {
 
     private CvsHistoryManager cvsHistoryManager;
     private Account account;
+    //private SocketTask socketTask;
     @Override
     public void onCreate() {
         super.onCreate();
@@ -33,6 +36,10 @@ public class Application extends android.app.Application {
         account = new Account();
         cvsHistoryManager = new CvsHistoryManager();
         cvsHistoryManager.init(this);
+
+        startService(new Intent(this, SocketService.class));
+        //socketTask = new SocketTask();
+        //socketTask.start();
     }
 
     public CvsHistoryManager getCvsHistoryManager(){
@@ -41,5 +48,15 @@ public class Application extends android.app.Application {
 
     public Account getAccount(){
         return account;
+    }
+
+//    public SocketTask getSocketTask(){
+//        return socketTask;
+//    }
+
+    @Override
+    public void onTerminate() {
+        cvsHistoryManager.close();
+        super.onTerminate();
     }
 }
