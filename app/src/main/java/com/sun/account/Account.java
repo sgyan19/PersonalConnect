@@ -75,7 +75,7 @@ public class Account {
             return true;
         }
         long time = SharedPreferencesUtil.getLong(KEY_LONG_LOGIN_HISTORY);
-        if(time > 0 && System.currentTimeMillis() - time < 60 * 60 * 1000){
+        if(time > 0 && System.currentTimeMillis() - time < LoginDuration){
             int id = SharedPreferencesUtil.getInt(KEY_INT_LOGIN_USER);
             if(id == Client.id){
                 login = Client;
@@ -87,7 +87,7 @@ public class Account {
     }
 
     public String getLoginName(){
-        return login != null ? login.name : "";
+        return login != null ? login.name : "null";
     }
 
     public int getLoginId(){

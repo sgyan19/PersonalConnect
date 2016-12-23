@@ -9,7 +9,7 @@ import java.util.List;
 public class RequestData {
     private String code;
     private List<String> args;
-    private int requestId = -1;
+    private int requestId = 0;
 
     public RequestData(){
         args = new ArrayList<>();

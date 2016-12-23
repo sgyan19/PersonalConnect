@@ -25,8 +25,6 @@ public class AccountActivity extends AppCompatActivity implements View.OnClickLi
     private CheckBox mCkbPassword;
 
     private CheckBox mCkbDebug;
-
-    private SocketService.ServiceBinder mBind;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

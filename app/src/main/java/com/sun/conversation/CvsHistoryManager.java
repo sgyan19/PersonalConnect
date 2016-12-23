@@ -6,6 +6,7 @@ import org.greenrobot.greendao.database.Database;
 import org.greenrobot.greendao.query.Query;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -35,8 +36,9 @@ public class CvsHistoryManager {
         daoSession = new DaoMaster(db).newSession();
         mCvsDao = daoSession.getCvsNoteDao();
 
-        mCvsLast10TimeDescQuery = mCvsDao.queryBuilder().orderAsc(CvsNoteDao.Properties.TimeStamp).limit(10).build();
+        mCvsLast10TimeDescQuery = mCvsDao.queryBuilder().orderDesc(CvsNoteDao.Properties.TimeStamp).limit(10).build();
         mCvsCache = mCvsLast10TimeDescQuery.list();
+        Collections.reverse(mCvsCache);
         if(mCvsCache == null){
             mCvsCache = new ArrayList<>();
         }

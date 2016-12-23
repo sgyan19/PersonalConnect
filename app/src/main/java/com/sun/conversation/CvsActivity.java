@@ -6,82 +6,96 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.graphics.PointF;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.LinearSmoothScroller;
 import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
+import android.util.DisplayMetrics;
 import android.view.View;
-import android.view.inputmethod.InputMethodManager;
+import android.view.View.OnLayoutChangeListener;
 import android.widget.EditText;
 import android.widget.Toast;
 import com.sun.account.Account;
-import com.sun.connect.RequestData;
-import com.sun.connect.RequestDataHelper;
-import com.sun.connect.ResponseData;
-import com.sun.connect.SocketService;
-import com.sun.connect.SocketTask;
+import com.sun.conversation.CvsService.CvsListener;
 import com.sun.personalconnect.Application;
 import com.sun.personalconnect.R;
-import com.sun.utils.GsonUtils;
 import com.sun.utils.ToastUtils;
 import com.sun.utils.Utils;
-import java.util.LinkedHashMap;
 
 /**
  * Created by guoyao on 2016/12/13.
  */
-public class CvsActivity extends AppCompatActivity implements View.OnClickListener {
+public class CvsActivity extends AppCompatActivity implements View.OnClickListener,CvsListener,OnLayoutChangeListener {
     private EditText mEditContent;
     private RecyclerView mCvsRcc;
-    private SocketService.ServiceBinder serviceBinder;
-    private LinkedHashMap<Integer, CvsNote> mRequestHistory = new LinkedHashMap<>();
+    private CvsService.ServiceBinder serviceBinder;
+    private int mKeyBoardHight;
 
-    private BroadcastReceiver receiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            int key = intent.getIntExtra(SocketService.KEY_INT_REQUESTKEY, SocketTask.REQUEST_KEY_NOBODY);
-            if(key == SocketTask.REQUEST_KEY_NOBODY) {
-                return;
-            }
-            String error = intent.getStringExtra(SocketService.KEY_STRING_ERROR);
-            String response = intent.getStringExtra(SocketService.KEY_STRING_RESPONSE);
-            RequestData noteRequest = null;
-            CvsNote note = null;
-            if(TextUtils.isEmpty(error) && !TextUtils.isEmpty(response)){
-                try {
-                    ResponseData responseObj = GsonUtils.mGson.fromJson(response, ResponseData.class);
-                    noteRequest = GsonUtils.mGson.fromJson(responseObj.getData(), RequestData.class);
-                    note = GsonUtils.mGson.fromJson(noteRequest.getArgs().get(0), CvsNote.class);
-                }catch (Exception e){}
-            }
-            if(!TextUtils.isEmpty(error) || noteRequest == null || note == null){
-                if(mRequestHistory.containsKey(key)){
-                    mRequestHistory.get(key).setSendStatus(CvsNote.STATUS_FAL);
-                    mRequestHistory.remove(key);
-                    mCvsRcc.getAdapter().notifyDataSetChanged();
-                    return;
-                }
-                return;
-            }
-            key = noteRequest.getRequestId();
+    @Override
+    public void onSendFailed(long key, CvsNote note, String message) {
+        mCvsRcc.getAdapter().notifyDataSetChanged();
+    }
 
-            note.setSendStatus(CvsNote.STATUS_SUC);
-            if(key == SocketTask.REQUEST_KEY_ANLYBODY){
-                Application.getInstance().getCvsHistoryManager().insertCache(note);
-                Application.getInstance().getCvsHistoryManager().saveCache();
-                mCvsRcc.getAdapter().notifyDataSetChanged();
-                mCvsRcc.scrollToPosition(mCvsRcc.getAdapter().getItemCount() - 1);
-            }else if(mRequestHistory.containsKey(key)){
-                mRequestHistory.get(key).setSendStatus(CvsNote.STATUS_SUC);
-                mRequestHistory.remove(key);
-                Application.getInstance().getCvsHistoryManager().saveCache();
-                mCvsRcc.getAdapter().notifyDataSetChanged();
-                ((InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(mEditContent.getApplicationWindowToken(), 0);
-            }
+    @Override
+    public void onSendSuccess(CvsNote note) {
+        mCvsRcc.getAdapter().notifyDataSetChanged();
+    }
+
+    @Override
+    public void onNew(CvsNote note) {
+        mCvsRcc.getAdapter().notifyDataSetChanged();
+        asyncScrollEnd();
+    }
+
+    public static class ScrollSpeedLinearLayoutManger extends LinearLayoutManager{
+        private float MILLISECONDS_PER_INCH = 0.03f;
+        private Context context;
+
+        public ScrollSpeedLinearLayoutManger(Context context) {
+            super(context);
+            this.context = context;
         }
-    };
+
+        @Override
+        public void smoothScrollToPosition(RecyclerView recyclerView, RecyclerView.State state, int position) {
+            LinearSmoothScroller linearSmoothScroller =
+                    new LinearSmoothScroller(recyclerView.getContext()) {
+                        @Override
+                        public PointF computeScrollVectorForPosition(int targetPosition) {
+                            return ScrollSpeedLinearLayoutManger.this
+                                    .computeScrollVectorForPosition(targetPosition);
+                        }
+
+                        //This returns the milliseconds it takes to
+                        //scroll one pixel.
+                        @Override
+                        protected float calculateSpeedPerPixel
+                        (DisplayMetrics displayMetrics) {
+                            return MILLISECONDS_PER_INCH / displayMetrics.density;
+                            //返回滑动一个pixel需要多少毫秒
+                        }
+                    };
+            linearSmoothScroller.setTargetPosition(position);
+            startSmoothScroll(linearSmoothScroller);
+        }
+
+
+        public ScrollSpeedLinearLayoutManger setSpeedSlow() {
+            //自己在这里用density去乘，希望不同分辨率设备上滑动速度相同
+            //0.3f是自己估摸的一个值，可以根据不同需求自己修改
+            MILLISECONDS_PER_INCH = context.getResources().getDisplayMetrics().density * 0.3f;
+            return this;
+        }
+
+        public ScrollSpeedLinearLayoutManger setSpeedFast() {
+            MILLISECONDS_PER_INCH = context.getResources().getDisplayMetrics().density * 0.03f;
+            return this;
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -89,15 +103,21 @@ public class CvsActivity extends AppCompatActivity implements View.OnClickListen
         setContentView(R.layout.activity_conversation);
         mCvsRcc = (RecyclerView)findViewById(R.id.rcr_cvs_content);
         //mCvsRcc.setHasFixedSize(true);
-        mCvsRcc.setLayoutManager(new LinearLayoutManager(this));
+        mCvsRcc.setLayoutManager(new ScrollSpeedLinearLayoutManger(this).setSpeedSlow());
         mCvsRcc.setAdapter(new CvsRecyclerAdapter(this));
+        mCvsRcc.addOnLayoutChangeListener(this);
+        mCvsRcc.post(new Runnable() {
+            @Override
+            public void run() {
+                mKeyBoardHight = mCvsRcc.getMeasuredHeight() / 3;
+            }
+        });
         mEditContent = (EditText)findViewById(R.id.edit_cvs_content);
-        IntentFilter intentFilter = new IntentFilter(SocketService.SocketReceiveBroadcast);
-        registerReceiver(receiver, intentFilter);
-        bindService(new Intent(CvsActivity.this, SocketService.class), new ServiceConnection() {
+        bindService(new Intent(CvsActivity.this, CvsService.class), new ServiceConnection() {
             @Override
             public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
-                serviceBinder = (SocketService.ServiceBinder) iBinder;
+                serviceBinder = (CvsService.ServiceBinder) iBinder;
+                serviceBinder.setCvsListener(CvsActivity.this);
             }
 
             @Override
@@ -105,8 +125,15 @@ public class CvsActivity extends AppCompatActivity implements View.OnClickListen
                 serviceBinder = null;
             }
         }, BIND_AUTO_CREATE);
-        asyncScrollEnd();
-        //SocketTask.getInstance().sendMessage(SocketTask.MSG_RECEIVE, null, callback);
+        scrollEnd();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if(serviceBinder != null){
+            serviceBinder.setCvsListener(this);
+        }
     }
 
     @Override
@@ -140,13 +167,7 @@ public class CvsActivity extends AppCompatActivity implements View.OnClickListen
         mCvsRcc.getAdapter().notifyDataSetChanged();
         asyncScrollEnd();
 
-        RequestData requestData = new RequestData();
-        requestData.setCode(RequestDataHelper.CODE_ConversationNote);
-        String arg = GsonUtils.mGson.toJson(note);
-        requestData.addArg(arg);
-        requestData.setRequestId(requestData.hashCode());
-        serviceBinder.request(requestData.getRequestId(), GsonUtils.mGson.toJson(requestData));
-        mRequestHistory.put(requestData.getRequestId(), note);
+        serviceBinder.Request(note);
         mEditContent.setText("");
     }
 
@@ -154,8 +175,34 @@ public class CvsActivity extends AppCompatActivity implements View.OnClickListen
         mCvsRcc.post(new Runnable() {
             @Override
             public void run() {
+                mCvsRcc.smoothScrollToPosition(mCvsRcc.getAdapter().getItemCount() - 1);
+            }
+        });
+    }
+    private void scrollEnd(){
+        mCvsRcc.post(new Runnable() {
+            @Override
+            public void run() {
                 mCvsRcc.scrollToPosition(mCvsRcc.getAdapter().getItemCount() - 1);
             }
         });
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if(serviceBinder != null){
+            serviceBinder.clearMyListener(this);
+        }
+    }
+
+    @Override
+    public void onLayoutChange(View view, int left, int top, int right,
+                               int bottom, int oldLeft, int oldTop, int oldRight, int oldBottom) {
+        //现在认为只要控件将Activity向上推的高度超过了1/3屏幕高，就认为软键盘弹起
+        if(oldBottom != 0 && bottom != 0 &&(oldBottom - bottom > mKeyBoardHight)){
+            scrollEnd();
+        }else if(oldBottom != 0 && bottom != 0 &&(bottom - oldBottom > mKeyBoardHight)){
+        }
     }
 }

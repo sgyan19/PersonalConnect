@@ -32,10 +32,13 @@
         </activity>
 
         <activity android:name="com.sun.conversation.CvsActivity"
+            android:windowSoftInputMode="adjustResize"
             android:launchMode="singleTask">
         </activity>
 
-
+        <service
+            android:name="com.sun.conversation.CvsService">
+        </service>
         <service
             android:name="com.sun.connect.SocketService">
         </service>

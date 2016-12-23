@@ -21,8 +21,8 @@ public class SocketTask implements Runnable {
     public static final int MSG_STOP_RECEIVE = 3;
     public static final int MSG_DISCONNECT = 9;
 
-    public static final int REQUEST_KEY_NOBODY = -2;
-    public static final int REQUEST_KEY_ANLYBODY = -1;
+    public static final int REQUEST_KEY_NOBODY = -1;
+    public static final int REQUEST_KEY_ANLYBODY = 0;
 
     private ClientSocket mCoreSocket = new ClientSocket();
     private Thread mCoreThread;
@@ -50,6 +50,7 @@ public class SocketTask implements Runnable {
         start(new Runnable() {
             @Override
             public void run() {
+                sendMessage(MSG_REQUEST, REQUEST_KEY_NOBODY, RequestDataHelper.CvsConnectRequest, null);
                 startReceive(mDupLexCallback);
             }
         });
@@ -146,7 +147,7 @@ public class SocketTask implements Runnable {
                     if (mCoreSocket == null || !mCoreSocket.isConnecting()) {
                         synchronized (ReceiveLock) {
                             try {
-                                ReceiveLock.wait();
+                                ReceiveLock.wait(20000);
                             } catch (InterruptedException e) {
                             }
                         }

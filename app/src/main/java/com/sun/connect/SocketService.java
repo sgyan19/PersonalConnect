@@ -4,11 +4,13 @@ import android.app.Service;
 import android.content.Intent;
 import android.os.Binder;
 import android.os.IBinder;
+import android.os.RemoteException;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
 /**
  * Created by guoyao on 2016/12/21.
+ * this service maybe a remote service.Activity should not touch this.
  */
 public class SocketService extends Service {
     public static final String SocketReceiveBroadcast = "com.sun.connect.SocketService.Receive";
@@ -45,6 +47,13 @@ public class SocketService extends Service {
             SocketService.this.getSocketTask().sendMessage(SocketTask.MSG_REQUEST, key, request, null);
         }
     }
+
+    public ISocketServiceBinder.Stub stub = new ISocketServiceBinder.Stub() {
+        @Override
+        public void request(int key, String request) throws RemoteException {
+            SocketService.this.getSocketTask().sendMessage(SocketTask.MSG_REQUEST, key, request, null);
+        }
+    };
 
     private SocketTask socketTask;
 
