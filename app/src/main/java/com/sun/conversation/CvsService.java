@@ -71,7 +71,9 @@ public class CvsService extends Service {
                     responseObj = GsonUtils.mGson.fromJson(response, ResponseData.class);
                     noteRequest = GsonUtils.mGson.fromJson(responseObj.getData(), RequestData.class);
                     note = GsonUtils.mGson.fromJson(noteRequest.getArgs().get(0), CvsNote.class);
-                }catch (Exception e){}
+                }catch (Exception e){
+                    e.printStackTrace();
+                }
             }
             if(!TextUtils.isEmpty(error) || noteRequest == null || note == null){
                 if(mRequestHistory.containsKey(key)){
