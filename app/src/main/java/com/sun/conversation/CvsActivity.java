@@ -1,10 +1,8 @@
 package com.sun.conversation;
 
-import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.graphics.PointF;
 import android.os.Bundle;
@@ -20,6 +18,7 @@ import android.view.View.OnLayoutChangeListener;
 import android.widget.EditText;
 import android.widget.Toast;
 import com.sun.account.Account;
+import com.sun.account.AccountActivity;
 import com.sun.conversation.CvsService.CvsListener;
 import com.sun.personalconnect.Application;
 import com.sun.personalconnect.R;
@@ -33,7 +32,8 @@ public class CvsActivity extends AppCompatActivity implements View.OnClickListen
     private EditText mEditContent;
     private RecyclerView mCvsRcc;
     private CvsService.ServiceBinder serviceBinder;
-    private int mKeyBoardHight;
+    private ServiceConnection serviceConn;
+    private int mKeyBoardHeight;
 
     @Override
     public void onSendFailed(long key, CvsNote note, String message) {
@@ -47,6 +47,7 @@ public class CvsActivity extends AppCompatActivity implements View.OnClickListen
 
     @Override
     public void onNew(CvsNote note) {
+        ((CvsRecyclerAdapter)mCvsRcc.getAdapter()).removeTooMoreCache();
         mCvsRcc.getAdapter().notifyDataSetChanged();
         asyncScrollEnd();
     }
@@ -100,6 +101,13 @@ public class CvsActivity extends AppCompatActivity implements View.OnClickListen
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Account account = Application.getInstance().getAccount();
+        if(!account.isLogin()){
+            startActivity(new Intent(this, AccountActivity.class));
+            finish();
+            return ;
+        }
+
         setContentView(R.layout.activity_conversation);
         mCvsRcc = (RecyclerView)findViewById(R.id.rcr_cvs_content);
         //mCvsRcc.setHasFixedSize(true);
@@ -109,11 +117,11 @@ public class CvsActivity extends AppCompatActivity implements View.OnClickListen
         mCvsRcc.post(new Runnable() {
             @Override
             public void run() {
-                mKeyBoardHight = mCvsRcc.getMeasuredHeight() / 3;
+                mKeyBoardHeight = mCvsRcc.getMeasuredHeight() / 3;
             }
         });
         mEditContent = (EditText)findViewById(R.id.edit_cvs_content);
-        bindService(new Intent(CvsActivity.this, CvsService.class), new ServiceConnection() {
+        serviceConn = new ServiceConnection() {
             @Override
             public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
                 serviceBinder = (CvsService.ServiceBinder) iBinder;
@@ -124,7 +132,11 @@ public class CvsActivity extends AppCompatActivity implements View.OnClickListen
             public void onServiceDisconnected(ComponentName componentName) {
                 serviceBinder = null;
             }
-        }, BIND_AUTO_CREATE);
+        };
+        bindService(new Intent(CvsActivity.this, CvsService.class),serviceConn, BIND_AUTO_CREATE);
+        if(((CvsRecyclerAdapter)mCvsRcc.getAdapter()).removeTooMoreCache() > 0){
+            mCvsRcc.getAdapter().notifyDataSetChanged();
+        }
         scrollEnd();
     }
 
@@ -200,9 +212,17 @@ public class CvsActivity extends AppCompatActivity implements View.OnClickListen
     public void onLayoutChange(View view, int left, int top, int right,
                                int bottom, int oldLeft, int oldTop, int oldRight, int oldBottom) {
         //现在认为只要控件将Activity向上推的高度超过了1/3屏幕高，就认为软键盘弹起
-        if(oldBottom != 0 && bottom != 0 &&(oldBottom - bottom > mKeyBoardHight)){
+        if(oldBottom != 0 && bottom != 0 &&(oldBottom - bottom > mKeyBoardHeight)){
             scrollEnd();
-        }else if(oldBottom != 0 && bottom != 0 &&(bottom - oldBottom > mKeyBoardHight)){
+        }else if(oldBottom != 0 && bottom != 0 &&(bottom - oldBottom > mKeyBoardHeight)){
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        if(serviceConn != null) {
+            unbindService(serviceConn);
+        }
+        super.onDestroy();
     }
 }

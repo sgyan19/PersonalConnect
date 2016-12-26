@@ -1,5 +1,8 @@
 package com.sun.conversation;
 
+import com.sun.account.Account;
+import com.sun.personalconnect.Application;
+
 /**
  * Created by guoyao on 2016/12/22.
  */
@@ -13,6 +16,14 @@ public class CvsNoteHelper {
             case CvsNote.STATUS_SUC:
             default:
                 return "";
+        }
+    }
+
+    public static int getUserColor(CvsNote note){
+        if(Application.getInstance().getAccount().isLoginAccount(note.getUserId())){
+            return 0xff008040;
+        }else {
+            return 0xff0000ff;
         }
     }
 }

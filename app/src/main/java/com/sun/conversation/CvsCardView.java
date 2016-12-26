@@ -37,9 +37,12 @@ public class CvsCardView extends CardView {
     }
 
     public void update(CvsNote note){
+        int color = CvsNoteHelper.getUserColor(note);
         mTxtName.setText(note.getUserName());
-        mTxtContent.setText(note.getContent());
+        mTxtName.setTextColor(color);
         mTxtTime.setText(note.getTimeFormat());
+        mTxtTime.setTextColor(color);
+        mTxtContent.setText(note.getContent());
         mTxtSend.setText(CvsNoteHelper.getStatusText(note));
     }
 }

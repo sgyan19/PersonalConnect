@@ -35,6 +35,10 @@ public class CvsRecyclerAdapter extends RecyclerView.Adapter<CvsRecyclerAdapter.
         return Application.getInstance().getCvsHistoryManager().getCacheCount();
     }
 
+    public int removeTooMoreCache(){
+        return Application.getInstance().getCvsHistoryManager().removeTooMoreCache();
+    }
+
     public static class Holder extends RecyclerView.ViewHolder{
         public CvsCardView cardView;
 

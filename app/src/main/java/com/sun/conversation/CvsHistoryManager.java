@@ -73,6 +73,28 @@ public class CvsHistoryManager {
         }
     }
 
+    public int removeTooMoreCache(){
+        int removeCount = mCvsCache.size() - 10;
+        if(removeCount <=  0){
+            return 0;
+        }
+        int index = 0;
+        LinkedList<CvsNote> tmp = new LinkedList<>();
+        tmp.addAll(mCvsCache);
+        Iterator<CvsNote> iterator = tmp.iterator();
+        while(iterator.hasNext() && index < removeCount){
+            CvsNote note = iterator.next();
+            if(note.getSendStatus() == CvsNote.STATUS_SUC){
+                iterator.remove();
+                index++;
+            }
+        }
+        mCvsCache.clear();
+        mCvsCache.addAll(tmp);
+        tmp.clear();
+        return index;
+    }
+
     public void close(){
         if(devOpenHelper != null) {
             devOpenHelper.close();

@@ -37,6 +37,11 @@ public class SocketService extends Service {
                 SocketService.this.sendBroadcast(intent);
             }
         }
+
+        @Override
+        public void onConnected(int requestKey) {
+            SocketService.this.getSocketTask().sendMessage(SocketTask.MSG_REQUEST, SocketTask.REQUEST_KEY_NOBODY, RequestDataHelper.CvsConnectRequest, null);
+        }
     };
     public class ServiceBinder extends Binder {
         public SocketService getService() {
@@ -45,6 +50,10 @@ public class SocketService extends Service {
 
         public void request(int key, String request){
             SocketService.this.getSocketTask().sendMessage(SocketTask.MSG_REQUEST, key, request, null);
+        }
+
+        public void stopReceive(){
+            SocketService.this.getSocketTask().stopReceive();
         }
     }
 

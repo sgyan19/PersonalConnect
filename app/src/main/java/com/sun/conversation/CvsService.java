@@ -8,17 +8,15 @@ import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.os.Binder;
-import android.os.Build;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.support.v4.app.NotificationCompat;
-import android.support.v7.app.AlertDialog;
 import android.text.TextUtils;
+import android.util.Log;
 
 import com.sun.connect.RequestData;
 import com.sun.connect.RequestDataHelper;
@@ -37,11 +35,12 @@ import java.util.LinkedHashMap;
  * this is a local service, activity can touch this safety.
  */
 public class CvsService extends Service {
-
+    private final static String TAG = "CvsService";
     private CvsService.ServiceBinder serviceBinder;
     private SocketService.ServiceBinder socketBinder;
     private LinkedHashMap<Integer, CvsNote> mRequestHistory = new LinkedHashMap<>();
     private WeakReference<CvsListener> mCvsListenerReference;
+    private ServiceConnection socketConn;
 
     public interface CvsListener {
         void onSendFailed(long key, CvsNote note, String message);
@@ -72,7 +71,7 @@ public class CvsService extends Service {
                     noteRequest = GsonUtils.mGson.fromJson(responseObj.getData(), RequestData.class);
                     note = GsonUtils.mGson.fromJson(noteRequest.getArgs().get(0), CvsNote.class);
                 }catch (Exception e){
-                    e.printStackTrace();
+                    Log.e(TAG, "Receive:" + response);
                 }
             }
             if(!TextUtils.isEmpty(error) || noteRequest == null || note == null){
@@ -89,7 +88,7 @@ public class CvsService extends Service {
             key = responseObj.getRequestId();
 
             note.setSendStatus(CvsNote.STATUS_SUC);
-            if(key == SocketTask.REQUEST_KEY_ANLYBODY){
+            if(key == SocketTask.REQUEST_KEY_ANYBODY){
                 Application.getInstance().getCvsHistoryManager().insertCache(note);
                 Application.getInstance().getCvsHistoryManager().saveCache();
                 if(( l = getOnCvsListener()) != null){
@@ -149,15 +148,13 @@ public class CvsService extends Service {
         serviceBinder = new ServiceBinder();
         IntentFilter intentFilter = new IntentFilter(SocketService.SocketReceiveBroadcast);
         registerReceiver(mReceiver, intentFilter);
-
-
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         super.onStartCommand(intent, flags, startId);
         if(socketBinder == null) {
-            bindService(new Intent(CvsService.this, SocketService.class), new ServiceConnection() {
+            socketConn = new ServiceConnection() {
                 @Override
                 public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
                     socketBinder = (SocketService.ServiceBinder) iBinder;
@@ -167,19 +164,24 @@ public class CvsService extends Service {
                 public void onServiceDisconnected(ComponentName componentName) {
                     socketBinder = null;
                 }
-            }, BIND_AUTO_CREATE);
+            };
+            bindService(new Intent(CvsService.this, SocketService.class), socketConn, BIND_AUTO_CREATE);
         }
         return Service. START_STICKY;
     }
 
     @Override
     public void onDestroy() {
+        socketBinder.stopReceive();
         unregisterReceiver(mReceiver);
+        if(socketConn != null){
+            unbindService(socketConn);
+        }
         super.onDestroy();
     }
 
     private void showNotification(Context context,String title, String text) {
-        NotificationManager motificationManager = (NotificationManager) context.getSystemService(Activity.NOTIFICATION_SERVICE);
+        NotificationManager notificationManager = (NotificationManager) context.getSystemService(Activity.NOTIFICATION_SERVICE);
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context);
         builder.setContentTitle(title);
@@ -193,6 +195,7 @@ public class CvsService extends Service {
                 .setSmallIcon(R.mipmap.ic_launcher);
         Notification notification = builder.build();
         notification.flags = Notification.FLAG_AUTO_CANCEL;
-        motificationManager.notify(1224, notification);
+        notification.defaults = Notification.DEFAULT_SOUND;
+        notificationManager.notify(1224, notification);
     }
 }

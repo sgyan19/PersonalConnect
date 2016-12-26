@@ -1,5 +1,7 @@
 package com.sun.connect;
 
+import android.util.Log;
+
 import com.sun.settings.Config;
 
 import com.google.gson.Gson;
@@ -13,6 +15,7 @@ import java.net.SocketException;
  * Created by guoyao on 2016/12/13.
  */
 public class ClientSocket {
+    public static final String TAG = "ClientSocket";
     public static String Host;
     public static final int Port = 19193;
 
@@ -39,10 +42,12 @@ public class ClientSocket {
         try
         {
             Host = Config.Debug ? "192.168.137.1" :"hanclt.eicp.net";
+            Log.d(TAG, Host + " 重连");
             mSocket = new Socket(Host, Port);
         }
         catch(Exception e)
         {
+            Log.d(TAG, Host + " 连接失败");
             mRemoteClosed = true;
             mLastException = e;
             return false;

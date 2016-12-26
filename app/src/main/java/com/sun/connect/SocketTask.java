@@ -3,6 +3,7 @@ package com.sun.connect;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.util.Log;
 
 import java.io.IOException;
 import java.lang.ref.WeakReference;
@@ -15,6 +16,7 @@ import java.util.concurrent.Executors;
  * Created by guoyao on 2016/12/13.
  */
 public class SocketTask implements Runnable {
+    public static final String TAG = "SocketTask";
     public static final int MSG_CONNECT = 0;
     public static final int MSG_REQUEST = 1;
     public static final int MSG_RECEIVE = 2;
@@ -22,7 +24,7 @@ public class SocketTask implements Runnable {
     public static final int MSG_DISCONNECT = 9;
 
     public static final int REQUEST_KEY_NOBODY = -1;
-    public static final int REQUEST_KEY_ANLYBODY = 0;
+    public static final int REQUEST_KEY_ANYBODY = 0;
 
     private ClientSocket mCoreSocket = new ClientSocket();
     private Thread mCoreThread;
@@ -31,6 +33,7 @@ public class SocketTask implements Runnable {
     private final Object ReceiveLock = new Object();
     private ExecutorService mReceiveExecutor;
     private boolean mReceiving = false;
+
     public void start(){
         start(null);
     }
@@ -50,7 +53,6 @@ public class SocketTask implements Runnable {
         start(new Runnable() {
             @Override
             public void run() {
-                sendMessage(MSG_REQUEST, REQUEST_KEY_NOBODY, RequestDataHelper.CvsConnectRequest, null);
                 startReceive(mDupLexCallback);
             }
         });
@@ -108,19 +110,16 @@ public class SocketTask implements Runnable {
             SocketCallback callback = st.mReceiving ? st.mDupLexCallback :((msg.obj != null && msg.obj instanceof MessageData)? ((MessageData) msg.obj).callback : null);
             switch (what){
                 case MSG_CONNECT:
-                    st.makeSureConnected(msg.arg1, callback, callback);
+                    st.makeSureConnected(msg.arg1, callback, callback,null);
                     break;
                 case MSG_REQUEST:
-                    connected = st.makeSureConnected(msg.arg1, null,callback);
+                    connected = st.makeSureConnected(msg.arg1, null,callback,null);
                     if(connected){
                         st.request(msg.arg1, (MessageData) msg.obj);
                     }
                     break;
                 case MSG_RECEIVE:
-                    connected = st.makeSureConnected(msg.arg1, null,callback);
-                    if(connected){
-                        st.startReceive(callback);
-                    }
+                    st.startReceive(callback);
                     break;
                 case MSG_STOP_RECEIVE:
                     st.stopReceive();
@@ -143,8 +142,10 @@ public class SocketTask implements Runnable {
         mReceiveExecutor.execute(new Runnable() {
             @Override
             public void run() {
+                Log.d(TAG, "Receive 开始");
                 while (mReceiving) {
-                    if (mCoreSocket == null || !mCoreSocket.isConnecting()) {
+                    if (!makeSureConnected(REQUEST_KEY_NOBODY, null, null, mDupLexCallback)) {
+                        Log.d(TAG, "Receive 未能连接 wait 20 s");
                         synchronized (ReceiveLock) {
                             try {
                                 ReceiveLock.wait(20000);
@@ -154,16 +155,19 @@ public class SocketTask implements Runnable {
                         continue;
                     }
                     try {
+                        Log.d(TAG, "Receive 连接成功receive");
                         String response = mCoreSocket.receive();
+                        Log.d(TAG, "Receive response:" + response);
                         if (response != null) {
                             if (mDupLexCallback != null) {
-                                mDupLexCallback.onComplete(REQUEST_KEY_ANLYBODY, response);
+                                mDupLexCallback.onComplete(REQUEST_KEY_ANYBODY, response);
                             }
                         }
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
                 }
+                Log.d(TAG, "Receive stop");
             }
         });
     }
@@ -183,19 +187,24 @@ public class SocketTask implements Runnable {
         });
     }
 
-    public boolean makeSureConnected(int id, SocketCallback sucBack, SocketCallback errBack){
+    public boolean makeSureConnected(int id, SocketCallback sucBack, SocketCallback errBack,SocketCallback onConnectCallback){
         boolean connected ;
         if(mCoreSocket.isConnecting()){
             connected = true;
         }else{
             connected = mCoreSocket.connect();
-            if(connected && mReceiving) {
-                synchronized (ReceiveLock) {
-                    ReceiveLock.notifyAll();
+            if(connected) {
+                if (onConnectCallback != null) {
+                    onConnectCallback.onConnected(id);
+                }
+                if (mReceiving) {
+                    synchronized (ReceiveLock) {
+                        ReceiveLock.notifyAll();
+                    }
                 }
             }
         }
-        if(connected ){
+        if(connected){
             if(sucBack != null) {
                 sucBack.onComplete(id, null);
             }
@@ -208,6 +217,7 @@ public class SocketTask implements Runnable {
     }
 
     private void request(int id, MessageData messageData){
+        Log.d(TAG, "request stop");
         if(mReceiving) {
             mCoreSocket.requestWithoutBack(messageData.requestData);
         }else {

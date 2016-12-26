@@ -93,4 +93,8 @@ public class Account {
     public int getLoginId(){
         return login != null ? login.id : 0;
     }
+
+    public boolean isLoginAccount(int id){
+        return login != null && login.id == id;
+    }
 }
