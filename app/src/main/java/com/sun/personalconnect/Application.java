@@ -3,6 +3,7 @@ package com.sun.personalconnect;
 import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
+import android.telephony.TelephonyManager;
 
 import com.sun.account.Account;
 import com.sun.conversation.CvsHistoryManager;
@@ -28,6 +29,8 @@ public class Application extends android.app.Application {
     private Account account;
 
     private boolean mUiApp;
+
+    private String mDeviceId;
     //private SocketTask socketTask;
     @Override
     public void onCreate() {
@@ -48,6 +51,8 @@ public class Application extends android.app.Application {
 
         startService(new Intent(this, SocketService.class));
         startService(new Intent(this, CvsService.class));
+        mDeviceId = ((TelephonyManager) getSystemService(TELEPHONY_SERVICE))
+                .getDeviceId();
         //socketTask = new SocketTask();
         //socketTask.start();
     }
@@ -86,5 +91,9 @@ public class Application extends android.app.Application {
             }
         }
         return null;
+    }
+
+    public String getDeviceId(){
+        return mDeviceId;
     }
 }

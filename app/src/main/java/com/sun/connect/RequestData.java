@@ -11,6 +11,8 @@ public class RequestData {
     private List<String> args;
     private int requestId = 0;
 
+    private String deviceId;
+
     public RequestData(){
         args = new ArrayList<>();
     }
@@ -37,5 +39,13 @@ public class RequestData {
 
     public void setRequestId(int requestId) {
         this.requestId = requestId;
+    }
+
+    public String getDeviceId() {
+        return deviceId;
+    }
+
+    public void setDeviceId(String deviceId) {
+        this.deviceId = deviceId;
     }
 }

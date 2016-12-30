@@ -8,6 +8,8 @@ import android.os.RemoteException;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
+import com.sun.personalconnect.Application;
+
 /**
  * Created by guoyao on 2016/12/21.
  * this service maybe a remote service.Activity should not touch this.
@@ -40,7 +42,7 @@ public class SocketService extends Service {
 
         @Override
         public void onConnected(int requestKey) {
-            SocketService.this.getSocketTask().sendMessage(SocketTask.MSG_REQUEST, SocketTask.REQUEST_KEY_NOBODY, RequestDataHelper.CvsConnectRequest, null);
+            SocketService.this.getSocketTask().sendMessage(SocketTask.MSG_REQUEST, SocketTask.REQUEST_KEY_NOBODY, String.format(RequestDataHelper.CvsConnectRequest, Application.getInstance().getDeviceId()), null);
         }
     };
     public class ServiceBinder extends Binder {

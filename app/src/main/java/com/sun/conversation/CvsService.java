@@ -55,6 +55,7 @@ public class CvsService extends Service {
     private BroadcastReceiver mReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
+            Log.d(TAG, "BroadcastReceiver");
             int key = intent.getIntExtra(SocketService.KEY_INT_REQUESTKEY, SocketTask.REQUEST_KEY_NOBODY);
             if(key == SocketTask.REQUEST_KEY_NOBODY) {
                 return;
@@ -74,8 +75,11 @@ public class CvsService extends Service {
                     Log.e(TAG, "Receive:" + response);
                 }
             }
+
+            Log.d(TAG, String.format("BroadcastReceiver error:%s,response:%s", error, response));
             if(!TextUtils.isEmpty(error) || noteRequest == null || note == null){
                 if(mRequestHistory.containsKey(key)){
+                    Application.getInstance().getCvsHistoryManager().saveCache();
                     mRequestHistory.get(key).setSendStatus(CvsNote.STATUS_FAL);
                     mRequestHistory.remove(key);
                     if(( l = getOnCvsListener()) != null){
@@ -119,8 +123,10 @@ public class CvsService extends Service {
                 String arg = GsonUtils.mGson.toJson(note);
                 requestData.addArg(arg);
                 requestData.setRequestId(requestData.hashCode());
+                requestData.setDeviceId(Application.getInstance().getDeviceId());
                 socketBinder.request(requestData.getRequestId(), GsonUtils.mGson.toJson(requestData));
                 mRequestHistory.put(requestData.getRequestId(), note);
+
             }
         }
 

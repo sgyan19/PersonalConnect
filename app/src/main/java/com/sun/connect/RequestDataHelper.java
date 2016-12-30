@@ -11,7 +11,7 @@ public class RequestDataHelper {
 
     public static final RequestData CvsConnect = new RequestData();
 
-    public static final String CvsConnectRequest = "{\"args\":[],\"code\":\"11\",\"requestId\":0}";
+    public static final String CvsConnectRequest = "{\"args\":[],\"code\":\"11\",\"requestId\":0,\"deviceId\":\"%s\"}";
     static {
         CvsConnect.setCode(CODE_ConversationLongLink);
     }

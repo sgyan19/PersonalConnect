@@ -66,7 +66,7 @@ public class CvsHistoryManager {
         Iterator<CvsNote> iterator = mWaitForSave.iterator();
         while(iterator.hasNext()){
             CvsNote note = iterator.next();
-            if(note.getSendStatus() == CvsNote.STATUS_SUC){
+            if(note.getSendStatus() != CvsNote.STATUS_INIT){
                 mCvsDao.insert(note);
                 iterator.remove();
             }

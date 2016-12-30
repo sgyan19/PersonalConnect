@@ -8,7 +8,11 @@ import com.google.gson.Gson;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
+import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketAddress;
 import java.net.SocketException;
 
 /**
@@ -16,8 +20,24 @@ import java.net.SocketException;
  */
 public class ClientSocket {
     public static final String TAG = "ClientSocket";
-    public static String Host;
+    public static final Host[] HostList = new Host[]{
+            new Host(0,"hanclt.eicp.net"),
+            new Host(0,"maths326009812.oicp.net"),
+    };
+
+    public static Host Host;
     public static final int Port = 19193;
+    public final Object lock = new Object();
+
+    public static class Host{
+        public int tryTimes;
+        public String address;
+
+        public Host(int times, String addr){
+            this.tryTimes = times;
+            this.address = addr;
+        }
+    }
 
     private byte[] buffer = new byte[1024 * 10];
 
@@ -32,28 +52,40 @@ public class ClientSocket {
 
     public boolean connect()
     {
-        if(mSocket != null &&(mSocket.isClosed()|| mRemoteClosed)) {
-            try {
-                mSocket.close();
-            } catch (Exception e) {
-                e.printStackTrace();
+        boolean connected = false;
+        Log.d(TAG, "尝试连接，开始进入锁区");
+        synchronized (lock) {
+            Log.d(TAG, "已进入锁区");
+            if(mSocket != null && mRemoteClosed && !mSocket.isClosed()){
+                try {
+                    Log.d(TAG, mSocket.getInetAddress().getHostAddress() + " 远程已断开");
+                    mSocket.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            if(mSocket == null|| mSocket.isClosed()|| mRemoteClosed) {
+                try {
+                    Host = choseHost();
+                    Log.d(TAG, Host.address + " 重连");
+                    mSocket = new Socket(Host.address, Port);
+                    mSocket.setKeepAlive(true);
+                    Log.d(TAG, Host.address + " 连接成功");
+                    Host.tryTimes = 0;
+                    connected = true;
+                    mRemoteClosed = false;
+                } catch (Exception e) {
+                    Log.d(TAG, Host.address + " 连接失败");
+                    mRemoteClosed = true;
+                    mLastException = e;
+                    Host.tryTimes++;
+                    connected = false;
+                }
+            }else{
+                Log.d(TAG, mSocket.getInetAddress().getHostAddress() + " 已连接");
             }
         }
-        try
-        {
-            Host = Config.Debug ? "192.168.137.1" :"hanclt.eicp.net";
-            Log.d(TAG, Host + " 重连");
-            mSocket = new Socket(Host, Port);
-        }
-        catch(Exception e)
-        {
-            Log.d(TAG, Host + " 连接失败");
-            mRemoteClosed = true;
-            mLastException = e;
-            return false;
-        }
-        mRemoteClosed = false;
-        return true;
+        return connected;
     }
 
     public String request(String request)
@@ -64,12 +96,15 @@ public class ClientSocket {
                     mSocket.getOutputStream(), "utf-8");
             writer.write(request);
             writer.flush();
+            Log.d(TAG, "request suc");
             InputStream stream = mSocket.getInputStream();
             int len  = stream.read(buffer);
             if(len > 0) {
                 responseData = new String(buffer, 0, len, "utf-8");
+                Log.d(TAG, "request back " + len);
             }
         }catch (IOException e){
+            Log.d(TAG, "request exception:" + e.toString());
             mLastException = e;
             if(e instanceof SocketException){
                 mRemoteClosed = true;
@@ -85,7 +120,9 @@ public class ClientSocket {
                     mSocket.getOutputStream(), "utf-8");
             writer.write(request);
             writer.flush();
+            Log.d(TAG, "requestWithoutBack suc");
         }catch (IOException e){
+            Log.d(TAG, "requestWithoutBack exception:" + e.toString());
             mLastException = e;
             if(e instanceof SocketException){
                 mRemoteClosed = true;
@@ -117,17 +154,24 @@ public class ClientSocket {
 
     public void Close()
     {
-        if(mSocket != null)
-        {
-            try
-            {
-                mSocket.close();
-            }
-            catch (Exception e)
-            {
-                mLastException = e;
-                e.printStackTrace();
+        synchronized (lock) {
+            if (mSocket != null) {
+                try {
+                    mSocket.close();
+                } catch (Exception e) {
+                    mLastException = e;
+                    e.printStackTrace();
+                }
             }
         }
+    }
+
+    private Host choseHost(){
+        for(int i = 0 ; i < HostList.length; i ++){
+            if(HostList[i].tryTimes < 3){
+                return HostList[i];
+            }
+        }
+        return HostList[0].tryTimes < HostList[1].tryTimes ? HostList[0] : HostList[1];
     }
 }

@@ -108,6 +108,8 @@ public class SocketTask implements Runnable {
             }
             boolean connected;
             SocketCallback callback = st.mReceiving ? st.mDupLexCallback :((msg.obj != null && msg.obj instanceof MessageData)? ((MessageData) msg.obj).callback : null);
+
+            Log.d(TAG, "handleMessage:" + (msg.obj == null ? msg.arg1 :((MessageData) msg.obj).requestData));
             switch (what){
                 case MSG_CONNECT:
                     st.makeSureConnected(msg.arg1, callback, callback,null);
@@ -155,7 +157,7 @@ public class SocketTask implements Runnable {
                         continue;
                     }
                     try {
-                        Log.d(TAG, "Receive 连接成功receive");
+                        Log.d(TAG, "Receive 已连接 开始receive");
                         String response = mCoreSocket.receive();
                         Log.d(TAG, "Receive response:" + response);
                         if (response != null) {
@@ -164,6 +166,7 @@ public class SocketTask implements Runnable {
                             }
                         }
                     } catch (IOException e) {
+                        Log.d(TAG, "Receive 异常");
                         e.printStackTrace();
                     }
                 }
@@ -217,7 +220,7 @@ public class SocketTask implements Runnable {
     }
 
     private void request(int id, MessageData messageData){
-        Log.d(TAG, "request stop");
+        Log.d(TAG, "request data" + messageData.requestData);
         if(mReceiving) {
             mCoreSocket.requestWithoutBack(messageData.requestData);
         }else {
