@@ -29,6 +29,8 @@ public class CvsHistoryManager {
     private List<CvsNote> mCvsCache;
     private List<CvsNote> mWaitForSave;
 
+    private CvsNote mLastSendNote;
+
     public void init(Context context){
         DbName = context.getPackageName();
         devOpenHelper = new DaoMaster.DevOpenHelper(context, ENCRYPTED ? DbName + "-db-encrypted" : DbName +"-db");
@@ -99,5 +101,13 @@ public class CvsHistoryManager {
         if(devOpenHelper != null) {
             devOpenHelper.close();
         }
+    }
+
+    public void keepLastSendNote(CvsNote note){
+        mLastSendNote = note;
+    }
+
+    public CvsNote getLastSendNote(){
+        return mLastSendNote;
     }
 }

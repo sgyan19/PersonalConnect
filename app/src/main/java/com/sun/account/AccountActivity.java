@@ -41,7 +41,7 @@ public class AccountActivity extends AppCompatActivity implements View.OnClickLi
         });
         mCkbDebug.setChecked(Config.Debug);
 
-        if(Application.getInstance().getAccount().isLogin()){
+        if(Application.App.getAccount().isLogin()){
             loginJump();
         }
     }
@@ -55,7 +55,7 @@ public class AccountActivity extends AppCompatActivity implements View.OnClickLi
                 if(TextUtils.isEmpty(mEditPassword.getText().toString())){
                     ToastUtils.show("凭据不能为空", Toast.LENGTH_SHORT);
                 }else{
-                    boolean rlt = Application.getInstance().getAccount().Login(mEditPassword.getText().toString());
+                    boolean rlt = Application.App.getAccount().Login(mEditPassword.getText().toString());
                     if(rlt){
                         loginJump();
                     }else{

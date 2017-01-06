@@ -9,20 +9,18 @@ import com.sun.account.Account;
 import com.sun.conversation.CvsHistoryManager;
 import com.sun.connect.SocketService;
 import com.sun.conversation.CvsService;
+import com.sun.power.PowerTaskManager;
+import com.sun.power.Ring;
 
 /**
  * Created by guoyao on 2016/12/13.
  */
 public class Application extends android.app.Application {
 
-    private static Application mApp;
-
-    public static Application getInstance(){
-        return mApp;
-    }
+    public static Application App;
 
     public static Context getContext(){
-        return mApp.getApplicationContext();
+        return App.getApplicationContext();
     }
 
     private CvsHistoryManager cvsHistoryManager;
@@ -32,16 +30,20 @@ public class Application extends android.app.Application {
 
     private String mDeviceId;
     //private SocketTask socketTask;
+    private PowerTaskManager mPowerTaskManager;
+    private Ring mRing;
     @Override
     public void onCreate() {
         super.onCreate();
-        mApp = this;
+        App = this;
         String packageName = getPackageName();
         String processName = getProcessName();
         if(packageName.equals(processName)) {
             mUiApp = true;
             init();
         }
+        mDeviceId = ((TelephonyManager) getSystemService(TELEPHONY_SERVICE))
+                .getDeviceId();
     }
 
     private void init(){
@@ -51,8 +53,8 @@ public class Application extends android.app.Application {
 
         startService(new Intent(this, SocketService.class));
         startService(new Intent(this, CvsService.class));
-        mDeviceId = ((TelephonyManager) getSystemService(TELEPHONY_SERVICE))
-                .getDeviceId();
+        mRing = new Ring();
+        mPowerTaskManager = new PowerTaskManager();
         //socketTask = new SocketTask();
         //socketTask.start();
     }
@@ -69,6 +71,13 @@ public class Application extends android.app.Application {
 //        return socketTask;
 //    }
 
+    public Ring getRing(){
+        return mRing;
+    }
+
+    public PowerTaskManager getPowerTaskManger(){
+        return mPowerTaskManager;
+    }
     @Override
     public void onTerminate() {
         if(mUiApp) {

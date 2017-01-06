@@ -10,6 +10,8 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
     <!-- imei -->
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <!-- 震动 -->
+    <uses-permission android:name="android.permission.VIBRATE" />
     <application
         android:allowBackup="true"
         android:name=".Application"
@@ -42,7 +44,8 @@
             android:name="com.sun.conversation.CvsService">
         </service>
         <service
-            android:name="com.sun.connect.SocketService">
+            android:name="com.sun.connect.SocketService"
+            android:process=":remote">
         </service>
     </application>
 

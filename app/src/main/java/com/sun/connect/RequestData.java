@@ -33,6 +33,10 @@ public class RequestData {
         return args;
     }
 
+    public void clearArgs(){
+        args.clear();
+    }
+
     public int getRequestId() {
         return requestId;
     }

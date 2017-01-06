@@ -21,10 +21,13 @@ public class SocketTask implements Runnable {
     public static final int MSG_REQUEST = 1;
     public static final int MSG_RECEIVE = 2;
     public static final int MSG_STOP_RECEIVE = 3;
+    public static final int MSG_CONNECT_CHECK = 4;
     public static final int MSG_DISCONNECT = 9;
 
     public static final int REQUEST_KEY_NOBODY = -1;
     public static final int REQUEST_KEY_ANYBODY = 0;
+
+    public static final int TIME_HEARTBEAT = 2 * 60 * 1000; // 2分钟一次
 
     private ClientSocket mCoreSocket = new ClientSocket();
     private Thread mCoreThread;
@@ -126,6 +129,9 @@ public class SocketTask implements Runnable {
                 case MSG_STOP_RECEIVE:
                     st.stopReceive();
                     break;
+                case MSG_CONNECT_CHECK:
+                    st.SocketCheck();
+                    break;
                 case MSG_DISCONNECT:
                     st.stopReceive();
                     st.mCoreSocket.Close();
@@ -180,6 +186,7 @@ public class SocketTask implements Runnable {
         synchronized (ReceiveLock){
             ReceiveLock.notifyAll();
         }
+        mHandler.removeMessages(MSG_CONNECT_CHECK);
         mHandler.post(new Runnable() {
             @Override
             public void run() {
@@ -232,6 +239,14 @@ public class SocketTask implements Runnable {
                     messageData.callback.onComplete(id, response);
                 }
             }
+        }
+    }
+
+    public void SocketCheck(){
+        boolean bol = mCoreSocket.heartbeat();
+        mHandler.removeMessages(MSG_CONNECT_CHECK);
+        if(bol){
+            mHandler.sendMessageDelayed(Message.obtain(mHandler, MSG_CONNECT_CHECK), TIME_HEARTBEAT);
         }
     }
 

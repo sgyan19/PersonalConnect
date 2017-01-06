@@ -22,8 +22,13 @@ import com.sun.account.AccountActivity;
 import com.sun.conversation.CvsService.CvsListener;
 import com.sun.personalconnect.Application;
 import com.sun.personalconnect.R;
+import com.sun.power.InputFormat;
+import com.sun.power.LocalCmd;
 import com.sun.utils.ToastUtils;
 import com.sun.utils.Utils;
+
+import java.io.InputStream;
+import java.util.List;
 
 /**
  * Created by guoyao on 2016/12/13.
@@ -101,7 +106,7 @@ public class CvsActivity extends AppCompatActivity implements View.OnClickListen
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Account account = Application.getInstance().getAccount();
+        Account account = Application.App.getAccount();
         if(!account.isLogin()){
             startActivity(new Intent(this, AccountActivity.class));
             finish();
@@ -166,20 +171,18 @@ public class CvsActivity extends AppCompatActivity implements View.OnClickListen
             ToastUtils.show("输入为空？",Toast.LENGTH_SHORT);
             return;
         }
-        CvsNote note = new CvsNote();
-        note.setContent(content);
-        Account account = Application.getInstance().getAccount();
-        note.setId((int) System.currentTimeMillis());
-        note.setUserName(account.getLoginName());
-        note.setUserId(account.getLoginId());
-        long time = System.currentTimeMillis();
-        note.setTimeStamp(time);
-        note.setTimeFormat(Utils.getFormatTime(time));
-        Application.getInstance().getCvsHistoryManager().insertCache(note);
-        mCvsRcc.getAdapter().notifyDataSetChanged();
-        asyncScrollEnd();
 
-        serviceBinder.Request(note);
+        List<String> cmds = InputFormat.format(content);
+        if(!LocalCmd.handleCmd(cmds)){
+            CvsNote note = serviceBinder.Request(content, cmds);
+            if(note != null){
+                Application.App.getCvsHistoryManager().insertCache(note);
+                mCvsRcc.getAdapter().notifyDataSetChanged();
+                asyncScrollEnd();
+                Application.App.getCvsHistoryManager().keepLastSendNote(note);
+            }
+        }
+
         mEditContent.setText("");
     }
 

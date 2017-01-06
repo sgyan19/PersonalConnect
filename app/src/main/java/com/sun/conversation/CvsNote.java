@@ -29,6 +29,10 @@ public class CvsNote implements Serializable {
     private String extend;
     private int sendStatus;
 
+    @Generated(hash = 1880824119)
+    public CvsNote() {
+    }
+
     @Generated(hash = 276671708)
     public CvsNote(long id, String content, String userName, int userId,
             String timeFormat, long timeStamp, String extend, int sendStatus) {
@@ -40,10 +44,6 @@ public class CvsNote implements Serializable {
         this.timeStamp = timeStamp;
         this.extend = extend;
         this.sendStatus = sendStatus;
-    }
-
-    @Generated(hash = 1880824119)
-    public CvsNote() {
     }
 
     public long getId() {

@@ -5,4 +5,5 @@ package com.sun.connect;
  */
 interface ISocketServiceBinder  {
     void request(int key, String request);
+    void stopReceive();
 }

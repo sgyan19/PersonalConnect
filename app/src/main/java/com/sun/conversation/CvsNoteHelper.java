@@ -20,7 +20,7 @@ public class CvsNoteHelper {
     }
 
     public static int getUserColor(CvsNote note){
-        if(Application.getInstance().getAccount().isLoginAccount(note.getUserId())){
+        if(Application.App.getAccount().isLoginAccount(note.getUserId())){
             return 0xff008040;
         }else {
             return 0xff0000ff;

@@ -7,6 +7,7 @@ import com.sun.settings.Config;
 import com.google.gson.Gson;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.Inet4Address;
 import java.net.InetAddress;
@@ -21,12 +22,14 @@ import java.net.SocketException;
 public class ClientSocket {
     public static final String TAG = "ClientSocket";
     public static final Host[] HostList = new Host[]{
-            new Host(0,"hanclt.eicp.net"),
+            new Host(0,"192.168.137.1"),
             new Host(0,"maths326009812.oicp.net"),
     };
 
     public static Host Host;
     public static final int Port = 19193;
+    public static final byte HeartBeatASK = 0x19;
+    public static final byte HeartBeatANS = (byte)0x91;
     public final Object lock = new Object();
 
     public static class Host{
@@ -40,7 +43,7 @@ public class ClientSocket {
     }
 
     private byte[] buffer = new byte[1024 * 10];
-
+    private byte[] mHeartBeatData = new byte[]{HeartBeatASK};
     private Socket mSocket;
     private Throwable mLastException;
 
@@ -91,43 +94,47 @@ public class ClientSocket {
     public String request(String request)
     {
         String responseData = null;
-        try{
-            OutputStreamWriter writer = new OutputStreamWriter(
-                    mSocket.getOutputStream(), "utf-8");
-            writer.write(request);
-            writer.flush();
-            Log.d(TAG, "request suc");
-            InputStream stream = mSocket.getInputStream();
-            int len  = stream.read(buffer);
-            if(len > 0) {
-                responseData = new String(buffer, 0, len, "utf-8");
-                Log.d(TAG, "request back " + len);
+        synchronized (lock) {
+            try {
+                OutputStreamWriter writer = new OutputStreamWriter(
+                        mSocket.getOutputStream(), "utf-8");
+                writer.write(request);
+                writer.flush();
+                Log.d(TAG, "request suc");
+                InputStream stream = mSocket.getInputStream();
+                int len = stream.read(buffer);
+                if (len > 0) {
+                    responseData = new String(buffer, 0, len, "utf-8");
+                    Log.d(TAG, "request back " + len);
+                }
+            } catch (IOException e) {
+                Log.d(TAG, "request exception:" + e.toString());
+                mLastException = e;
+                if (e instanceof SocketException) {
+                    mRemoteClosed = true;
+                }
+                e.printStackTrace();
             }
-        }catch (IOException e){
-            Log.d(TAG, "request exception:" + e.toString());
-            mLastException = e;
-            if(e instanceof SocketException){
-                mRemoteClosed = true;
-            }
-            e.printStackTrace();
         }
         return responseData;
     }
 
     public void requestWithoutBack(String request){
-        try{
-            OutputStreamWriter writer = new OutputStreamWriter(
-                    mSocket.getOutputStream(), "utf-8");
-            writer.write(request);
-            writer.flush();
-            Log.d(TAG, "requestWithoutBack suc");
-        }catch (IOException e){
-            Log.d(TAG, "requestWithoutBack exception:" + e.toString());
-            mLastException = e;
-            if(e instanceof SocketException){
-                mRemoteClosed = true;
+        synchronized (lock) {
+            try {
+                OutputStreamWriter writer = new OutputStreamWriter(
+                        mSocket.getOutputStream(), "utf-8");
+                writer.write(request);
+                writer.flush();
+                Log.d(TAG, "requestWithoutBack suc");
+            } catch (IOException e) {
+                Log.d(TAG, "requestWithoutBack exception:" + e.toString());
+                mLastException = e;
+                if (e instanceof SocketException) {
+                    mRemoteClosed = true;
+                }
+                e.printStackTrace();
             }
-            e.printStackTrace();
         }
     }
 
@@ -135,12 +142,35 @@ public class ClientSocket {
         String responseData = null;
         InputStream stream = mSocket.getInputStream();
         int len  = stream.read(buffer);
-        if(len > 0) {
+
+        if(len == 1 && buffer[0] == HeartBeatANS){
+            Log.d(TAG, "HeartBeatANS");
+        }else if(len > 0) {
             responseData = new String(buffer, 0, len, "utf-8");
         }else{
             mRemoteClosed = true;
         }
         return responseData;
+    }
+
+    public boolean heartbeat(){
+        synchronized (lock) {
+            try {
+                OutputStream outputStream = mSocket.getOutputStream();
+                outputStream.write(mHeartBeatData);
+                outputStream.flush();
+                Log.d(TAG, "heartbeatASK");
+                mRemoteClosed = false;
+            } catch (IOException e) {
+                Log.d(TAG, "heartbeat exception:" + e.toString());
+                mLastException = e;
+                if (e instanceof SocketException) {
+                    mRemoteClosed = true;
+                }
+                e.printStackTrace();
+            }
+        }
+        return !mRemoteClosed;
     }
 
     public boolean isConnecting()
@@ -167,11 +197,11 @@ public class ClientSocket {
     }
 
     private Host choseHost(){
-        for(int i = 0 ; i < HostList.length; i ++){
-            if(HostList[i].tryTimes < 3){
-                return HostList[i];
-            }
-        }
+//        for(int i = 0 ; i < HostList.length; i ++){
+//            if(HostList[i].tryTimes < 3){
+//                return HostList[i];
+//            }
+//        }
         return HostList[0].tryTimes < HostList[1].tryTimes ? HostList[0] : HostList[1];
     }
 }

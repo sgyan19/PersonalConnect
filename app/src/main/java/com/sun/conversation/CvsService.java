@@ -13,11 +13,13 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.os.Binder;
 import android.os.IBinder;
+import android.os.RemoteException;
 import android.support.annotation.Nullable;
 import android.support.v4.app.NotificationCompat;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.sun.connect.ISocketServiceBinder;
 import com.sun.connect.RequestData;
 import com.sun.connect.RequestDataHelper;
 import com.sun.connect.ResponseData;
@@ -25,10 +27,12 @@ import com.sun.connect.SocketService;
 import com.sun.connect.SocketTask;
 import com.sun.personalconnect.Application;
 import com.sun.personalconnect.R;
+import com.sun.power.InputFormat;
 import com.sun.utils.GsonUtils;
 
 import java.lang.ref.WeakReference;
 import java.util.LinkedHashMap;
+import java.util.List;
 
 /**
  * Created by guoyao on 2016/12/23.
@@ -37,7 +41,7 @@ import java.util.LinkedHashMap;
 public class CvsService extends Service {
     private final static String TAG = "CvsService";
     private CvsService.ServiceBinder serviceBinder;
-    private SocketService.ServiceBinder socketBinder;
+    private ISocketServiceBinder socketBinder;
     private LinkedHashMap<Integer, CvsNote> mRequestHistory = new LinkedHashMap<>();
     private WeakReference<CvsListener> mCvsListenerReference;
     private ServiceConnection socketConn;
@@ -63,38 +67,54 @@ public class CvsService extends Service {
             CvsListener l;
             String error = intent.getStringExtra(SocketService.KEY_STRING_ERROR);
             String response = intent.getStringExtra(SocketService.KEY_STRING_RESPONSE);
-            RequestData noteRequest = null;
             ResponseData responseObj  = null;
-            CvsNote note = null;
+
             if(TextUtils.isEmpty(error) && !TextUtils.isEmpty(response)){
                 try {
                     responseObj = GsonUtils.mGson.fromJson(response, ResponseData.class);
-                    noteRequest = GsonUtils.mGson.fromJson(responseObj.getData(), RequestData.class);
-                    note = GsonUtils.mGson.fromJson(noteRequest.getArgs().get(0), CvsNote.class);
                 }catch (Exception e){
                     Log.e(TAG, "Receive:" + response);
                 }
             }
-
-            Log.d(TAG, String.format("BroadcastReceiver error:%s,response:%s", error, response));
-            if(!TextUtils.isEmpty(error) || noteRequest == null || note == null){
+            if(responseObj == null){
                 if(mRequestHistory.containsKey(key)){
-                    Application.getInstance().getCvsHistoryManager().saveCache();
-                    mRequestHistory.get(key).setSendStatus(CvsNote.STATUS_FAL);
+                    Application.App.getCvsHistoryManager().saveCache();
+                    CvsNote note = mRequestHistory.get(key);
+                    note.setSendStatus(CvsNote.STATUS_FAL);
                     mRequestHistory.remove(key);
                     if(( l = getOnCvsListener()) != null){
                         l.onSendFailed(key, note, error);
                     }
-                    return;
                 }
                 return;
             }
-            key = responseObj.getRequestId();
+            Log.d(TAG, String.format("BroadcastReceiver error:%s,response:%s", error, response));
 
+            if(handleResponse(responseObj) || "success".equals(responseObj.getData())){
+                return;
+            }
+
+            RequestData noteRequest = null;
+            try {
+                noteRequest = GsonUtils.mGson.fromJson(responseObj.getData(), RequestData.class);
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+            if(noteRequest == null || handleRequest(noteRequest)){
+                return;
+            }
+            CvsNote note = null;
+            try {
+                note = GsonUtils.mGson.fromJson(noteRequest.getArgs().get(0), CvsNote.class);
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+            if(note == null) return;
+            key = responseObj.getRequestId();
             note.setSendStatus(CvsNote.STATUS_SUC);
             if(key == SocketTask.REQUEST_KEY_ANYBODY){
-                Application.getInstance().getCvsHistoryManager().insertCache(note);
-                Application.getInstance().getCvsHistoryManager().saveCache();
+                Application.App.getCvsHistoryManager().insertCache(note);
+                Application.App.getCvsHistoryManager().saveCache();
                 if(( l = getOnCvsListener()) != null){
                     l.onNew(note);
                 }else{
@@ -103,7 +123,7 @@ public class CvsService extends Service {
             }else if(mRequestHistory.containsKey(key)){
                 mRequestHistory.get(key).setSendStatus(CvsNote.STATUS_SUC);
                 mRequestHistory.remove(key);
-                Application.getInstance().getCvsHistoryManager().saveCache();
+                Application.App.getCvsHistoryManager().saveCache();
                 if(( l = getOnCvsListener()) != null){
                     l.onSendSuccess(note);
                 }
@@ -123,11 +143,33 @@ public class CvsService extends Service {
                 String arg = GsonUtils.mGson.toJson(note);
                 requestData.addArg(arg);
                 requestData.setRequestId(requestData.hashCode());
-                requestData.setDeviceId(Application.getInstance().getDeviceId());
-                socketBinder.request(requestData.getRequestId(), GsonUtils.mGson.toJson(requestData));
+                requestData.setDeviceId(Application.App.getDeviceId());
+                try {
+                    socketBinder.request(requestData.getRequestId(), GsonUtils.mGson.toJson(requestData));
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                }
                 mRequestHistory.put(requestData.getRequestId(), note);
 
             }
+        }
+
+        public CvsNote Request(String content, List<String> cmds){
+            if(socketBinder == null){
+                return null;
+            }
+            Object[] objects = InputFormat.makeRequest(content, cmds);
+            if(objects == null) return null;
+            CvsNote note = (CvsNote)objects[1];
+            RequestData requestData = (RequestData)objects[0];
+            try {
+                socketBinder.request(requestData.getRequestId(), GsonUtils.mGson.toJson(requestData));
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+            if(note != null)
+                mRequestHistory.put(requestData.getRequestId(), note);
+            return note;
         }
 
         public void setCvsListener(CvsListener l){
@@ -163,7 +205,7 @@ public class CvsService extends Service {
             socketConn = new ServiceConnection() {
                 @Override
                 public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
-                    socketBinder = (SocketService.ServiceBinder) iBinder;
+                    socketBinder = ISocketServiceBinder.Stub.asInterface(iBinder);
                 }
 
                 @Override
@@ -178,7 +220,11 @@ public class CvsService extends Service {
 
     @Override
     public void onDestroy() {
-        socketBinder.stopReceive();
+        try {
+            socketBinder.stopReceive();
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
         unregisterReceiver(mReceiver);
         if(socketConn != null){
             unbindService(socketConn);
@@ -203,5 +249,25 @@ public class CvsService extends Service {
         notification.flags = Notification.FLAG_AUTO_CANCEL;
         notification.defaults = Notification.DEFAULT_SOUND;
         notificationManager.notify(1224, notification);
+    }
+
+    private boolean handleResponse(ResponseData response){
+        switch (response.getCode()){
+            default:
+                break;
+        }
+        return false;
+    }
+
+    private boolean handleRequest(RequestData request){
+        boolean handle = false;
+        switch (request.getCode()){
+            case RequestDataHelper.POWER_ConversationNote_RING:
+                Application.App.getPowerTaskManger().executeRingNote();
+                break;
+            default:
+                break;
+        }
+        return handle;
     }
 }

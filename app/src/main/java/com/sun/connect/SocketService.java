@@ -42,7 +42,8 @@ public class SocketService extends Service {
 
         @Override
         public void onConnected(int requestKey) {
-            SocketService.this.getSocketTask().sendMessage(SocketTask.MSG_REQUEST, SocketTask.REQUEST_KEY_NOBODY, String.format(RequestDataHelper.CvsConnectRequest, Application.getInstance().getDeviceId()), null);
+            SocketService.this.getSocketTask().sendMessage(SocketTask.MSG_REQUEST, SocketTask.REQUEST_KEY_NOBODY, String.format(RequestDataHelper.CvsConnectRequest, Application.App.getDeviceId()), null);
+            SocketService.this.getSocketTask().sendMessage(SocketTask.MSG_CONNECT_CHECK, SocketTask.REQUEST_KEY_NOBODY, null, null);
         }
     };
     public class ServiceBinder extends Binder {
@@ -64,6 +65,10 @@ public class SocketService extends Service {
         public void request(int key, String request) throws RemoteException {
             SocketService.this.getSocketTask().sendMessage(SocketTask.MSG_REQUEST, key, request, null);
         }
+
+        public void stopReceive(){
+            SocketService.this.getSocketTask().stopReceive();
+        }
     };
 
     private SocketTask socketTask;
@@ -83,7 +88,7 @@ public class SocketService extends Service {
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
-        return mBinder;
+        return stub;
     }
 
     @Override
