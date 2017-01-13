@@ -19,6 +19,13 @@ public class CvsNote implements Serializable {
     public static final int STATUS_INIT = 0;
     public static final int STATUS_SUC = 1;
     public static final int STATUS_FAL = 2;
+
+    public static final int TYPE_TEXT = 10;
+    public static final int TYPE_IMAGE = 11;
+
+    public static final int POWER_NORMAL = 20;
+    public static final int POWER_RING = 21;
+
     @Id
     private long id;
     private String content;
@@ -28,14 +35,17 @@ public class CvsNote implements Serializable {
     private long timeStamp;
     private String extend;
     private int sendStatus;
+    private int type = TYPE_TEXT;
+    private int power = POWER_NORMAL;
 
     @Generated(hash = 1880824119)
     public CvsNote() {
     }
 
-    @Generated(hash = 276671708)
+    @Generated(hash = 1612060684)
     public CvsNote(long id, String content, String userName, int userId,
-            String timeFormat, long timeStamp, String extend, int sendStatus) {
+            String timeFormat, long timeStamp, String extend, int sendStatus,
+            int type, int power) {
         this.id = id;
         this.content = content;
         this.userName = userName;
@@ -44,6 +54,8 @@ public class CvsNote implements Serializable {
         this.timeStamp = timeStamp;
         this.extend = extend;
         this.sendStatus = sendStatus;
+        this.type = type;
+        this.power = power;
     }
 
     public long getId() {
@@ -108,5 +120,21 @@ public class CvsNote implements Serializable {
 
     public void setSendStatus(int sendStatus) {
         this.sendStatus = sendStatus;
+    }
+
+    public int getType() {
+        return type;
+    }
+
+    public void setType(int type) {
+        this.type = type;
+    }
+
+    public int getPower() {
+        return power;
+    }
+
+    public void setPower(int power) {
+        this.power = power;
     }
 }

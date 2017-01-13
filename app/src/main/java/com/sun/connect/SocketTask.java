@@ -261,4 +261,8 @@ public class SocketTask implements Runnable {
     public void quitThreadLooper(){
         sendMessage(MSG_DISCONNECT, REQUEST_KEY_NOBODY, null, null);
     }
+
+    public void setRawFolder(String path){
+        ClientSocket.setRawFolder(path);
+    }
 }

@@ -5,6 +5,9 @@ import android.util.Log;
 import com.sun.settings.Config;
 
 import com.google.gson.Gson;
+
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -30,8 +33,9 @@ public class ClientSocket {
     public static final int Port = 19193;
     public static final byte HeartBeatASK = 0x19;
     public static final byte HeartBeatANS = (byte)0x91;
+    public static final byte BinaryNOT = (byte)0xAB;
     public final Object lock = new Object();
-
+    private static String mRawDir = "/sdcard/ClientSocket";
     public static class Host{
         public int tryTimes;
         public String address;
@@ -143,8 +147,20 @@ public class ClientSocket {
         InputStream stream = mSocket.getInputStream();
         int len  = stream.read(buffer);
 
-        if(len == 1 && buffer[0] == HeartBeatANS){
-            Log.d(TAG, "HeartBeatANS");
+        if(len == 1){
+            if(buffer[0] == HeartBeatANS) {
+                Log.d(TAG, "HeartBeatANS");
+            }else if(buffer[0] == BinaryNOT){
+                Log.d(TAG, "BinaryNOT");
+                File file = new File(mRawDir, String.valueOf(System.currentTimeMillis()));
+                if(file.exists()){
+                    file.delete();
+                }
+                OutputStream fileStream = new FileOutputStream(file);
+                while((len  = stream.read(buffer)) == buffer.length){
+
+                }
+            }
         }else if(len > 0) {
             responseData = new String(buffer, 0, len, "utf-8");
         }else{
@@ -203,5 +219,9 @@ public class ClientSocket {
 //            }
 //        }
         return HostList[0].tryTimes < HostList[1].tryTimes ? HostList[0] : HostList[1];
+    }
+
+    public static void setRawFolder(String path){
+        mRawDir = path;
     }
 }

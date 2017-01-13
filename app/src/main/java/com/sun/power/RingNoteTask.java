@@ -11,11 +11,15 @@ import com.sun.personalconnect.Application;
  */
 public class RingNoteTask {
     private final static int RING_MS = 20 * 1000;
-    private Handler mMainHandler;
     private Runnable mRingRun;
+    private Handler mHandler;
+
+    public RingNoteTask(Handler handler){
+        this.mHandler = handler;
+    }
+
     public void execute(){
-        if(mMainHandler == null){
-            mMainHandler = new Handler(Looper.getMainLooper());
+        if(mRingRun == null){
             mRingRun = new Runnable() {
                 @Override
                 public void run() {
@@ -27,12 +31,12 @@ public class RingNoteTask {
             };
         }
         //mMainHandler.removeMessages();
-        mMainHandler.removeCallbacks(mRingRun);
-        mMainHandler.postDelayed(mRingRun, RING_MS);
+        mHandler.removeCallbacks(mRingRun);
+        mHandler.postDelayed(mRingRun, RING_MS);
     }
 
     public void close(){
-        mMainHandler.removeCallbacks(mRingRun);
+        mHandler.removeCallbacks(mRingRun);
         Application.App.getRing().stop();
     }
 }

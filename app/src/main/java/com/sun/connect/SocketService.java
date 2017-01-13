@@ -9,6 +9,7 @@ import android.support.annotation.Nullable;
 import android.util.Log;
 
 import com.sun.personalconnect.Application;
+import com.sun.utils.DirectoryManager;
 
 /**
  * Created by guoyao on 2016/12/21.
@@ -83,6 +84,7 @@ public class SocketService extends Service {
         mBinder = new ServiceBinder();
         socketTask = new SocketTask();
         socketTask.startWithReceive(mReceiveCallback);
+        socketTask.setRawFolder(DirectoryManager.getCachePath());
     }
 
     @Nullable

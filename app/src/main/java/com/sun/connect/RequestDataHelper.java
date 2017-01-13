@@ -7,7 +7,7 @@ public class RequestDataHelper {
     public static final String CODE_ConversationLongLink = "11";
     public static final String CODE_ConversationNote = "12";
     public static final String CODE_ConversationDisconnect = "13";
-    public static final String POWER_ConversationNote_RING = "14";
+    public static final String CODE_ConversationImage = "15";
 
 
     public static final RequestData CvsConnect = new RequestData();

@@ -18,6 +18,7 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.NotificationCompat;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.View;
 
 import com.sun.connect.ISocketServiceBinder;
 import com.sun.connect.RequestData;
@@ -30,6 +31,7 @@ import com.sun.personalconnect.R;
 import com.sun.power.InputFormat;
 import com.sun.utils.GsonUtils;
 
+import java.io.File;
 import java.lang.ref.WeakReference;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -109,7 +111,10 @@ public class CvsService extends Service {
             }catch (Exception e){
                 e.printStackTrace();
             }
-            if(note == null) return;
+            if(note == null){
+                return;
+            }
+            handleNote(note);
             key = responseObj.getRequestId();
             note.setSendStatus(CvsNote.STATUS_SUC);
             if(key == SocketTask.REQUEST_KEY_ANYBODY){
@@ -136,25 +141,25 @@ public class CvsService extends Service {
             return CvsService.this;
         }
 
-        public void Request(CvsNote note){
-            if(socketBinder != null){
-                RequestData requestData = new RequestData();
-                requestData.setCode(RequestDataHelper.CODE_ConversationNote);
-                String arg = GsonUtils.mGson.toJson(note);
-                requestData.addArg(arg);
-                requestData.setRequestId(requestData.hashCode());
-                requestData.setDeviceId(Application.App.getDeviceId());
-                try {
-                    socketBinder.request(requestData.getRequestId(), GsonUtils.mGson.toJson(requestData));
-                } catch (RemoteException e) {
-                    e.printStackTrace();
-                }
-                mRequestHistory.put(requestData.getRequestId(), note);
-
+        public CvsNote request(File file){
+            if(socketBinder == null){
+                return null;
             }
+            Object[] objects = InputFormat.makeRequest(file);
+            if(objects == null) return null;
+            CvsNote note = (CvsNote)objects[1];
+            RequestData requestData = (RequestData)objects[0];
+            try {
+                socketBinder.request(requestData.getRequestId(), GsonUtils.mGson.toJson(requestData));
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+            if(note != null)
+                mRequestHistory.put(requestData.getRequestId(), note);
+            return note;
         }
 
-        public CvsNote Request(String content, List<String> cmds){
+        public CvsNote request(String content, List<String> cmds){
             if(socketBinder == null){
                 return null;
             }
@@ -260,14 +265,20 @@ public class CvsService extends Service {
     }
 
     private boolean handleRequest(RequestData request){
-        boolean handle = false;
         switch (request.getCode()){
-            case RequestDataHelper.POWER_ConversationNote_RING:
+            default:
+                break;
+        }
+        return false;
+    }
+
+    private void handleNote(CvsNote note){
+        switch (note.getPower()){
+            case CvsNote.POWER_RING:
                 Application.App.getPowerTaskManger().executeRingNote();
                 break;
             default:
                 break;
         }
-        return handle;
     }
 }

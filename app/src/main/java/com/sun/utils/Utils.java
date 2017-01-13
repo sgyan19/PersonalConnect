@@ -1,5 +1,14 @@
 package com.sun.utils;
 
+import android.content.ContentResolver;
+import android.content.Context;
+import android.database.Cursor;
+import android.net.Uri;
+import android.provider.MediaStore;
+import android.provider.MediaStore.Images.ImageColumns;
+import android.text.TextUtils;
+
+import java.io.File;
 import java.security.MessageDigest;
 import java.text.SimpleDateFormat;
 import java.util.Locale;
@@ -8,6 +17,48 @@ import java.util.Locale;
  * Created by guoyao on 2016/12/13.
  */
 public class Utils {
+    public static final String TAG = "utils";
+    /**
+     * 通过Uri返回File文件
+     * 注意：通过相机的是类似content://media/external/images/media/97596
+     * 通过相册选择的：file:///storage/sdcard0/DCIM/Camera/IMG_20150423_161955.jpg
+     * 通过查询获取实际的地址
+     * @param uri
+     * @return
+     */
+    public static File uri2File(Context context, Uri uri) {
+        if (uri == null) return null;
+
+        if (ContentResolver.SCHEME_FILE.equals(uri.getScheme())) {
+            return new File(uri.getPath());
+        } else if (ContentResolver.SCHEME_CONTENT.equals(uri.getScheme())) {
+            final String[] filePathColumn = { MediaStore.MediaColumns.DATA, MediaStore.MediaColumns.DISPLAY_NAME };
+            Cursor cursor = null;
+            try {
+                cursor = context.getContentResolver().query(uri, filePathColumn, null, null, null);
+                if (cursor != null && cursor.moveToFirst()) {
+                    final int columnIndex = (uri.toString().startsWith("content://com.google.android.gallery3d")) ?
+                            cursor.getColumnIndex(MediaStore.MediaColumns.DISPLAY_NAME) :
+                            cursor.getColumnIndex(MediaStore.MediaColumns.DATA);
+                    // Picasa images on API 13+
+                    if (columnIndex != -1) {
+                        String filePath = cursor.getString(columnIndex);
+                        if (!TextUtils.isEmpty(filePath)) {
+                            return new File(filePath);
+                        }
+                    }
+                }
+            } catch (IllegalArgumentException e) {
+                // Google Drive images
+                e.printStackTrace();
+            } catch (SecurityException ignored) {
+                // Nothing we can do
+            } finally {
+                if (cursor != null) cursor.close();
+            }
+        }
+        return null;
+    }
     /**
      * md5
      *

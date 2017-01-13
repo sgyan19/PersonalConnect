@@ -17,28 +17,18 @@ public class Ring {
         if(core == null){
             core = MediaPlayer.create(Application.getContext(), RingtoneManager.getActualDefaultRingtoneUri(Application.getContext(),
                     RingtoneManager.TYPE_RINGTONE));
+            core.setLooping(true);
         }
         if(!core.isPlaying()) {
-            core.setLooping(true);
-            try {
-                core.prepare();
-            } catch (IllegalStateException | IOException e) {
-                e.printStackTrace();
-            }
-            core.seekTo(0);
             core.start();
         }
     }
 
     public void stop(){
         if(core != null){
-            core.pause();
-        }
-    }
-    public void release(){
-        if(core != null){
             core.stop();
             core.release();
+            core = null;
         }
     }
 }

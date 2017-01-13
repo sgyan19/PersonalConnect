@@ -1,5 +1,8 @@
 package com.sun.power;
 
+import android.os.Handler;
+import android.os.Looper;
+
 import com.sun.account.Account;
 import com.sun.personalconnect.Application;
 
@@ -9,13 +12,17 @@ import com.sun.personalconnect.Application;
 public class PowerTaskManager {
 
     private RingNoteTask mRingNoteTask;
+    private Handler mMainHandler;
 
     public void executeRingNote(){
         if(!clientCheck()){
             return;
         }
+        if(mMainHandler == null){
+            mMainHandler = new Handler(Looper.getMainLooper());
+        }
         if(mRingNoteTask == null){
-            mRingNoteTask = new RingNoteTask();
+            mRingNoteTask = new RingNoteTask(mMainHandler);
         }
         mRingNoteTask.execute();
     }
