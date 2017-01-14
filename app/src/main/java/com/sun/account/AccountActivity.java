@@ -1,24 +1,19 @@
 package com.sun.account;
 
-import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.text.InputType;
 import android.text.TextUtils;
 import android.view.View;
-import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.Toast;
-
-import com.sun.connect.RequestDataHelper;
-import com.sun.connect.ResponseData;
-import com.sun.connect.SocketCallback;
-import com.sun.connect.SocketTask;
 import com.sun.conversation.CvsActivity;
+import com.sun.connect.SocketService;
 import com.sun.personalconnect.Application;
 import com.sun.personalconnect.R;
+import com.sun.settings.Config;
 import com.sun.utils.ToastUtils;
 
 /**
@@ -28,6 +23,8 @@ public class AccountActivity extends AppCompatActivity implements View.OnClickLi
 
     private EditText mEditPassword;
     private CheckBox mCkbPassword;
+
+    private CheckBox mCkbDebug;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -36,7 +33,15 @@ public class AccountActivity extends AppCompatActivity implements View.OnClickLi
         mEditPassword = (EditText) findViewById(R.id.edit_password);
         mCkbPassword = (CheckBox) findViewById(R.id.btn_password_show);
 
-        if(Application.getInstance().getAccount().isLogin()){
+        (mCkbDebug = (CheckBox) findViewById(R.id.btn_debug_address)).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Config.Debug = mCkbDebug.isChecked();
+            }
+        });
+        mCkbDebug.setChecked(Config.Debug);
+
+        if(Application.App.getAccount().isLogin()){
             loginJump();
         }
     }
@@ -50,7 +55,7 @@ public class AccountActivity extends AppCompatActivity implements View.OnClickLi
                 if(TextUtils.isEmpty(mEditPassword.getText().toString())){
                     ToastUtils.show("凭据不能为空", Toast.LENGTH_SHORT);
                 }else{
-                    boolean rlt = Application.getInstance().getAccount().Login(mEditPassword.getText().toString());
+                    boolean rlt = Application.App.getAccount().Login(mEditPassword.getText().toString());
                     if(rlt){
                         loginJump();
                     }else{
@@ -65,7 +70,10 @@ public class AccountActivity extends AppCompatActivity implements View.OnClickLi
     }
 
     private void loginJump(){
-        SocketTask.getInstance().start(new Runnable() {
+        startActivity(new Intent(AccountActivity.this, CvsActivity.class));
+        finish();
+        /*
+        SocketTask.getInstance().Ready(new Runnable() {
             @Override
             public void run() {
                 SocketTask.getInstance().sendMessage(SocketTask.MSG_REQUEST, RequestDataHelper.CvsConnect, new SocketCallback() {
@@ -87,5 +95,6 @@ public class AccountActivity extends AppCompatActivity implements View.OnClickLi
                 });
             }
         });
+        */
     }
 }

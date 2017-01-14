@@ -27,12 +27,16 @@ public class CvsRecyclerAdapter extends RecyclerView.Adapter<CvsRecyclerAdapter.
 
     @Override
     public void onBindViewHolder(Holder holder, int position) {
-        holder.cardView.update(Application.getInstance().getCvsHistoryManager().getCache(position));
+        holder.cardView.update(Application.App.getCvsHistoryManager().getCache(position));
     }
 
     @Override
     public int getItemCount() {
-        return Application.getInstance().getCvsHistoryManager().getCacheCount();
+        return Application.App.getCvsHistoryManager().getCacheCount();
+    }
+
+    public int removeTooMoreCache(){
+        return Application.App.getCvsHistoryManager().removeTooMoreCache();
     }
 
     public static class Holder extends RecyclerView.ViewHolder{

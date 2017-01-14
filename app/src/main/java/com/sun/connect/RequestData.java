@@ -9,7 +9,9 @@ import java.util.List;
 public class RequestData {
     private String code;
     private List<String> args;
-    private String requestId;
+    private int requestId = 0;
+
+    private String deviceId;
 
     public RequestData(){
         args = new ArrayList<>();
@@ -31,11 +33,23 @@ public class RequestData {
         return args;
     }
 
-    public String getRequestId() {
+    public void clearArgs(){
+        args.clear();
+    }
+
+    public int getRequestId() {
         return requestId;
     }
 
-    public void setRequestId(String requestId) {
+    public void setRequestId(int requestId) {
         this.requestId = requestId;
+    }
+
+    public String getDeviceId() {
+        return deviceId;
+    }
+
+    public void setDeviceId(String deviceId) {
+        this.deviceId = deviceId;
     }
 }

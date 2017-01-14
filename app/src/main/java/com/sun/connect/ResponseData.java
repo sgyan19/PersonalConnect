@@ -6,7 +6,7 @@ package com.sun.connect;
 public class ResponseData {
     private String code;
     private String data;
-    private String requestId;
+    private int requestId;
 
     public String getCode() {
         return code;
@@ -24,11 +24,11 @@ public class ResponseData {
         this.data = data;
     }
 
-    public String getRequestId() {
+    public int getRequestId() {
         return requestId;
     }
 
-    public void setRequestId(String requestId) {
+    public void setRequestId(int requestId) {
         this.requestId = requestId;
     }
 }

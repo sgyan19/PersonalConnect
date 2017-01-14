@@ -6,6 +6,9 @@ import org.greenrobot.greendao.database.Database;
 import org.greenrobot.greendao.query.Query;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -24,6 +27,9 @@ public class CvsHistoryManager {
     private Query<CvsNote> mCvsLast10TimeDescQuery;
 
     private List<CvsNote> mCvsCache;
+    private List<CvsNote> mWaitForSave;
+
+    private CvsNote mLastSendNote;
 
     public void init(Context context){
         DbName = context.getPackageName();
@@ -34,9 +40,11 @@ public class CvsHistoryManager {
 
         mCvsLast10TimeDescQuery = mCvsDao.queryBuilder().orderDesc(CvsNoteDao.Properties.TimeStamp).limit(10).build();
         mCvsCache = mCvsLast10TimeDescQuery.list();
+        Collections.reverse(mCvsCache);
         if(mCvsCache == null){
             mCvsCache = new ArrayList<>();
         }
+        mWaitForSave = new LinkedList<>();
     }
 
     public List<CvsNote> getCache(){
@@ -53,5 +61,53 @@ public class CvsHistoryManager {
 
     public void insertCache(CvsNote note){
         mCvsCache.add(note);
+        mWaitForSave.add(note);
+    }
+
+    public void saveCache(){
+        Iterator<CvsNote> iterator = mWaitForSave.iterator();
+        while(iterator.hasNext()){
+            CvsNote note = iterator.next();
+            if(note.getSendStatus() != CvsNote.STATUS_INIT){
+                mCvsDao.insert(note);
+                iterator.remove();
+            }
+        }
+    }
+
+    public int removeTooMoreCache(){
+        int removeCount = mCvsCache.size() - 10;
+        if(removeCount <=  0){
+            return 0;
+        }
+        int index = 0;
+        LinkedList<CvsNote> tmp = new LinkedList<>();
+        tmp.addAll(mCvsCache);
+        Iterator<CvsNote> iterator = tmp.iterator();
+        while(iterator.hasNext() && index < removeCount){
+            CvsNote note = iterator.next();
+            if(note.getSendStatus() == CvsNote.STATUS_SUC){
+                iterator.remove();
+                index++;
+            }
+        }
+        mCvsCache.clear();
+        mCvsCache.addAll(tmp);
+        tmp.clear();
+        return index;
+    }
+
+    public void close(){
+        if(devOpenHelper != null) {
+            devOpenHelper.close();
+        }
+    }
+
+    public void keepLastSendNote(CvsNote note){
+        mLastSendNote = note;
+    }
+
+    public CvsNote getLastSendNote(){
+        return mLastSendNote;
     }
 }

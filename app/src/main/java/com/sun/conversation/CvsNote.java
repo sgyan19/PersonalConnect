@@ -12,24 +12,40 @@ import org.greenrobot.greendao.annotation.Generated;
  * Created by guoyao on 2016/12/16.
  */
 @Entity(indexes = {
-        @Index(value = "timeStamp DESC", unique = true)
+        @Index(value = "timeStamp ASC", unique = true)
 })
 public class CvsNote implements Serializable {
     private static final long serialVersionUID = 1L;
+    public static final int STATUS_INIT = 0;
+    public static final int STATUS_SUC = 1;
+    public static final int STATUS_FAL = 2;
+
+    public static final int TYPE_TEXT = 10;
+    public static final int TYPE_IMAGE = 11;
+
+    public static final int POWER_NORMAL = 20;
+    public static final int POWER_RING = 21;
 
     @Id
-    private int id;
+    private long id;
     private String content;
     private String userName;
     private int userId;
     private String timeFormat;
     private long timeStamp;
     private String extend;
-    private boolean isSend;
+    private int sendStatus;
+    private int type = TYPE_TEXT;
+    private int power = POWER_NORMAL;
 
-    @Generated(hash = 1306584971)
-    public CvsNote(int id, String content, String userName, int userId,
-            String timeFormat, long timeStamp, String extend, boolean isSend) {
+    @Generated(hash = 1880824119)
+    public CvsNote() {
+    }
+
+    @Generated(hash = 1612060684)
+    public CvsNote(long id, String content, String userName, int userId,
+            String timeFormat, long timeStamp, String extend, int sendStatus,
+            int type, int power) {
         this.id = id;
         this.content = content;
         this.userName = userName;
@@ -37,18 +53,16 @@ public class CvsNote implements Serializable {
         this.timeFormat = timeFormat;
         this.timeStamp = timeStamp;
         this.extend = extend;
-        this.isSend = isSend;
+        this.sendStatus = sendStatus;
+        this.type = type;
+        this.power = power;
     }
 
-    @Generated(hash = 1880824119)
-    public CvsNote() {
-    }
-
-    public int getId() {
+    public long getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(long id) {
         this.id = id;
     }
 
@@ -100,15 +114,27 @@ public class CvsNote implements Serializable {
         this.extend = extend;
     }
 
-    public boolean isSend() {
-        return isSend;
+    public int getSendStatus() {
+        return sendStatus;
     }
 
-    public void setIsSend(boolean isSend) {
-        this.isSend = isSend;
+    public void setSendStatus(int sendStatus) {
+        this.sendStatus = sendStatus;
     }
 
-    public boolean getIsSend() {
-        return this.isSend;
+    public int getType() {
+        return type;
+    }
+
+    public void setType(int type) {
+        this.type = type;
+    }
+
+    public int getPower() {
+        return power;
+    }
+
+    public void setPower(int power) {
+        this.power = power;
     }
 }
