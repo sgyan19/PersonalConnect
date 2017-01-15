@@ -3,7 +3,7 @@ package com.sun.connect;
 /**
  * Created by guoyao on 2016/12/13.
  */
-public class ResponseData {
+public class ResponseJson {
     private String code;
     private String data;
     private int requestId;

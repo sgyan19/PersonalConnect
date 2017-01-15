@@ -162,6 +162,12 @@ public class CvsActivity extends AppCompatActivity implements View.OnClickListen
     }
 
     @Override
+    public void onRaw(File file) {
+        mCvsRcc.getAdapter().notifyDataSetChanged();
+        animationScrollEnd();
+    }
+
+    @Override
     public void onClick(View view) {
         int id = view.getId();
         switch (id){

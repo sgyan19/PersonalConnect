@@ -18,12 +18,11 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.NotificationCompat;
 import android.text.TextUtils;
 import android.util.Log;
-import android.view.View;
 
 import com.sun.connect.ISocketServiceBinder;
-import com.sun.connect.RequestData;
-import com.sun.connect.RequestDataHelper;
-import com.sun.connect.ResponseData;
+import com.sun.connect.RequestJson;
+import com.sun.connect.ResponseJson;
+import com.sun.connect.SocketMessage;
 import com.sun.connect.SocketService;
 import com.sun.connect.SocketTask;
 import com.sun.personalconnect.Application;
@@ -35,6 +34,9 @@ import java.io.File;
 import java.lang.ref.WeakReference;
 import java.util.LinkedHashMap;
 import java.util.List;
+
+import static com.sun.connect.SocketMessage.SOCKET_TYPE_JSON;
+import static com.sun.connect.SocketMessage.SOCKET_TYPE_RAW;
 
 /**
  * Created by guoyao on 2016/12/23.
@@ -52,6 +54,7 @@ public class CvsService extends Service {
         void onSendFailed(long key, CvsNote note, String message);
         void onSendSuccess(CvsNote note);
         void onNew(CvsNote note);
+        void onRaw(File file);
     }
 
     private CvsListener getOnCvsListener(){
@@ -68,14 +71,23 @@ public class CvsService extends Service {
             }
             CvsListener l;
             String error = intent.getStringExtra(SocketService.KEY_STRING_ERROR);
+            int responseType = intent.getIntExtra(SocketService.KEY_INT_RESPONSE_TYPE, SOCKET_TYPE_JSON);
             String response = intent.getStringExtra(SocketService.KEY_STRING_RESPONSE);
-            ResponseData responseObj  = null;
-
+            ResponseJson responseObj  = null;
             if(TextUtils.isEmpty(error) && !TextUtils.isEmpty(response)){
-                try {
-                    responseObj = GsonUtils.mGson.fromJson(response, ResponseData.class);
-                }catch (Exception e){
-                    Log.e(TAG, "Receive:" + response);
+                if(responseType == SOCKET_TYPE_JSON) {
+                    try {
+                        responseObj = GsonUtils.mGson.fromJson(response, ResponseJson.class);
+                    } catch (Exception e) {
+                        Log.e(TAG, "Receive:" + response);
+                    }
+                }else if(responseType == SOCKET_TYPE_RAW){
+                    if(( l = getOnCvsListener()) != null){
+                        File file = new File(Application.App.getSocketRawFolder(), response);
+                        if(file.exists()){
+                            l.onRaw(file);
+                        }
+                    }
                 }
             }
             if(responseObj == null){
@@ -96,9 +108,9 @@ public class CvsService extends Service {
                 return;
             }
 
-            RequestData noteRequest = null;
+            RequestJson noteRequest = null;
             try {
-                noteRequest = GsonUtils.mGson.fromJson(responseObj.getData(), RequestData.class);
+                noteRequest = GsonUtils.mGson.fromJson(responseObj.getData(), RequestJson.class);
             }catch (Exception e){
                 e.printStackTrace();
             }
@@ -148,14 +160,15 @@ public class CvsService extends Service {
             Object[] objects = InputFormat.makeRequest(file);
             if(objects == null) return null;
             CvsNote note = (CvsNote)objects[1];
-            RequestData requestData = (RequestData)objects[0];
+            RequestJson requestJson = (RequestJson)objects[0];
             try {
-                socketBinder.request(requestData.getRequestId(), GsonUtils.mGson.toJson(requestData));
+                socketBinder.request(requestJson.getRequestId(), SocketMessage.SOCKET_TYPE_JSON, GsonUtils.mGson.toJson(requestJson));
+                socketBinder.request(requestJson.getRequestId(), SocketMessage.SOCKET_TYPE_RAW, file.getName());
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
             if(note != null)
-                mRequestHistory.put(requestData.getRequestId(), note);
+                mRequestHistory.put(requestJson.getRequestId(), note);
             return note;
         }
 
@@ -166,14 +179,14 @@ public class CvsService extends Service {
             Object[] objects = InputFormat.makeRequest(content, cmds);
             if(objects == null) return null;
             CvsNote note = (CvsNote)objects[1];
-            RequestData requestData = (RequestData)objects[0];
+            RequestJson requestJson = (RequestJson)objects[0];
             try {
-                socketBinder.request(requestData.getRequestId(), GsonUtils.mGson.toJson(requestData));
+                socketBinder.request(requestJson.getRequestId(), SocketMessage.SOCKET_TYPE_JSON,GsonUtils.mGson.toJson(requestJson));
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
             if(note != null)
-                mRequestHistory.put(requestData.getRequestId(), note);
+                mRequestHistory.put(requestJson.getRequestId(), note);
             return note;
         }
 
@@ -256,7 +269,7 @@ public class CvsService extends Service {
         notificationManager.notify(1224, notification);
     }
 
-    private boolean handleResponse(ResponseData response){
+    private boolean handleResponse(ResponseJson response){
         switch (response.getCode()){
             default:
                 break;
@@ -264,7 +277,7 @@ public class CvsService extends Service {
         return false;
     }
 
-    private boolean handleRequest(RequestData request){
+    private boolean handleRequest(RequestJson request){
         switch (request.getCode()){
             default:
                 break;

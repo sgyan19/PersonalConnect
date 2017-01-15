@@ -6,14 +6,14 @@ import java.util.List;
 /**
  * Created by guoyao on 2016/12/13.
  */
-public class RequestData {
+public class RequestJson {
     private String code;
     private List<String> args;
     private int requestId = 0;
 
     private String deviceId;
 
-    public RequestData(){
+    public RequestJson(){
         args = new ArrayList<>();
     }
 

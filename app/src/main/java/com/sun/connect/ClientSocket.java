@@ -2,21 +2,13 @@ package com.sun.connect;
 
 import android.util.Log;
 
-import com.sun.settings.Config;
-
-import com.google.gson.Gson;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.net.Inet4Address;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.net.SocketAddress;
 import java.net.SocketException;
 
 /**
@@ -33,7 +25,9 @@ public class ClientSocket {
     public static final int Port = 19193;
     public static final byte HeartBeatASK = 0x19;
     public static final byte HeartBeatANS = (byte)0x91;
-    public static final byte BinaryNOT = (byte)0xAB;
+    public static final byte HEADER_BIN = (byte)0x2B;
+    public static final byte HEADER_JSON = (byte)0x7B;
+
     public final Object lock = new Object();
     private static String mRawDir = "/sdcard/ClientSocket";
     public static class Host{
@@ -95,8 +89,9 @@ public class ClientSocket {
         return connected;
     }
 
-    public String request(String request)
+    public SocketMessage request(String request)
     {
+        SocketMessage response = new SocketMessage();
         String responseData = null;
         synchronized (lock) {
             try {
@@ -108,7 +103,7 @@ public class ClientSocket {
                 InputStream stream = mSocket.getInputStream();
                 int len = stream.read(buffer);
                 if (len > 0) {
-                    responseData = new String(buffer, 0, len, "utf-8");
+                    response.data = new String(buffer, 0, len, "utf-8");
                     Log.d(TAG, "request back " + len);
                 }
             } catch (IOException e) {
@@ -120,7 +115,7 @@ public class ClientSocket {
                 e.printStackTrace();
             }
         }
-        return responseData;
+        return response;
     }
 
     public void requestWithoutBack(String request){
@@ -142,31 +137,82 @@ public class ClientSocket {
         }
     }
 
-    public String receive() throws IOException{
-        String responseData = null;
+    public SocketMessage receive() throws IOException{
+        SocketMessage response = new SocketMessage();
         InputStream stream = mSocket.getInputStream();
-        int len  = stream.read(buffer);
-
-        if(len == 1){
+        int len  = stream.read(buffer,0,1);
+        if(len >= 1){
             if(buffer[0] == HeartBeatANS) {
                 Log.d(TAG, "HeartBeatANS");
-            }else if(buffer[0] == BinaryNOT){
-                Log.d(TAG, "BinaryNOT");
-                File file = new File(mRawDir, String.valueOf(System.currentTimeMillis()));
-                if(file.exists()){
-                    file.delete();
-                }
-                OutputStream fileStream = new FileOutputStream(file);
-                while((len  = stream.read(buffer)) == buffer.length){
-
-                }
+            }else if(buffer[0] == HEADER_BIN){
+                response.type = SocketMessage.SOCKET_TYPE_RAW;
+                Log.d(TAG, "HEADER_BIN");
+                receiveTextFrame(stream, response);
+                receiveRawFrame(stream, response.data, response);
+            }else {
+                response.type = SocketMessage.SOCKET_TYPE_JSON;
+                receiveTextFrame(stream, response);
             }
-        }else if(len > 0) {
-            responseData = new String(buffer, 0, len, "utf-8");
         }else{
             mRemoteClosed = true;
         }
-        return responseData;
+        return response;
+    }
+
+    private void receiveTextFrame(InputStream stream, SocketMessage response) throws IOException{
+        int len = stream.read(buffer, 0, 4);
+        int size = bytesToInt(buffer, 0);
+        if(len > buffer.length ){
+            response.exception = new SocketException("TextFrame size overstep the boundary");
+            return;
+        }
+        int offset = 0;
+        int old = mSocket.getSoTimeout();
+        mSocket.setSoTimeout(1000);
+        try {
+            while ((len = stream.read(buffer, offset, size)) != 0) {
+                offset += len;
+                size = size - len;
+            }
+        }catch (SocketException e){
+        }
+        response.data = new String(buffer, 0, size, "utf-8");
+        mSocket.setSoTimeout(old);
+    }
+
+    private void receiveRawFrame(InputStream stream, String name, SocketMessage response) throws IOException{
+        stream.read(buffer, 0, 4);
+        int size = bytesToInt(buffer, 0);
+        int old = mSocket.getSoTimeout();
+        int len;
+        mSocket.setSoTimeout(1000);
+        try {
+            File file = new File(mRawDir, name);
+            if(file.exists()){
+                file.delete();
+            }
+            OutputStream fileStream = null;
+            try {
+                fileStream = new FileOutputStream(file);
+                while (size > 0) {
+                    len = stream.read(buffer,0, size > buffer.length ? buffer.length: size);
+                    if(len == 0) break;
+                    size = size - len;
+                    fileStream.write(buffer, 0, len);
+                }
+            }finally {
+                if(fileStream != null) {
+                    try {
+                        fileStream.close();
+                    }catch (Exception e){}
+                }
+            }
+            response.data = file.getName();
+        }catch (SocketException e){
+        }
+        response.data = name;
+        response.type = SocketMessage.SOCKET_TYPE_RAW;
+        mSocket.setSoTimeout(old);
     }
 
     public boolean heartbeat(){
@@ -223,5 +269,23 @@ public class ClientSocket {
 
     public static void setRawFolder(String path){
         mRawDir = path;
+    }
+
+    /**
+     * byte数组中取int数值，本方法适用于(低位在前，高位在后)的顺序，和和intToBytes（）配套使用
+     *
+     * @param src
+     *            byte数组
+     * @param offset
+     *            从数组的第offset位开始
+     * @return int数值
+     */
+    public static int bytesToInt(byte[] src, int offset) {
+        int value;
+        value = (int) ((src[offset] & 0xFF)
+                | ((src[offset+1] & 0xFF)<<8)
+                | ((src[offset+2] & 0xFF)<<16)
+                | ((src[offset+3] & 0xFF)<<24));
+        return value;
     }
 }

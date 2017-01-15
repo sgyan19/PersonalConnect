@@ -88,9 +88,9 @@ public class SocketTask implements Runnable {
 
     public static class MessageData{
         private SocketCallback callback;
-        private String requestData;
+        private SocketMessage requestData;
 
-        public MessageData(SocketCallback callback, String data){
+        public MessageData(SocketCallback callback, SocketMessage data){
             this.callback = callback;
             this.requestData = data;
         }
@@ -164,8 +164,8 @@ public class SocketTask implements Runnable {
                     }
                     try {
                         Log.d(TAG, "Receive 已连接 开始receive");
-                        String response = mCoreSocket.receive();
-                        Log.d(TAG, "Receive response:" + response);
+                        SocketMessage response = mCoreSocket.receive();
+                        Log.d(TAG, "Receive response:" + response.data);
                         if (response != null) {
                             if (mDupLexCallback != null) {
                                 mDupLexCallback.onComplete(REQUEST_KEY_ANYBODY, response);
@@ -229,9 +229,9 @@ public class SocketTask implements Runnable {
     private void request(int id, MessageData messageData){
         Log.d(TAG, "request data" + messageData.requestData);
         if(mReceiving) {
-            mCoreSocket.requestWithoutBack(messageData.requestData);
+            mCoreSocket.requestWithoutBack(messageData.requestData.data);
         }else {
-            String response = mCoreSocket.request(messageData.requestData);
+            SocketMessage response = mCoreSocket.request(messageData.requestData.data);
             if (messageData.callback != null) {
                 if (response == null) {
                     messageData.callback.onError(id, mCoreSocket.getLastException());
@@ -250,11 +250,19 @@ public class SocketTask implements Runnable {
         }
     }
 
-    public void sendMessage(int what, int key, String data, SocketCallback callback){
+    public void sendMessage(int what, int key, SocketMessage data, SocketCallback callback){
         Message msg = new Message();
         msg.arg1 = key;
         msg.what = what;
         msg.obj = new MessageData(callback, data);
+        mHandler.sendMessage(msg);
+    }
+
+    public void sendMessage(int what, int key, int type, String data, SocketCallback callback){
+        Message msg = new Message();
+        msg.arg1 = key;
+        msg.what = what;
+        msg.obj = new MessageData(callback, new SocketMessage(type,data));
         mHandler.sendMessage(msg);
     }
 

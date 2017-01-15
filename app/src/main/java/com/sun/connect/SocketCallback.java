@@ -5,6 +5,6 @@ package com.sun.connect;
  */
 public interface SocketCallback {
     void onError(int requestKey,Throwable e);
-    void onComplete(int requestKey, String stream);
+    void onComplete(int requestKey, SocketMessage response);
     void onConnected(int requestKey);
 }

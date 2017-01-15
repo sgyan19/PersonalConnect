@@ -10,7 +10,7 @@ public class RequestDataHelper {
     public static final String CODE_ConversationImage = "15";
 
 
-    public static final RequestData CvsConnect = new RequestData();
+    public static final RequestJson CvsConnect = new RequestJson();
 
     public static final String CvsConnectRequest = "{\"args\":[],\"code\":\"11\",\"requestId\":0,\"deviceId\":\"%s\"}";
     static {

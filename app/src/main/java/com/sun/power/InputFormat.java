@@ -1,7 +1,7 @@
 package com.sun.power;
 
 import com.sun.account.Account;
-import com.sun.connect.RequestData;
+import com.sun.connect.RequestJson;
 import com.sun.connect.RequestDataHelper;
 import com.sun.conversation.CvsNote;
 import com.sun.personalconnect.Application;
@@ -37,9 +37,9 @@ public class InputFormat {
 
     public static Object[] makeRequest(String input, List<String> format){
         Object[] result = new Object[2];
-        RequestData requestData = new RequestData();
-        requestData.setDeviceId(Application.App.getDeviceId());
-        requestData.setRequestId(requestData.hashCode());
+        RequestJson requestJson = new RequestJson();
+        requestJson.setDeviceId(Application.App.getDeviceId());
+        requestJson.setRequestId(requestJson.hashCode());
 
         CvsNote note = new CvsNote();
         Account account = Application.App.getAccount();
@@ -51,7 +51,7 @@ public class InputFormat {
         note.setTimeFormat(Utils.getFormatTime(time));
         if(format != null && format.size() > 0 &&Application.App.getPowerTaskManger().serverCheck()){
             if(CmdDefine.CMD_REMOTE_RING_NOTE.equalsIgnoreCase(format.get(0))){
-                requestData.setCode(RequestDataHelper.CODE_ConversationNote);
+                requestJson.setCode(RequestDataHelper.CODE_ConversationNote);
                 note.setPower(CvsNote.POWER_RING);
                 if(format.size()  > 1) {
                     note.setContent(format.get(1));
@@ -61,24 +61,24 @@ public class InputFormat {
                 if(format.size()  > 2){
                     note.setExtend(format.get(2));
                 }
-                requestData.clearArgs();
-                requestData.addArg(GsonUtils.mGson.toJson(note));
+                requestJson.clearArgs();
+                requestJson.addArg(GsonUtils.mGson.toJson(note));
             }
         }else{
             note.setContent(input);
-            requestData.setCode(RequestDataHelper.CODE_ConversationNote);
-            requestData.addArg(GsonUtils.mGson.toJson(note));
+            requestJson.setCode(RequestDataHelper.CODE_ConversationNote);
+            requestJson.addArg(GsonUtils.mGson.toJson(note));
         }
-        result[0] = requestData;
+        result[0] = requestJson;
         result[1] = note;
         return result;
     }
 
     public static Object[] makeRequest(File file){
         Object[] result = new Object[2];
-        RequestData requestData = new RequestData();
-        requestData.setDeviceId(Application.App.getDeviceId());
-        requestData.setRequestId(requestData.hashCode());
+        RequestJson requestJson = new RequestJson();
+        requestJson.setDeviceId(Application.App.getDeviceId());
+        requestJson.setRequestId(requestJson.hashCode());
 
         CvsNote note = new CvsNote();
         Account account = Application.App.getAccount();
@@ -88,15 +88,19 @@ public class InputFormat {
         long time = System.currentTimeMillis();
         note.setTimeStamp(time);
         note.setTimeFormat(Utils.getFormatTime(time));
+        File newFile = new File(Application.App.getSocketRawFolder(), file.getName());
+        if(newFile.exists()){
+            newFile.delete();
+        }
 
-        note.setContent(file.getAbsolutePath());
+        note.setContent(file.getName());
         note.setType(CvsNote.TYPE_IMAGE);
         note.setExtend(String.valueOf(file.length()));
 
-        requestData.setCode(RequestDataHelper.CODE_ConversationImage);
-        requestData.addArg(GsonUtils.mGson.toJson(note));
+        requestJson.setCode(RequestDataHelper.CODE_ConversationNote);
+        requestJson.addArg(GsonUtils.mGson.toJson(note));
 
-        result[0] = requestData;
+        result[0] = requestJson;
         result[1] = note;
         return result;
     }

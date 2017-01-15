@@ -9,7 +9,6 @@ import android.support.annotation.Nullable;
 import android.util.Log;
 
 import com.sun.personalconnect.Application;
-import com.sun.utils.DirectoryManager;
 
 /**
  * Created by guoyao on 2016/12/21.
@@ -18,6 +17,7 @@ import com.sun.utils.DirectoryManager;
 public class SocketService extends Service {
     public static final String SocketReceiveBroadcast = "com.sun.connect.SocketService.Receive";
     public static final String KEY_INT_REQUESTKEY = "requestKey";
+    public static final String KEY_INT_RESPONSE_TYPE = "reponseType";
     public static final String KEY_STRING_RESPONSE = "response";
     public static final String KEY_STRING_ERROR = "error";
 
@@ -32,18 +32,19 @@ public class SocketService extends Service {
         }
 
         @Override
-        public void onComplete(int requestKey, String response) {
+        public void onComplete(int requestKey, SocketMessage response) {
             if(response != null){
                 Intent intent = new Intent(SocketReceiveBroadcast);
                 intent.putExtra(KEY_INT_REQUESTKEY, requestKey);
-                intent.putExtra(KEY_STRING_RESPONSE, response);
+                intent.putExtra(KEY_STRING_RESPONSE, response.data);
+                intent.putExtra(KEY_INT_RESPONSE_TYPE, response.type);
                 SocketService.this.sendBroadcast(intent);
             }
         }
 
         @Override
         public void onConnected(int requestKey) {
-            SocketService.this.getSocketTask().sendMessage(SocketTask.MSG_REQUEST, SocketTask.REQUEST_KEY_NOBODY, String.format(RequestDataHelper.CvsConnectRequest, Application.App.getDeviceId()), null);
+            SocketService.this.getSocketTask().sendMessage(SocketTask.MSG_REQUEST, SocketTask.REQUEST_KEY_NOBODY, SocketMessage.SOCKET_TYPE_JSON,String.format(RequestDataHelper.CvsConnectRequest, Application.App.getDeviceId()), null);
             SocketService.this.getSocketTask().sendMessage(SocketTask.MSG_CONNECT_CHECK, SocketTask.REQUEST_KEY_NOBODY, null, null);
         }
     };
@@ -52,8 +53,8 @@ public class SocketService extends Service {
             return SocketService.this;
         }
 
-        public void request(int key, String request){
-            SocketService.this.getSocketTask().sendMessage(SocketTask.MSG_REQUEST, key, request, null);
+        public void request(int key, int type, String request){
+            SocketService.this.getSocketTask().sendMessage(SocketTask.MSG_REQUEST, key, type, request, null);
         }
 
         public void stopReceive(){
@@ -63,8 +64,8 @@ public class SocketService extends Service {
 
     public ISocketServiceBinder.Stub stub = new ISocketServiceBinder.Stub() {
         @Override
-        public void request(int key, String request) throws RemoteException {
-            SocketService.this.getSocketTask().sendMessage(SocketTask.MSG_REQUEST, key, request, null);
+        public void request(int key, int type, String request) throws RemoteException {
+            SocketService.this.getSocketTask().sendMessage(SocketTask.MSG_REQUEST, key, type,request, null);
         }
 
         public void stopReceive(){
@@ -84,7 +85,7 @@ public class SocketService extends Service {
         mBinder = new ServiceBinder();
         socketTask = new SocketTask();
         socketTask.startWithReceive(mReceiveCallback);
-        socketTask.setRawFolder(DirectoryManager.getCachePath());
+        socketTask.setRawFolder(Application.App.getSocketRawFolder());
     }
 
     @Nullable

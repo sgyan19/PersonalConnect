@@ -33,6 +33,8 @@ public class Application extends android.app.Application {
     private boolean mUiApp;
 
     private String mDeviceId;
+
+    private String mSocketRawFolder;
     //private SocketTask socketTask;
     private PowerTaskManager mPowerTaskManager;
     private Ring mRing;
@@ -48,6 +50,7 @@ public class Application extends android.app.Application {
         }
         mDeviceId = ((TelephonyManager) getSystemService(TELEPHONY_SERVICE))
                 .getDeviceId();
+        mSocketRawFolder = DirectoryManager.getDownloadPath();
     }
 
     private void init(){
@@ -115,6 +118,10 @@ public class Application extends android.app.Application {
 
     public String getDeviceId(){
         return mDeviceId;
+    }
+
+    public String getSocketRawFolder(){
+        return mSocketRawFolder;
     }
 
     private void initPaths(Context context) {

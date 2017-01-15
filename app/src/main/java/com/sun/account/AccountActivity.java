@@ -83,7 +83,7 @@ public class AccountActivity extends AppCompatActivity implements View.OnClickLi
                     }
 
                     @Override
-                    public void onComplete(int eventId, ResponseData data) {
+                    public void onComplete(int eventId, ResponseJson data) {
                         ToastUtils.show("连接成功", Toast.LENGTH_SHORT);
                         startActivity(new Intent(AccountActivity.this, CvsActivity.class));
                         finish();
