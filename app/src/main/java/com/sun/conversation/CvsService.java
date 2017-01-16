@@ -40,7 +40,7 @@ import static com.sun.connect.SocketMessage.SOCKET_TYPE_RAW;
 
 /**
  * Created by guoyao on 2016/12/23.
- * this is a local service, activity can touch this safety.
+ * this is a local service, activity can touch this safely.
  */
 public class CvsService extends Service {
     private final static String TAG = "CvsService";
@@ -139,10 +139,10 @@ public class CvsService extends Service {
                 }
             }else if(mRequestHistory.containsKey(key)){
                 mRequestHistory.get(key).setSendStatus(CvsNote.STATUS_SUC);
-                mRequestHistory.remove(key);
+                CvsNote localNote = mRequestHistory.remove(key);
                 Application.App.getCvsHistoryManager().saveCache();
                 if(( l = getOnCvsListener()) != null){
-                    l.onSendSuccess(note);
+                    l.onSendSuccess(localNote);
                 }
             }
         }

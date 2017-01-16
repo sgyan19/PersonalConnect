@@ -5,8 +5,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.graphics.PointF;
-import android.graphics.drawable.AnimationDrawable;
-import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -27,11 +25,16 @@ import com.sun.personalconnect.Application;
 import com.sun.personalconnect.R;
 import com.sun.power.InputFormat;
 import com.sun.power.LocalCmd;
+import com.sun.utils.FileUtils;
 import com.sun.utils.RequestCode;
 import com.sun.utils.ToastUtils;
 import com.sun.utils.UriUtils;
+import com.sun.utils.Utils;
 
 import java.io.File;
+import java.io.IOException;
+import java.lang.ref.WeakReference;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -45,7 +48,8 @@ public class CvsActivity extends AppCompatActivity implements View.OnClickListen
     private CvsService.ServiceBinder serviceBinder;
     private ServiceConnection serviceConn;
     private int mKeyBoardHeight;
-    private String mLastSumbit;
+    private String mLastSubmit;
+    private HashMap<String,WeakReference<CvsNote>> mWeakImageNoteMap = new HashMap<>();
     //endregion
 
     //region 生命周期
@@ -146,16 +150,19 @@ public class CvsActivity extends AppCompatActivity implements View.OnClickListen
     //region 继承接口实现
     @Override
     public void onSendFailed(long key, CvsNote note, String message) {
-        mCvsRcc.getAdapter().notifyDataSetChanged();
+        ((CvsRecyclerAdapter)mCvsRcc.getAdapter()).notifyItemChanged(note);
     }
 
     @Override
     public void onSendSuccess(CvsNote note) {
-        mCvsRcc.getAdapter().notifyDataSetChanged();
+        ((CvsRecyclerAdapter)mCvsRcc.getAdapter()).notifyItemChanged(note);
     }
 
     @Override
     public void onNew(CvsNote note) {
+        if(note.getType() == CvsNote.TYPE_IMAGE){
+            mWeakImageNoteMap.put(note.getContent(), new WeakReference<>(note));
+        }
         ((CvsRecyclerAdapter)mCvsRcc.getAdapter()).removeTooMoreCache();
         mCvsRcc.getAdapter().notifyDataSetChanged();
         animationScrollEnd();
@@ -163,8 +170,14 @@ public class CvsActivity extends AppCompatActivity implements View.OnClickListen
 
     @Override
     public void onRaw(File file) {
-        mCvsRcc.getAdapter().notifyDataSetChanged();
-        animationScrollEnd();
+        WeakReference<CvsNote> noteReference = mWeakImageNoteMap.get(file.getName());
+        if(noteReference != null){
+            CvsNote note = noteReference.get();
+            if(note != null){
+                ((CvsRecyclerAdapter)mCvsRcc.getAdapter()).notifyItemChanged(note);
+                animationScrollEnd();
+            }
+        }
     }
 
     @Override
@@ -175,8 +188,8 @@ public class CvsActivity extends AppCompatActivity implements View.OnClickListen
                 submit();
                 break;
             case R.id.btn_cvs_last:
-                if(!TextUtils.isEmpty(mLastSumbit)){
-                    mEditContent.setText(mLastSumbit);
+                if(!TextUtils.isEmpty(mLastSubmit)){
+                    mEditContent.setText(mLastSubmit);
                 }
                 break;
             case R.id.btn_cvs_img:
@@ -242,7 +255,7 @@ public class CvsActivity extends AppCompatActivity implements View.OnClickListen
             ToastUtils.show("输入为空？",Toast.LENGTH_SHORT);
             return;
         }
-        mLastSumbit = content;
+        mLastSubmit = content;
         List<String> cmds = InputFormat.format(content);
         if(!LocalCmd.handleCmd(cmds)){
             CvsNote note = serviceBinder.request(content, cmds);
@@ -269,12 +282,19 @@ public class CvsActivity extends AppCompatActivity implements View.OnClickListen
         String path = UriUtils.getPath(this, uri);
         File file = new File(path);
         if(!file.exists()) return;
-        CvsNote note = serviceBinder.request(file);
+        File newFile = new File(Application.App.getSocketRawFolder(), Utils.makeSoleName());
+        if(newFile.exists()) newFile.delete();
+        try {
+            FileUtils.copyFile(file, newFile);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        CvsNote note = serviceBinder.request(newFile);
         if(note != null){
-            note.setContent(uri.toString());
+            note.setContent(newFile.getName());
             Application.App.getCvsHistoryManager().insertCache(note);
             mCvsRcc.getAdapter().notifyDataSetChanged();
-            animationScrollEnd(400);
+            animationScrollEnd(500);
             Application.App.getCvsHistoryManager().keepLastSendNote(note);
         }
     }

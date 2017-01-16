@@ -8,6 +8,8 @@ import android.provider.MediaStore;
 import android.provider.MediaStore.Images.ImageColumns;
 import android.text.TextUtils;
 
+import com.sun.personalconnect.Application;
+
 import java.io.File;
 import java.security.MessageDigest;
 import java.text.SimpleDateFormat;
@@ -106,5 +108,9 @@ public class Utils {
             simpleDateFormat = new SimpleDateFormat("HH:mm:ss", Locale.ENGLISH);
         }
         return simpleDateFormat.format(time);
+    }
+
+    public static String makeSoleName(){
+        return String.format("%s_%d", Application.App.getDeviceId(), System.currentTimeMillis());
     }
 }

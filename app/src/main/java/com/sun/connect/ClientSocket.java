@@ -3,13 +3,15 @@ package com.sun.connect;
 import android.util.Log;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
+import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 
 /**
  * Created by guoyao on 2016/12/13.
@@ -18,14 +20,14 @@ public class ClientSocket {
     public static final String TAG = "ClientSocket";
     public static final Host[] HostList = new Host[]{
             new Host(0,"192.168.137.1"),
-            new Host(0,"maths326009812.oicp.net"),
+            new Host(0,"smaths326009812.oicp.net"),
     };
 
     public static Host Host;
     public static final int Port = 19193;
     public static final byte HeartBeatASK = 0x19;
     public static final byte HeartBeatANS = (byte)0x91;
-    public static final byte HEADER_BIN = (byte)0x2B;
+    public static final byte HEADER_RAW = (byte)0x2B;
     public static final byte HEADER_JSON = (byte)0x7B;
 
     public final Object lock = new Object();
@@ -89,25 +91,18 @@ public class ClientSocket {
         return connected;
     }
 
-    public SocketMessage request(String request)
+    public SocketMessage requestJson(String request)
     {
-        SocketMessage response = new SocketMessage();
-        String responseData = null;
+        SocketMessage response = null;
         synchronized (lock) {
             try {
-                OutputStreamWriter writer = new OutputStreamWriter(
-                        mSocket.getOutputStream(), "utf-8");
-                writer.write(request);
-                writer.flush();
-                Log.d(TAG, "request suc");
-                InputStream stream = mSocket.getInputStream();
-                int len = stream.read(buffer);
-                if (len > 0) {
-                    response.data = new String(buffer, 0, len, "utf-8");
-                    Log.d(TAG, "request back " + len);
-                }
+                OutputStream outputStream = mSocket.getOutputStream();
+                outputStream.write(HEADER_JSON);
+                sendTextFrame(outputStream, request);
+                response = receive();
+                Log.d(TAG, "requestJson suc");
             } catch (IOException e) {
-                Log.d(TAG, "request exception:" + e.toString());
+                Log.d(TAG, "requestJson exception:" + e.toString());
                 mLastException = e;
                 if (e instanceof SocketException) {
                     mRemoteClosed = true;
@@ -118,16 +113,35 @@ public class ClientSocket {
         return response;
     }
 
-    public void requestWithoutBack(String request){
+    public void requestJsonWithoutBack(String request){
         synchronized (lock) {
             try {
-                OutputStreamWriter writer = new OutputStreamWriter(
-                        mSocket.getOutputStream(), "utf-8");
-                writer.write(request);
-                writer.flush();
-                Log.d(TAG, "requestWithoutBack suc");
+                OutputStream outputStream = mSocket.getOutputStream();
+                outputStream.write(HEADER_JSON);
+                sendTextFrame(outputStream, request);
+                Log.d(TAG, "requestJsonWithoutBack suc");
             } catch (IOException e) {
-                Log.d(TAG, "requestWithoutBack exception:" + e.toString());
+                Log.d(TAG, "requestJsonWithoutBack exception:" + e.toString());
+                mLastException = e;
+                if (e instanceof SocketException) {
+                    mRemoteClosed = true;
+                }
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public void requestImageWithoutBack(String name){
+        synchronized (lock) {
+            try {
+                OutputStream outputStream = mSocket.getOutputStream();
+                outputStream.write(HEADER_RAW);
+                sendTextFrame(outputStream, name);
+                Log.d(TAG, "requestImageWithoutBack name suc");
+                sendRawFrame(outputStream, name);
+                Log.d(TAG, "requestImageWithoutBack file suc");
+            } catch (IOException e) {
+                Log.d(TAG, "requestImageWithoutBack exception:" + e.toString());
                 mLastException = e;
                 if (e instanceof SocketException) {
                     mRemoteClosed = true;
@@ -144,14 +158,16 @@ public class ClientSocket {
         if(len >= 1){
             if(buffer[0] == HeartBeatANS) {
                 Log.d(TAG, "HeartBeatANS");
-            }else if(buffer[0] == HEADER_BIN){
+            }else if(buffer[0] == HEADER_RAW){
                 response.type = SocketMessage.SOCKET_TYPE_RAW;
-                Log.d(TAG, "HEADER_BIN");
-                receiveTextFrame(stream, response);
-                receiveRawFrame(stream, response.data, response);
-            }else {
+                Log.d(TAG, "HEADER_RAW");
+                response.data = receiveTextFrame(stream);
+                receiveRawFrame(stream, response.data);
+            }else if(buffer[0] == HEADER_JSON){
                 response.type = SocketMessage.SOCKET_TYPE_JSON;
-                receiveTextFrame(stream, response);
+                response.data = receiveTextFrame(stream);
+            }else{
+                Log.d(TAG, "unknown code:" + buffer[0]);
             }
         }else{
             mRemoteClosed = true;
@@ -159,28 +175,66 @@ public class ClientSocket {
         return response;
     }
 
-    private void receiveTextFrame(InputStream stream, SocketMessage response) throws IOException{
-        int len = stream.read(buffer, 0, 4);
+    private void sendTextFrame(OutputStream stream, String text) throws IOException{
+        try {
+            byte[] data = text.getBytes("utf-8");
+            intToBytes(data.length, buffer, 0);
+            stream.write(buffer, 0, 4);
+            stream.write(data,0 , data.length);
+            stream.flush();
+        }catch (UnsupportedEncodingException e){
+            e.printStackTrace();
+        }
+    }
+
+    private void sendRawFrame(OutputStream stream, String fileName) throws IOException{
+        File file = new File(mRawDir, fileName);
+        int size = (int)file.length();
+        intToBytes(size, buffer, 0);
+        stream.write(buffer, 0, 4);
+
+        InputStream fileStream = null;
+        try {
+            int len;
+            fileStream = new FileInputStream(file);
+            while((len = fileStream.read(buffer, 0, size > buffer.length ? buffer.length: size)) > 0){
+                stream.write(buffer, 0, len);
+            }
+        }finally {
+            if(fileStream != null){
+                try {
+                    fileStream.close();
+                }catch (IOException e){
+                    mLastException = e;
+                    e.printStackTrace();
+                }
+            }
+        }
+        stream.flush();
+    }
+
+    private String receiveTextFrame(InputStream stream) throws IOException{
+        stream.read(buffer, 0, 4);
         int size = bytesToInt(buffer, 0);
-        if(len > buffer.length ){
-            response.exception = new SocketException("TextFrame size overstep the boundary");
-            return;
+        if(size > buffer.length ){
+            throw new SocketException("TextFrame size overstep the boundary");
         }
         int offset = 0;
         int old = mSocket.getSoTimeout();
         mSocket.setSoTimeout(1000);
+        int len;
         try {
             while ((len = stream.read(buffer, offset, size)) != 0) {
                 offset += len;
                 size = size - len;
             }
-        }catch (SocketException e){
+        }catch (SocketTimeoutException e){
         }
-        response.data = new String(buffer, 0, size, "utf-8");
         mSocket.setSoTimeout(old);
+        return new String(buffer, 0, offset, "utf-8");
     }
 
-    private void receiveRawFrame(InputStream stream, String name, SocketMessage response) throws IOException{
+    private void receiveRawFrame(InputStream stream, String name) throws IOException{
         stream.read(buffer, 0, 4);
         int size = bytesToInt(buffer, 0);
         int old = mSocket.getSoTimeout();
@@ -207,11 +261,8 @@ public class ClientSocket {
                     }catch (Exception e){}
                 }
             }
-            response.data = file.getName();
         }catch (SocketException e){
         }
-        response.data = name;
-        response.type = SocketMessage.SOCKET_TYPE_RAW;
         mSocket.setSoTimeout(old);
     }
 
@@ -264,7 +315,7 @@ public class ClientSocket {
 //                return HostList[i];
 //            }
 //        }
-        return HostList[0].tryTimes < HostList[1].tryTimes ? HostList[0] : HostList[1];
+        return HostList[0].tryTimes <= HostList[1].tryTimes ? HostList[0] : HostList[1];
     }
 
     public static void setRawFolder(String path){
@@ -287,5 +338,12 @@ public class ClientSocket {
                 | ((src[offset+2] & 0xFF)<<16)
                 | ((src[offset+3] & 0xFF)<<24));
         return value;
+    }
+
+    public static int intToBytes(int src, byte[] dest, int offset){
+        for(int i = 3,j = 0;i >= 0 ;i--,j += 8){
+            dest[ offset + i ] = (byte)((src >> (24 - j)) & 0xFF);
+        }
+        return 4;
     }
 }

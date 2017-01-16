@@ -111,8 +111,6 @@ public class SocketTask implements Runnable {
             }
             boolean connected;
             SocketCallback callback = st.mReceiving ? st.mDupLexCallback :((msg.obj != null && msg.obj instanceof MessageData)? ((MessageData) msg.obj).callback : null);
-
-            Log.d(TAG, "handleMessage:" + (msg.obj == null ? msg.arg1 :((MessageData) msg.obj).requestData));
             switch (what){
                 case MSG_CONNECT:
                     st.makeSureConnected(msg.arg1, callback, callback,null);
@@ -130,7 +128,9 @@ public class SocketTask implements Runnable {
                     st.stopReceive();
                     break;
                 case MSG_CONNECT_CHECK:
-                    st.SocketCheck();
+                    if (st.makeSureConnected(REQUEST_KEY_NOBODY, null, null, null)) {
+                        st.SocketCheck();
+                    }
                     break;
                 case MSG_DISCONNECT:
                     st.stopReceive();
@@ -166,7 +166,7 @@ public class SocketTask implements Runnable {
                         Log.d(TAG, "Receive 已连接 开始receive");
                         SocketMessage response = mCoreSocket.receive();
                         Log.d(TAG, "Receive response:" + response.data);
-                        if (response != null) {
+                        if (response.data != null) {
                             if (mDupLexCallback != null) {
                                 mDupLexCallback.onComplete(REQUEST_KEY_ANYBODY, response);
                             }
@@ -227,11 +227,15 @@ public class SocketTask implements Runnable {
     }
 
     private void request(int id, MessageData messageData){
-        Log.d(TAG, "request data" + messageData.requestData);
+        Log.d(TAG, "requestJson data" + messageData.requestData.data);
         if(mReceiving) {
-            mCoreSocket.requestWithoutBack(messageData.requestData.data);
+            if(messageData.requestData.type == SocketMessage.SOCKET_TYPE_JSON) {
+                mCoreSocket.requestJsonWithoutBack(messageData.requestData.data);
+            }else if(messageData.requestData.type == SocketMessage.SOCKET_TYPE_RAW){
+                mCoreSocket.requestImageWithoutBack(messageData.requestData.data);
+            }
         }else {
-            SocketMessage response = mCoreSocket.request(messageData.requestData.data);
+            SocketMessage response = mCoreSocket.requestJson(messageData.requestData.data);
             if (messageData.callback != null) {
                 if (response == null) {
                     messageData.callback.onError(id, mCoreSocket.getLastException());

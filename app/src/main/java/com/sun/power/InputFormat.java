@@ -88,10 +88,6 @@ public class InputFormat {
         long time = System.currentTimeMillis();
         note.setTimeStamp(time);
         note.setTimeFormat(Utils.getFormatTime(time));
-        File newFile = new File(Application.App.getSocketRawFolder(), file.getName());
-        if(newFile.exists()){
-            newFile.delete();
-        }
 
         note.setContent(file.getName());
         note.setType(CvsNote.TYPE_IMAGE);

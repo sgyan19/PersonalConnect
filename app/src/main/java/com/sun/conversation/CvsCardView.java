@@ -1,13 +1,17 @@
 package com.sun.conversation;
 
 import android.content.Context;
+import android.net.Uri;
 import android.support.v7.widget.CardView;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.widget.TextView;
 
+import com.sun.personalconnect.Application;
 import com.sun.personalconnect.R;
 import com.sun.widgets.AsyncImageView;
+
+import java.io.File;
 
 /**
  * Created by guoyao on 2016/12/16.
@@ -54,7 +58,7 @@ public class CvsCardView extends CardView {
         }else if(note.getType() == CvsNote.TYPE_IMAGE){
             mTxtContent.setVisibility(GONE);
             mImgContent.setVisibility(VISIBLE);
-            mImgContent.setImageAsync(note.getContent());
+            mImgContent.setImageAsync(Uri.fromFile(new File(Application.App.getSocketRawFolder(), note.getContent())).toString());
         }
     }
 }
