@@ -20,7 +20,7 @@ public class ClientSocket {
     public static final String TAG = "ClientSocket";
     public static final Host[] HostList = new Host[]{
             new Host(0,"192.168.137.1"),
-            new Host(0,"smaths326009812.oicp.net"),
+            new Host(0,"maths326009812.oicp.net"),
     };
 
     public static Host Host;
