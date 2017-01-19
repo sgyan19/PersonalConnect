@@ -69,6 +69,7 @@ public class UriUtils {
         String column = MediaStore.Images.Media.DATA;
         String[] projection = { column };
         try {
+//            context.grantUriPermission(uri);
             cursor = context.getContentResolver().query(uri, projection, selection, selectionArgs, null);
             if (cursor != null && cursor.moveToFirst()) {
                 int index = cursor.getColumnIndexOrThrow(column);

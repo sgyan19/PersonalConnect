@@ -100,4 +100,13 @@ public class InputFormat {
         result[1] = note;
         return result;
     }
+
+    public static RequestJson makeDownloadRequest(String name){
+        RequestJson requestJson = new RequestJson();
+        requestJson.setDeviceId(Application.App.getDeviceId());
+        requestJson.setRequestId(requestJson.hashCode());
+        requestJson.setCode(RequestDataHelper.CODE_ConversationImage);
+        requestJson.addArg(name);
+        return requestJson;
+    }
 }

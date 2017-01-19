@@ -38,7 +38,7 @@ public class CvsHistoryManager {
         daoSession = new DaoMaster(db).newSession();
         mCvsDao = daoSession.getCvsNoteDao();
 
-        mCvsLast10TimeDescQuery = mCvsDao.queryBuilder().orderDesc(CvsNoteDao.Properties.TimeStamp).limit(10).build();
+        mCvsLast10TimeDescQuery = mCvsDao.queryBuilder().orderDesc(CvsNoteDao.Properties.TimeStamp).limit(15).build();
         mCvsCache = mCvsLast10TimeDescQuery.list();
         Collections.reverse(mCvsCache);
         if(mCvsCache == null){
@@ -49,6 +49,10 @@ public class CvsHistoryManager {
 
     public List<CvsNote> getCache(){
         return mCvsCache;
+    }
+
+    public CvsNote getLastCache(){
+        return mCvsCache.get(mCvsCache.size() - 1);
     }
 
     public CvsNote getCache(int index){

@@ -82,8 +82,10 @@ public class CvsService extends Service {
                         Log.e(TAG, "Receive:" + response);
                     }
                 }else if(responseType == SOCKET_TYPE_RAW){
+                    Log.d(TAG, "BroadcastReceiver SOCKET_TYPE_RAW");
                     if(( l = getOnCvsListener()) != null){
                         File file = new File(Application.App.getSocketRawFolder(), response);
+                        Log.d(TAG, "BroadcastReceiver raw path:" + file.getPath());
                         if(file.exists()){
                             l.onRaw(file);
                         }
@@ -188,6 +190,18 @@ public class CvsService extends Service {
             if(note != null)
                 mRequestHistory.put(requestJson.getRequestId(), note);
             return note;
+        }
+
+        public void download(String name){
+            if(socketBinder == null){
+                return;
+            }
+            RequestJson requestJson = InputFormat.makeDownloadRequest(name);
+            try {
+                socketBinder.request(requestJson.getRequestId(), SocketMessage.SOCKET_TYPE_JSON,GsonUtils.mGson.toJson(requestJson));
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
         }
 
         public void setCvsListener(CvsListener l){

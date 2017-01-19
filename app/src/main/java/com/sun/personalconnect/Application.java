@@ -48,6 +48,7 @@ public class Application extends android.app.Application {
             mUiApp = true;
             init();
         }
+        initPaths(this);
         mDeviceId = ((TelephonyManager) getSystemService(TELEPHONY_SERVICE))
                 .getDeviceId();
         mSocketRawFolder = DirectoryManager.getDownloadPath();
@@ -68,7 +69,6 @@ public class Application extends android.app.Application {
         startService(new Intent(this, CvsService.class));
         mRing = new Ring();
         mPowerTaskManager = new PowerTaskManager();
-        initPaths(this);
         //socketTask = new SocketTask();
         //socketTask.start();
     }
@@ -124,7 +124,7 @@ public class Application extends android.app.Application {
         return mSocketRawFolder;
     }
 
-    private void initPaths(Context context) {
+    public void initPaths(Context context) {
         DirectoryManager.init(context);
 
         DirectoryManager.checkPath(DirectoryManager.getPrivateCachePath());

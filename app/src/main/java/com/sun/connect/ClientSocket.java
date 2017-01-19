@@ -12,6 +12,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Created by guoyao on 2016/12/13.
@@ -20,7 +21,7 @@ public class ClientSocket {
     public static final String TAG = "ClientSocket";
     public static final Host[] HostList = new Host[]{
             new Host(0,"192.168.137.1"),
-            new Host(0,"maths326009812.oicp.net"),
+            new Host(0,"smaths326009812.oicp.net"),
     };
 
     public static Host Host;
@@ -65,6 +66,7 @@ public class ClientSocket {
                     mSocket.close();
                 } catch (IOException e) {
                     e.printStackTrace();
+                    mLastException = e;
                 }
             }
             if(mSocket == null|| mSocket.isClosed()|| mRemoteClosed) {
@@ -152,6 +154,7 @@ public class ClientSocket {
     }
 
     public SocketMessage receive() throws IOException{
+        mSocket.setSoTimeout(0);
         SocketMessage response = new SocketMessage();
         InputStream stream = mSocket.getInputStream();
         int len  = stream.read(buffer,0,1);
@@ -168,6 +171,7 @@ public class ClientSocket {
                 response.data = receiveTextFrame(stream);
             }else{
                 Log.d(TAG, "unknown code:" + buffer[0]);
+                receiveTrash(stream);
             }
         }else{
             mRemoteClosed = true;
@@ -216,17 +220,19 @@ public class ClientSocket {
     private String receiveTextFrame(InputStream stream) throws IOException{
         stream.read(buffer, 0, 4);
         int size = bytesToInt(buffer, 0);
-        if(size > buffer.length ){
-            throw new SocketException("TextFrame size overstep the boundary");
+        Log.d(TAG, String.format("read receiveTextFrame size:%d", size));
+        if(size > buffer.length || size <= 0){
+            throw new SocketException("TextFrame size overstep the boundary || size < 0");
         }
         int offset = 0;
         int old = mSocket.getSoTimeout();
-        mSocket.setSoTimeout(1000);
+        mSocket.setSoTimeout(5000);
         int len;
         try {
             while ((len = stream.read(buffer, offset, size)) != 0) {
                 offset += len;
                 size = size - len;
+                Log.d(TAG, String.format("read lastSize:%d, len:%d offset:%d", size, len, offset));
             }
         }catch (SocketTimeoutException e){
         }
@@ -237,9 +243,10 @@ public class ClientSocket {
     private void receiveRawFrame(InputStream stream, String name) throws IOException{
         stream.read(buffer, 0, 4);
         int size = bytesToInt(buffer, 0);
+        Log.d(TAG, String.format("read receiveRawFrame size:%d", size));
         int old = mSocket.getSoTimeout();
         int len;
-        mSocket.setSoTimeout(1000);
+        mSocket.setSoTimeout(20000);
         try {
             File file = new File(mRawDir, name);
             if(file.exists()){
@@ -250,9 +257,10 @@ public class ClientSocket {
                 fileStream = new FileOutputStream(file);
                 while (size > 0) {
                     len = stream.read(buffer,0, size > buffer.length ? buffer.length: size);
-                    if(len == 0) break;
+                    if(len <= 0) break;
                     size = size - len;
                     fileStream.write(buffer, 0, len);
+                    Log.d(TAG, String.format("read lastSize:%d, len:%d", size, len));
                 }
             }finally {
                 if(fileStream != null) {
@@ -262,6 +270,20 @@ public class ClientSocket {
                 }
             }
         }catch (SocketException e){
+        }
+        mSocket.setSoTimeout(old);
+    }
+
+    private void receiveTrash(InputStream stream) throws IOException{
+        int len;
+        int old = mSocket.getSoTimeout();
+        mSocket.setSoTimeout(5000);
+        try {
+            while ((len = stream.read(buffer)) > 0) {
+                Log.d(TAG, String.format("receiveTrash len:%d", len));
+            }
+        }catch (IOException e){
+            e.printStackTrace();
         }
         mSocket.setSoTimeout(old);
     }
