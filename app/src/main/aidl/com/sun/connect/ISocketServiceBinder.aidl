@@ -5,5 +5,6 @@ package com.sun.connect;
  */
 interface ISocketServiceBinder  {
     void request(int key, int type, String request);
+    boolean isConnected();
     void stopReceive();
 }

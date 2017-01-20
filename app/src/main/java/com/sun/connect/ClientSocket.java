@@ -12,7 +12,6 @@ import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
-import java.util.concurrent.TimeoutException;
 
 /**
  * Created by guoyao on 2016/12/13.
@@ -20,8 +19,8 @@ import java.util.concurrent.TimeoutException;
 public class ClientSocket {
     public static final String TAG = "ClientSocket";
     public static final Host[] HostList = new Host[]{
+            new Host(0,"maths326009812.oicp.net"),
             new Host(0,"192.168.137.1"),
-            new Host(0,"smaths326009812.oicp.net"),
     };
 
     public static Host Host;
@@ -43,7 +42,8 @@ public class ClientSocket {
         }
     }
 
-    private byte[] buffer = new byte[1024 * 10];
+    private byte[] sendBuffer = new byte[1024 * 10];
+    private byte[] recBuffer = new byte[1024 * 10];
     private byte[] mHeartBeatData = new byte[]{HeartBeatASK};
     private Socket mSocket;
     private Throwable mLastException;
@@ -53,6 +53,8 @@ public class ClientSocket {
     public Throwable getLastException() {
         return mLastException;
     }
+
+    private long mLastConnectClock = 0 ;
 
     public boolean connect()
     {
@@ -70,21 +72,29 @@ public class ClientSocket {
                 }
             }
             if(mSocket == null|| mSocket.isClosed()|| mRemoteClosed) {
-                try {
-                    Host = choseHost();
-                    Log.d(TAG, Host.address + " 重连");
-                    mSocket = new Socket(Host.address, Port);
-                    mSocket.setKeepAlive(true);
-                    Log.d(TAG, Host.address + " 连接成功");
-                    Host.tryTimes = 0;
-                    connected = true;
-                    mRemoteClosed = false;
-                } catch (Exception e) {
-                    Log.d(TAG, Host.address + " 连接失败");
-                    mRemoteClosed = true;
-                    mLastException = e;
-                    Host.tryTimes++;
+                long lastTryGap = System.nanoTime() - mLastConnectClock;
+                Log.d(TAG, "lastTryGap :" + lastTryGap);
+                if(lastTryGap < 10000000){
+                    Log.d(TAG, Host.address + " 接近上次重连时间，不再重试");
                     connected = false;
+                }else {
+                    try {
+                        Host = choseHost();
+                        Log.d(TAG, Host.address + " 重连");
+                        mSocket = new Socket(Host.address, Port);
+                        mSocket.setKeepAlive(true);
+                        Log.d(TAG, Host.address + " 连接成功");
+                        Host.tryTimes = 0;
+                        connected = true;
+                        mRemoteClosed = false;
+                    } catch (Exception e) {
+                        Log.d(TAG, Host.address + " 连接失败");
+                        mRemoteClosed = true;
+                        mLastException = e;
+                        Host.tryTimes++;
+                        connected = false;
+                        mLastConnectClock = System.nanoTime();
+                    }
                 }
             }else{
                 Log.d(TAG, mSocket.getInetAddress().getHostAddress() + " 已连接");
@@ -157,20 +167,20 @@ public class ClientSocket {
         mSocket.setSoTimeout(0);
         SocketMessage response = new SocketMessage();
         InputStream stream = mSocket.getInputStream();
-        int len  = stream.read(buffer,0,1);
+        int len  = stream.read(recBuffer,0,1);
         if(len >= 1){
-            if(buffer[0] == HeartBeatANS) {
+            if(recBuffer[0] == HeartBeatANS) {
                 Log.d(TAG, "HeartBeatANS");
-            }else if(buffer[0] == HEADER_RAW){
+            }else if(recBuffer[0] == HEADER_RAW){
                 response.type = SocketMessage.SOCKET_TYPE_RAW;
                 Log.d(TAG, "HEADER_RAW");
                 response.data = receiveTextFrame(stream);
                 receiveRawFrame(stream, response.data);
-            }else if(buffer[0] == HEADER_JSON){
+            }else if(recBuffer[0] == HEADER_JSON){
                 response.type = SocketMessage.SOCKET_TYPE_JSON;
                 response.data = receiveTextFrame(stream);
             }else{
-                Log.d(TAG, "unknown code:" + buffer[0]);
+                Log.d(TAG, "unknown code:" + recBuffer[0]);
                 receiveTrash(stream);
             }
         }else{
@@ -182,11 +192,12 @@ public class ClientSocket {
     private void sendTextFrame(OutputStream stream, String text) throws IOException{
         try {
             byte[] data = text.getBytes("utf-8");
-            intToBytes(data.length, buffer, 0);
-            stream.write(buffer, 0, 4);
+            intToBytes(data.length, sendBuffer, 0);
+            stream.write(sendBuffer, 0, 4);
             stream.write(data,0 , data.length);
             stream.flush();
         }catch (UnsupportedEncodingException e){
+            mLastException = e;
             e.printStackTrace();
         }
     }
@@ -194,15 +205,15 @@ public class ClientSocket {
     private void sendRawFrame(OutputStream stream, String fileName) throws IOException{
         File file = new File(mRawDir, fileName);
         int size = (int)file.length();
-        intToBytes(size, buffer, 0);
-        stream.write(buffer, 0, 4);
+        intToBytes(size, sendBuffer, 0);
+        stream.write(sendBuffer, 0, 4);
 
         InputStream fileStream = null;
         try {
             int len;
             fileStream = new FileInputStream(file);
-            while((len = fileStream.read(buffer, 0, size > buffer.length ? buffer.length: size)) > 0){
-                stream.write(buffer, 0, len);
+            while((len = fileStream.read(sendBuffer, 0, size > sendBuffer.length ? sendBuffer.length: size)) > 0){
+                stream.write(sendBuffer, 0, len);
             }
         }finally {
             if(fileStream != null){
@@ -218,10 +229,10 @@ public class ClientSocket {
     }
 
     private String receiveTextFrame(InputStream stream) throws IOException{
-        stream.read(buffer, 0, 4);
-        int size = bytesToInt(buffer, 0);
+        stream.read(recBuffer, 0, 4);
+        int size = bytesToInt(recBuffer, 0);
         Log.d(TAG, String.format("read receiveTextFrame size:%d", size));
-        if(size > buffer.length || size <= 0){
+        if(size > recBuffer.length || size <= 0){
             throw new SocketException("TextFrame size overstep the boundary || size < 0");
         }
         int offset = 0;
@@ -229,7 +240,7 @@ public class ClientSocket {
         mSocket.setSoTimeout(5000);
         int len;
         try {
-            while ((len = stream.read(buffer, offset, size)) != 0) {
+            while ((len = stream.read(recBuffer, offset, size)) != 0) {
                 offset += len;
                 size = size - len;
                 Log.d(TAG, String.format("read lastSize:%d, len:%d offset:%d", size, len, offset));
@@ -237,12 +248,12 @@ public class ClientSocket {
         }catch (SocketTimeoutException e){
         }
         mSocket.setSoTimeout(old);
-        return new String(buffer, 0, offset, "utf-8");
+        return new String(recBuffer, 0, offset, "utf-8");
     }
 
     private void receiveRawFrame(InputStream stream, String name) throws IOException{
-        stream.read(buffer, 0, 4);
-        int size = bytesToInt(buffer, 0);
+        stream.read(recBuffer, 0, 4);
+        int size = bytesToInt(recBuffer, 0);
         Log.d(TAG, String.format("read receiveRawFrame size:%d", size));
         int old = mSocket.getSoTimeout();
         int len;
@@ -256,10 +267,10 @@ public class ClientSocket {
             try {
                 fileStream = new FileOutputStream(file);
                 while (size > 0) {
-                    len = stream.read(buffer,0, size > buffer.length ? buffer.length: size);
+                    len = stream.read(recBuffer,0, size > recBuffer.length ? recBuffer.length: size);
                     if(len <= 0) break;
                     size = size - len;
-                    fileStream.write(buffer, 0, len);
+                    fileStream.write(recBuffer, 0, len);
                     Log.d(TAG, String.format("read lastSize:%d, len:%d", size, len));
                 }
             }finally {
@@ -279,11 +290,12 @@ public class ClientSocket {
         int old = mSocket.getSoTimeout();
         mSocket.setSoTimeout(5000);
         try {
-            while ((len = stream.read(buffer)) > 0) {
+            while ((len = stream.read(recBuffer)) > 0) {
                 Log.d(TAG, String.format("receiveTrash len:%d", len));
             }
         }catch (IOException e){
             e.printStackTrace();
+            mLastException = e;
         }
         mSocket.setSoTimeout(old);
     }

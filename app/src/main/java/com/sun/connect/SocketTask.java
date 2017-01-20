@@ -153,10 +153,10 @@ public class SocketTask implements Runnable {
                 Log.d(TAG, "Receive 开始");
                 while (mReceiving) {
                     if (!makeSureConnected(REQUEST_KEY_NOBODY, null, null, mDupLexCallback)) {
-                        Log.d(TAG, "Receive 未能连接 wait 20 s");
+                        Log.d(TAG, "Receive 未能连接 wait 10 s");
                         synchronized (ReceiveLock) {
                             try {
-                                ReceiveLock.wait(20000);
+                                ReceiveLock.wait(10000);
                             } catch (InterruptedException e) {
                             }
                         }
@@ -276,5 +276,9 @@ public class SocketTask implements Runnable {
 
     public void setRawFolder(String path){
         ClientSocket.setRawFolder(path);
+    }
+
+    public boolean isConnected(){
+        return mCoreSocket.isConnecting();
     }
 }

@@ -20,6 +20,7 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import com.sun.connect.ISocketServiceBinder;
+import com.sun.connect.RequestDataHelper;
 import com.sun.connect.RequestJson;
 import com.sun.connect.ResponseJson;
 import com.sun.connect.SocketMessage;
@@ -73,6 +74,15 @@ public class CvsService extends Service {
             String error = intent.getStringExtra(SocketService.KEY_STRING_ERROR);
             int responseType = intent.getIntExtra(SocketService.KEY_INT_RESPONSE_TYPE, SOCKET_TYPE_JSON);
             String response = intent.getStringExtra(SocketService.KEY_STRING_RESPONSE);
+            boolean connected = intent.getBooleanExtra(SocketService.KEY_BOOLEAN_CONNECTED, false);
+            if(connected){
+                try {
+                    socketBinder.request(SocketTask.REQUEST_KEY_NOBODY, SocketMessage.SOCKET_TYPE_JSON, String.format(RequestDataHelper.CvsConnectRequest, Application.App.getDeviceId()));
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                }
+                return;
+            }
             ResponseJson responseObj  = null;
             if(TextUtils.isEmpty(error) && !TextUtils.isEmpty(response)){
                 if(responseType == SOCKET_TYPE_JSON) {
@@ -94,9 +104,9 @@ public class CvsService extends Service {
             }
             if(responseObj == null){
                 if(mRequestHistory.containsKey(key)){
-                    Application.App.getCvsHistoryManager().saveCache();
                     CvsNote note = mRequestHistory.get(key);
                     note.setSendStatus(CvsNote.STATUS_FAL);
+                    Application.App.getCvsHistoryManager().saveCache();
                     mRequestHistory.remove(key);
                     if(( l = getOnCvsListener()) != null){
                         l.onSendFailed(key, note, error);
@@ -238,6 +248,13 @@ public class CvsService extends Service {
                 @Override
                 public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
                     socketBinder = ISocketServiceBinder.Stub.asInterface(iBinder);
+                    try {
+                        if(socketBinder.isConnected()){
+                            socketBinder.request(SocketTask.REQUEST_KEY_NOBODY, SocketMessage.SOCKET_TYPE_JSON, String.format(RequestDataHelper.CvsConnectRequest, Application.App.getDeviceId()));
+                        }
+                    } catch (RemoteException e) {
+                        e.printStackTrace();
+                    }
                 }
 
                 @Override

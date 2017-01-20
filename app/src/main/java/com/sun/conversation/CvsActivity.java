@@ -198,7 +198,8 @@ public class CvsActivity extends AppCompatActivity implements View.OnClickListen
     //region 继承接口实现
     @Override
     public void onSendFailed(long key, CvsNote note, String message) {
-        ((CvsRecyclerAdapter)mCvsRcc.getAdapter()).notifyItemChanged(note);
+        ToastUtils.show(message,Toast.LENGTH_SHORT);
+        ((CvsRecyclerAdapter) mCvsRcc.getAdapter()).notifyItemChanged(note);
     }
 
     @Override
@@ -260,13 +261,15 @@ public class CvsActivity extends AppCompatActivity implements View.OnClickListen
     }
 
     public void onEvent(EventImageLoaderComplete event){
-//        int curtPosition = event.getPosition();
-//        if(curtPosition == mCvsRcc.getAdapter().getItemCount()){
-//            int position = ((LinearLayoutManager)mCvsRcc.getLayoutManager()).findLastVisibleItemPosition();
-//            if(curtPosition == position){
-//                animationScrollEnd();
-//            }
-//        }
+        int curtPosition = event.getPosition();
+        Log.d(TAG, "onEvent EventImageLoaderComplete curtPosition = " + curtPosition);
+        if(curtPosition == (mCvsRcc.getAdapter().getItemCount() - 1)){
+            int position = ((LinearLayoutManager)mCvsRcc.getLayoutManager()).findLastVisibleItemPosition();
+            Log.d(TAG, "onEvent EventImageLoaderComplete VisibleItemPosition = " + position);
+            if(curtPosition == position){
+                animationScrollEnd();
+            }
+        }
     }
     //endregion
 
@@ -331,7 +334,7 @@ public class CvsActivity extends AppCompatActivity implements View.OnClickListen
             CvsNote note = serviceBinder.request(content, cmds);
             if(note != null){
                 Application.App.getCvsHistoryManager().insertCache(note);
-                mCvsRcc.getAdapter().notifyDataSetChanged();
+                mCvsRcc.getAdapter().notifyItemRangeInserted(mCvsRcc.getAdapter().getItemCount(), 1);
                 animationScrollEnd();
                 Application.App.getCvsHistoryManager().keepLastSendNote(note);
             }
@@ -363,7 +366,7 @@ public class CvsActivity extends AppCompatActivity implements View.OnClickListen
         if(note != null){
             note.setContent(newFile.getName());
             Application.App.getCvsHistoryManager().insertCache(note);
-            mCvsRcc.getAdapter().notifyDataSetChanged();
+            mCvsRcc.getAdapter().notifyItemRangeInserted(mCvsRcc.getAdapter().getItemCount() ,1);
             animationScrollEnd(500);
             Application.App.getCvsHistoryManager().keepLastSendNote(note);
         }
@@ -374,36 +377,42 @@ public class CvsActivity extends AppCompatActivity implements View.OnClickListen
     }
 
     private void animationScrollEnd(long delayMillis) {
-//        mCvsRcc.postDelayed(new Runnable() {
-//            @Override
-//            public void run() {
-//                int position = mCvsRcc.getAdapter().getItemCount() - 1;
-//                Log.d(TAG, "smoothScrollToPosition " + position);
-//                mCvsRcc.smoothScrollToPosition(position);
-//            }
-//        }, delayMillis);
+        mCvsRcc.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                int position = mCvsRcc.getAdapter().getItemCount() - 1;
+                Log.d(TAG, "smoothScrollToPosition " + position);
+                if(position >= 0) {
+                    mCvsRcc.smoothScrollToPosition(position);
+                }
+            }
+        }, delayMillis);
     }
 
     private void animationScrollEnd() {
-//        mCvsRcc.post(new Runnable() {
-//            @Override
-//            public void run() {
-//                int position = mCvsRcc.getAdapter().getItemCount() - 1;
-//                Log.d(TAG, "smoothScrollToPosition " + position);
-//                mCvsRcc.smoothScrollToPosition(position);
-//            }
-//        });
+        mCvsRcc.post(new Runnable() {
+            @Override
+            public void run() {
+                int position = mCvsRcc.getAdapter().getItemCount() - 1;
+                Log.d(TAG, "smoothScrollToPosition " + position);
+                if(position >= 0) {
+                    mCvsRcc.smoothScrollToPosition(position);
+                }
+            }
+        });
     }
     private void scrollEnd(){
-//        mCvsRcc.post(new Runnable() {
-//            @Override
-//            public void run() {
-//                int position = mCvsRcc.getAdapter().getItemCount() - 1;
-//                Log.d(TAG, "scrollEnd " + position);
-//                mCvsRcc.smoothScrollToPosition(position);
-//                mCvsRcc.scrollToPosition(position);
-//            }
-//        });
+        mCvsRcc.post(new Runnable() {
+            @Override
+            public void run() {
+                int position = mCvsRcc.getAdapter().getItemCount() - 1;
+                Log.d(TAG, "scrollEnd " + position);
+                if(position >= 0) {
+                    mCvsRcc.smoothScrollToPosition(position);
+                    mCvsRcc.scrollToPosition(position);
+                }
+            }
+        });
     }
     //endregion
 }

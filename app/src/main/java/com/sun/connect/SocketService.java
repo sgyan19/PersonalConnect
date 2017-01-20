@@ -17,9 +17,10 @@ import com.sun.personalconnect.Application;
 public class SocketService extends Service {
     public static final String SocketReceiveBroadcast = "com.sun.connect.SocketService.Receive";
     public static final String KEY_INT_REQUESTKEY = "requestKey";
-    public static final String KEY_INT_RESPONSE_TYPE = "reponseType";
+    public static final String KEY_INT_RESPONSE_TYPE = "responseType";
     public static final String KEY_STRING_RESPONSE = "response";
     public static final String KEY_STRING_ERROR = "error";
+    public static final String KEY_BOOLEAN_CONNECTED= "connected";
 
     private ServiceBinder mBinder;
     private SocketCallback mReceiveCallback = new SocketCallback() {
@@ -27,7 +28,7 @@ public class SocketService extends Service {
         public void onError(int requestKey, Throwable e) {
             Intent intent = new Intent(SocketReceiveBroadcast);
             intent.putExtra(KEY_INT_REQUESTKEY, requestKey);
-            intent.putExtra(KEY_STRING_ERROR, e.toString());
+            intent.putExtra(KEY_STRING_ERROR, e == null ? "unknown" : e.toString());
             SocketService.this.sendBroadcast(intent);
         }
 
@@ -44,7 +45,11 @@ public class SocketService extends Service {
 
         @Override
         public void onConnected(int requestKey) {
-            SocketService.this.getSocketTask().sendMessage(SocketTask.MSG_REQUEST, SocketTask.REQUEST_KEY_NOBODY, SocketMessage.SOCKET_TYPE_JSON,String.format(RequestDataHelper.CvsConnectRequest, Application.App.getDeviceId()), null);
+            Intent intent = new Intent(SocketReceiveBroadcast);
+            intent.putExtra(KEY_INT_REQUESTKEY, SocketTask.REQUEST_KEY_ANYBODY);
+            intent.putExtra(KEY_BOOLEAN_CONNECTED, true);
+            SocketService.this.sendBroadcast(intent);
+//            SocketService.this.getSocketTask().sendMessage(SocketTask.MSG_REQUEST, SocketTask.REQUEST_KEY_NOBODY, SocketMessage.SOCKET_TYPE_JSON,String.format(RequestDataHelper.CvsConnectRequest, Application.App.getDeviceId()), null);
             SocketService.this.getSocketTask().sendMessage(SocketTask.MSG_CONNECT_CHECK, SocketTask.REQUEST_KEY_NOBODY, null, null);
         }
     };
@@ -66,6 +71,11 @@ public class SocketService extends Service {
         @Override
         public void request(int key, int type, String request) throws RemoteException {
             SocketService.this.getSocketTask().sendMessage(SocketTask.MSG_REQUEST, key, type,request, null);
+        }
+
+        @Override
+        public boolean isConnected(){
+            return SocketService.this.getSocketTask().isConnected();
         }
 
         public void stopReceive(){
