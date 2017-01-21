@@ -3,18 +3,24 @@ package com.sun.connect;
 import android.app.Service;
 import android.content.Intent;
 import android.os.Binder;
+import android.os.FileObserver;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
 import com.sun.personalconnect.Application;
+import com.sun.utils.DirectoryManager;
+import com.sun.utils.FileUtils;
+
+import java.io.File;
 
 /**
  * Created by guoyao on 2016/12/21.
  * this service maybe a remote service.Activity should not touch this.
  */
 public class SocketService extends Service {
+    public static final String TAG = "SocketService";
     public static final String SocketReceiveBroadcast = "com.sun.connect.SocketService.Receive";
     public static final String KEY_INT_REQUESTKEY = "requestKey";
     public static final String KEY_INT_RESPONSE_TYPE = "responseType";
@@ -23,6 +29,15 @@ public class SocketService extends Service {
     public static final String KEY_BOOLEAN_CONNECTED= "connected";
 
     private ServiceBinder mBinder;
+
+    private SocketTask socketTask;
+
+    public SocketTask getSocketTask(){
+        return socketTask;
+    }
+
+    private FileObserver mRawDirObserver;
+
     private SocketCallback mReceiveCallback = new SocketCallback() {
         @Override
         public void onError(int requestKey, Throwable e) {
@@ -83,10 +98,35 @@ public class SocketService extends Service {
         }
     };
 
-    private SocketTask socketTask;
+    private class RawFolderObserver extends FileObserver{
 
-    public SocketTask getSocketTask(){
-        return socketTask;
+        public RawFolderObserver(String path) {
+            super(path);
+        }
+
+        @Override
+        public void onEvent(int event , String s) {
+            int action = event & FileObserver.ALL_EVENTS;
+            switch (action){
+                case FileObserver.CREATE:
+                    Log.d(TAG, "event: FileObserver.CREATE path: " + s);
+                    break;
+                case FileObserver.ACCESS:
+                    Log.d(TAG, "event: FileObserver.ACCESS path: " + s);
+                    break;
+                case FileObserver.DELETE:
+                    Log.d(TAG,"event: FileObserver.DELETE path: " + s);
+                    break;
+                case FileObserver.OPEN:
+                    Log.d(TAG,"event: FileObserver.OPEN path: " + s);
+                    break;
+                case FileObserver.MODIFY:
+                    Log.d(TAG,"event: FileObserver.MODIFY path: " + s);
+                    int count = FileUtils.deleteOldFilesByCount(new File(Application.App.getSocketRawFolder()), 10);
+                    Log.d(TAG,"deleteOldFilesByCount:" + count);
+                    break;
+            }
+        }
     }
 
     @Override
@@ -96,6 +136,8 @@ public class SocketService extends Service {
         socketTask = new SocketTask();
         socketTask.startWithReceive(mReceiveCallback);
         socketTask.setRawFolder(Application.App.getSocketRawFolder());
+        mRawDirObserver = new RawFolderObserver(Application.App.getSocketRawFolder());
+        mRawDirObserver.startWatching();
     }
 
     @Nullable
@@ -113,6 +155,7 @@ public class SocketService extends Service {
     @Override
     public void onDestroy() {
         socketTask.quitThreadLooper();
+        mRawDirObserver.stopWatching();
         super.onDestroy();
     }
 }

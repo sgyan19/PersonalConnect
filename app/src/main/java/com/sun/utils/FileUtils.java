@@ -4,7 +4,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.nio.channels.FileChannel;
+import java.util.Arrays;
+import java.util.Comparator;
 
 /**
  * Created by guoyao on 2017/1/16.
@@ -48,5 +51,31 @@ public class FileUtils {
                 e.printStackTrace();
             }
         }
+    }
+
+    /**
+     *
+     * @param dir target dir
+     * @param count lastKeep file count
+     */
+    public static int deleteOldFilesByCount(File dir, int count) throws IllegalArgumentException{
+        if(dir == null || !dir.exists() || !dir.isDirectory()){
+            throw new IllegalArgumentException("dir don't exists or is not a directory");
+        }
+        if(count <= 0){
+            return 0;
+        }
+        File[] files = dir.listFiles();
+        Arrays.sort(files, new Comparator<File>() {
+            @Override
+            public int compare(File file, File t1) {
+                return (int) (file.lastModified() - t1.lastModified());
+            }
+        });
+        int shouldDelete = files.length - count;
+        for(int i = 0; i < shouldDelete ; i++){
+            files[i].delete();
+        }
+        return shouldDelete;
     }
 }
