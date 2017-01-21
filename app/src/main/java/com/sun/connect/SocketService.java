@@ -104,6 +104,9 @@ public class SocketService extends Service {
             super(path);
         }
 
+        public RawFolderObserver(String path, int mask) {
+            super(path, mask);
+        }
         @Override
         public void onEvent(int event , String s) {
             int action = event & FileObserver.ALL_EVENTS;
@@ -136,7 +139,7 @@ public class SocketService extends Service {
         socketTask = new SocketTask();
         socketTask.startWithReceive(mReceiveCallback);
         socketTask.setRawFolder(Application.App.getSocketRawFolder());
-        mRawDirObserver = new RawFolderObserver(Application.App.getSocketRawFolder());
+        mRawDirObserver = new RawFolderObserver(Application.App.getSocketRawFolder(), FileObserver.MODIFY| FileObserver.CREATE );
         mRawDirObserver.startWatching();
     }
 
