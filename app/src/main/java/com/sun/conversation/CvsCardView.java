@@ -9,6 +9,7 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.nostra13.universalimageloader.core.assist.FailReason;
@@ -19,6 +20,7 @@ import com.sun.utils.UriUtils;
 import com.sun.widgets.AsyncImageView;
 
 import java.io.File;
+import java.lang.ref.WeakReference;
 
 import de.greenrobot.event.EventBus;
 
@@ -32,10 +34,23 @@ public class CvsCardView extends CardView {
     private TextView mTxtTime;
     private TextView mTxtContent;
     private TextView mTxtSend;
+    private ImageView mImgStatus;
     private AsyncImageView mImgContent;
     private CvsNote mNote;
     private int mType;
     private int mPosition;
+
+    private OnClickListener mListener = new OnClickListener() {
+        @Override
+        public void onClick(View view) {
+            int id = view.getId();
+            switch (id){
+                case R.id.img_send_status:
+                    EventBus.getDefault().post(new EventImageMiss(mNote));
+                    break;
+            }
+        }
+    };
 
     protected ImageLoadingListener mImageLoadingListener = new ImageLoadingListener() {
         @Override
@@ -83,6 +98,8 @@ public class CvsCardView extends CardView {
         mTxtContent = (TextView)findViewById(R.id.txt_cvs_content);
         mTxtSend = (TextView) findViewById(R.id.txt_cvs_is_send);
         mImgContent = (AsyncImageView) findViewById(R.id.img_cvs_content);
+        mImgStatus = (ImageView) findViewById(R.id.img_send_status);
+        mImgStatus.setOnClickListener(mListener);
     }
 
     public void update(int position, CvsNote note){
@@ -93,6 +110,11 @@ public class CvsCardView extends CardView {
         mTxtTime.setText(note.getTimeFormat());
         mTxtTime.setTextColor(color);
         mTxtSend.setText(CvsNoteHelper.getStatusText(note));
+        if(note.getSendStatus() == CvsNote.STATUS_FAL){
+            mImgStatus.setVisibility(VISIBLE);
+        }else{
+            mImgStatus.setVisibility(GONE);
+        }
         Log.d(TAG, String.format("view type:%d, note type:%d", mType, note.getType()));
         if(note.getType() == CvsNote.TYPE_TEXT) {
             mTxtContent.setText(note.getContent());

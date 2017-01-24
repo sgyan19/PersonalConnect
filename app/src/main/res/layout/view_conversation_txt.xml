@@ -32,6 +32,12 @@
             android:layout_marginLeft="10dp"
             android:layout_marginStart="10dp"
             android:textColor="#8B7355"/>
+        <ImageView
+            android:id="@+id/img_send_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/aio_send_fail"
+            android:visibility="gone"/>
     </LinearLayout>
         <TextView
             android:id="@+id/txt_cvs_content"

@@ -113,6 +113,8 @@ public class SocketService extends Service {
             switch (action){
                 case FileObserver.CREATE:
                     Log.d(TAG, "event: FileObserver.CREATE path: " + s);
+                    int c = FileUtils.deleteOldFilesByCount(new File(Application.App.getSocketRawFolder()), 10);
+                    Log.d(TAG,"deleteOldFilesByCount:" + c);
                     break;
                 case FileObserver.ACCESS:
                     Log.d(TAG, "event: FileObserver.ACCESS path: " + s);
@@ -139,7 +141,7 @@ public class SocketService extends Service {
         socketTask = new SocketTask();
         socketTask.startWithReceive(mReceiveCallback);
         socketTask.setRawFolder(Application.App.getSocketRawFolder());
-        mRawDirObserver = new RawFolderObserver(Application.App.getSocketRawFolder(), FileObserver.MODIFY| FileObserver.CREATE );
+        mRawDirObserver = new RawFolderObserver(Application.App.getSocketRawFolder(), FileObserver.CREATE );
         mRawDirObserver.startWatching();
     }
 
