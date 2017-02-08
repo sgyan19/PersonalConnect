@@ -48,9 +48,7 @@ public class Application extends android.app.Application {
             mUiApp = true;
             init();
         }
-        initPaths(this);
-        mDeviceId = ((TelephonyManager) getSystemService(TELEPHONY_SERVICE))
-                .getDeviceId();
+        mDeviceId = "";
         mSocketRawFolder = DirectoryManager.getDownloadPath();
     }
 
@@ -137,5 +135,10 @@ public class Application extends android.app.Application {
         DirectoryManager.checkPath(DirectoryManager.getCrashCachePath());
         DirectoryManager.checkPath(DirectoryManager.getShareCachePath());
         DirectoryManager.checkPath(DirectoryManager.getDownloadPath());
+    }
+
+    public void initDeviceId(){
+        mDeviceId = ((TelephonyManager) getSystemService(TELEPHONY_SERVICE))
+                .getDeviceId();
     }
 }

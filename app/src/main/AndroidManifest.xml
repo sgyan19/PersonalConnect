@@ -41,7 +41,6 @@
             android:windowSoftInputMode="adjustResize"
             android:launchMode="singleTask">
         </activity>
-
         <service
             android:name="com.sun.conversation.CvsService">
         </service>

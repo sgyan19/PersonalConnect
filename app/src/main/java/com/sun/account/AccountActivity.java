@@ -12,6 +12,7 @@ import android.widget.Toast;
 import com.sun.conversation.CvsActivity;
 import com.sun.connect.SocketService;
 import com.sun.personalconnect.Application;
+import com.sun.personalconnect.BaseActivity;
 import com.sun.personalconnect.R;
 import com.sun.settings.Config;
 import com.sun.utils.ToastUtils;
@@ -19,7 +20,7 @@ import com.sun.utils.ToastUtils;
 /**
  * Created by guoyao on 2016/12/13.
  */
-public class AccountActivity extends AppCompatActivity implements View.OnClickListener {
+public class AccountActivity extends BaseActivity implements View.OnClickListener {
 
     private EditText mEditPassword;
     private CheckBox mCkbPassword;

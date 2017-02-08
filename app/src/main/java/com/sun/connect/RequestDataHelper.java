@@ -12,7 +12,7 @@ public class RequestDataHelper {
 
     public static final RequestJson CvsConnect = new RequestJson();
 
-    public static final String CvsConnectRequest = "{\"args\":[],\"code\":\"11\",\"requestId\":0,\"deviceId\":\"%s\"}";
+    public static final String CvsConnectRequest = "{\"args\":[%s],\"code\":\"11\",\"requestId\":0,\"deviceId\":\"%s\"}";
     static {
         CvsConnect.setCode(CODE_ConversationLongLink);
     }

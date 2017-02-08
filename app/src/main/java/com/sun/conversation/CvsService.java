@@ -50,6 +50,7 @@ public class CvsService extends Service {
     private LinkedHashMap<Integer, CvsNote> mRequestHistory = new LinkedHashMap<>();
     private WeakReference<CvsListener> mCvsListenerReference;
     private ServiceConnection socketConn;
+    private String mLastCvsRequestId = "";
 
     public interface CvsListener {
         void onSendFailed(long key, CvsNote note, String message);
@@ -77,7 +78,7 @@ public class CvsService extends Service {
             boolean connected = intent.getBooleanExtra(SocketService.KEY_BOOLEAN_CONNECTED, false);
             if(connected){
                 try {
-                    socketBinder.request(SocketTask.REQUEST_KEY_NOBODY, SocketMessage.SOCKET_TYPE_JSON, String.format(RequestDataHelper.CvsConnectRequest, Application.App.getDeviceId()));
+                    socketBinder.request(SocketTask.REQUEST_KEY_NOBODY, SocketMessage.SOCKET_TYPE_JSON, String.format(RequestDataHelper.CvsConnectRequest, mLastCvsRequestId,Application.App.getDeviceId()));
                 } catch (RemoteException e) {
                     e.printStackTrace();
                 }
@@ -197,8 +198,10 @@ public class CvsService extends Service {
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
-            if(note != null)
+            if(note != null) {
                 mRequestHistory.put(requestJson.getRequestId(), note);
+                mLastCvsRequestId = String.valueOf(requestJson.getRequestId());
+            }
             return note;
         }
 
@@ -250,7 +253,7 @@ public class CvsService extends Service {
                     socketBinder = ISocketServiceBinder.Stub.asInterface(iBinder);
                     try {
                         if(socketBinder.isConnected()){
-                            socketBinder.request(SocketTask.REQUEST_KEY_NOBODY, SocketMessage.SOCKET_TYPE_JSON, String.format(RequestDataHelper.CvsConnectRequest, Application.App.getDeviceId()));
+                            socketBinder.request(SocketTask.REQUEST_KEY_NOBODY, SocketMessage.SOCKET_TYPE_JSON, String.format(RequestDataHelper.CvsConnectRequest, mLastCvsRequestId, Application.App.getDeviceId()));
                         }
                     } catch (RemoteException e) {
                         e.printStackTrace();

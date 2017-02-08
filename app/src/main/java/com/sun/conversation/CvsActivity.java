@@ -1,6 +1,5 @@
 package com.sun.conversation;
 
-import android.Manifest;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -8,8 +7,7 @@ import android.content.ServiceConnection;
 import android.graphics.PointF;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.IBinder;
-import android.support.v4.app.ActivityCompat;
+import android.os.IBinder;;
 import android.support.v4.content.PermissionChecker;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
@@ -22,22 +20,19 @@ import android.view.View;
 import android.view.View.OnLayoutChangeListener;
 import android.widget.EditText;
 import android.widget.Toast;
-
-import com.nostra13.universalimageloader.core.listener.ImageLoadingListener;
 import com.sun.account.Account;
 import com.sun.account.AccountActivity;
 import com.sun.conversation.CvsService.CvsListener;
 import com.sun.personalconnect.Application;
+import com.sun.personalconnect.BaseActivity;
 import com.sun.personalconnect.R;
 import com.sun.power.InputFormat;
 import com.sun.power.LocalCmd;
 import com.sun.utils.FileUtils;
-import com.sun.utils.Permissions;
 import com.sun.utils.RequestCode;
 import com.sun.utils.ToastUtils;
 import com.sun.utils.UriUtils;
 import com.sun.utils.Utils;
-
 import java.io.File;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
@@ -49,7 +44,7 @@ import de.greenrobot.event.EventBus;
 /**
  * Created by guoyao on 2016/12/13.
  */
-public class CvsActivity extends AppCompatActivity implements View.OnClickListener,CvsListener,OnLayoutChangeListener {
+public class CvsActivity extends BaseActivity implements View.OnClickListener,CvsListener,OnLayoutChangeListener {
     //region 常量
     public final static String TAG = "CvsActivity";
     public final static int REQUEST_CODE_WRITE_STORAGE = 99;
@@ -116,18 +111,7 @@ public class CvsActivity extends AppCompatActivity implements View.OnClickListen
         EventBus.getDefault().register(this);
         //endregion
 
-        boolean isPermission = Permissions.selfPermissionGranted(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
-        if (!isPermission) {
-                try {
-                    ActivityCompat.requestPermissions(this,
-                            new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
-                            REQUEST_CODE_WRITE_STORAGE);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-        }else {
-            Application.App.initPaths(this);
-        }
+
     }
 
     @Override
