@@ -20,7 +20,6 @@ import com.sun.utils.UriUtils;
 import com.sun.widgets.AsyncImageView;
 
 import java.io.File;
-import java.lang.ref.WeakReference;
 
 import de.greenrobot.event.EventBus;
 
@@ -46,7 +45,7 @@ public class CvsCardView extends CardView {
             int id = view.getId();
             switch (id){
                 case R.id.img_send_status:
-                    EventBus.getDefault().post(new EventImageMiss(mNote));
+                    EventBus.getDefault().post(new EventNote(mNote, EventNote.ACTION_NEED_SEEND));
                     break;
             }
         }
@@ -62,7 +61,7 @@ public class CvsCardView extends CardView {
             if(!TextUtils.isEmpty(s)){
                 String path = UriUtils.getPath(getContext(), Uri.parse(s));
                 if(!TextUtils.isEmpty(path) && !(new File(path)).exists()){
-                    EventBus.getDefault().post(new EventImageMiss(mNote));
+                    EventBus.getDefault().post(new EventNote(mNote, EventNote.ACTION_DOWNLOAD_IMAGE));
                 }
             }
         }

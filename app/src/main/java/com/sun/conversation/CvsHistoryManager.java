@@ -65,7 +65,23 @@ public class CvsHistoryManager {
 
     public void insertCache(CvsNote note){
         mCvsCache.add(note);
-        mWaitForSave.add(note);
+//        mWaitForSave.add(note);
+        mCvsDao.insert(note);
+    }
+
+    public boolean updateCache(long id){
+        Iterator<CvsNote> iterator = mCvsCache.iterator();
+        boolean update = false;
+        while(iterator.hasNext()){
+            CvsNote note = iterator.next();
+            if(note.getId() == id){
+//                mCvsDao.insert(note);
+                mCvsDao.update(note);
+                update = true;
+                break;
+            }
+        }
+        return update;
     }
 
     public void saveCache(){

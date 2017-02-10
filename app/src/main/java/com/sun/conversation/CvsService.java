@@ -107,7 +107,7 @@ public class CvsService extends Service {
                 if(mRequestHistory.containsKey(key)){
                     CvsNote note = mRequestHistory.get(key);
                     note.setSendStatus(CvsNote.STATUS_FAL);
-                    Application.App.getCvsHistoryManager().saveCache();
+                    Application.App.getCvsHistoryManager().updateCache(note.getId());
                     mRequestHistory.remove(key);
                     if(( l = getOnCvsListener()) != null){
                         l.onSendFailed(key, note, error);
@@ -144,7 +144,7 @@ public class CvsService extends Service {
             note.setSendStatus(CvsNote.STATUS_SUC);
             if(key == SocketTask.REQUEST_KEY_ANYBODY){
                 Application.App.getCvsHistoryManager().insertCache(note);
-                Application.App.getCvsHistoryManager().saveCache();
+//                Application.App.getCvsHistoryManager().saveCache(); // 新策略，已经废弃
                 if(( l = getOnCvsListener()) != null){
                     l.onNew(note);
                 }else{
@@ -153,7 +153,7 @@ public class CvsService extends Service {
             }else if(mRequestHistory.containsKey(key)){
                 mRequestHistory.get(key).setSendStatus(CvsNote.STATUS_SUC);
                 CvsNote localNote = mRequestHistory.remove(key);
-                Application.App.getCvsHistoryManager().saveCache();
+                Application.App.getCvsHistoryManager().updateCache(localNote.getId());
                 if(( l = getOnCvsListener()) != null){
                     l.onSendSuccess(localNote);
                 }
@@ -202,6 +202,18 @@ public class CvsService extends Service {
                 mRequestHistory.put(requestJson.getRequestId(), note);
                 mLastCvsRequestId = String.valueOf(requestJson.getRequestId());
             }
+            return note;
+        }
+
+        public CvsNote request(CvsNote note){
+            RequestJson requestJson = InputFormat.makeRequest(note);
+            try {
+                socketBinder.request(requestJson.getRequestId(), SocketMessage.SOCKET_TYPE_JSON,GsonUtils.mGson.toJson(requestJson));
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+            mRequestHistory.put(requestJson.getRequestId(), note);
+            mLastCvsRequestId = String.valueOf(requestJson.getRequestId());
             return note;
         }
 

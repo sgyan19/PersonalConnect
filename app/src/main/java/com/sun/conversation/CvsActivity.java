@@ -9,7 +9,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;;
 import android.support.v4.content.PermissionChecker;
-import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.LinearSmoothScroller;
 import android.support.v7.widget.RecyclerView;
@@ -182,7 +181,7 @@ public class CvsActivity extends BaseActivity implements View.OnClickListener,Cv
     //region 继承接口实现
     @Override
     public void onSendFailed(long key, CvsNote note, String message) {
-        ToastUtils.show(message,Toast.LENGTH_SHORT);
+        ToastUtils.show(message, Toast.LENGTH_SHORT);
         ((CvsRecyclerAdapter) mCvsRcc.getAdapter()).notifyItemChanged(note);
     }
 
@@ -236,11 +235,19 @@ public class CvsActivity extends BaseActivity implements View.OnClickListener,Cv
         }
     }
 
-    public void onEvent(EventImageMiss event){
+    public void onEvent(EventNote event){
         CvsNote note = event.getCurrentNote();
-        if(!mWeakImageNoteMap.containsKey(note.getContent())) {
-            mWeakImageNoteMap.put(note.getContent(), new WeakReference<>(note));
-            downloadImage(note.getContent());
+        int act = event.getAction();
+        switch (act){
+            case EventNote.ACTION_DOWNLOAD_IMAGE:
+                if(!mWeakImageNoteMap.containsKey(note.getContent())) {
+                    mWeakImageNoteMap.put(note.getContent(), new WeakReference<>(note));
+                    downloadImage(note.getContent());
+                }
+                break;
+            case EventNote.ACTION_NEED_SEEND:
+                serviceBinder.request(note);
+                break;
         }
     }
 
