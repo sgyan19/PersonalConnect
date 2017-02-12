@@ -30,6 +30,7 @@ public class CvsHistoryManager {
     private List<CvsNote> mWaitForSave;
 
     private CvsNote mLastSendNote;
+    private CvsNote mTmpNote = new CvsNote();
 
     public void init(Context context){
         DbName = context.getPackageName();
@@ -66,7 +67,11 @@ public class CvsHistoryManager {
     public void insertCache(CvsNote note){
         mCvsCache.add(note);
 //        mWaitForSave.add(note);
-        mCvsDao.insert(note);
+        note.clone(mTmpNote);
+        if(mTmpNote.getSendStatus() == CvsNote.STATUS_SENDING){
+            mTmpNote.setSendStatus(CvsNote.STATUS_FAL);
+        }
+        mCvsDao.insert(mTmpNote);
     }
 
     public boolean updateCache(long id){
@@ -76,7 +81,11 @@ public class CvsHistoryManager {
             CvsNote note = iterator.next();
             if(note.getId() == id){
 //                mCvsDao.insert(note);
-                mCvsDao.update(note);
+                note.clone(mTmpNote);
+                if(mTmpNote.getSendStatus() == CvsNote.STATUS_SENDING){
+                    mTmpNote.setSendStatus(CvsNote.STATUS_FAL);
+                }
+                mCvsDao.update(mTmpNote);
                 update = true;
                 break;
             }
@@ -88,7 +97,7 @@ public class CvsHistoryManager {
         Iterator<CvsNote> iterator = mWaitForSave.iterator();
         while(iterator.hasNext()){
             CvsNote note = iterator.next();
-            if(note.getSendStatus() != CvsNote.STATUS_INIT){
+            if(note.getSendStatus() != CvsNote.STATUS_SENDING){
                 mCvsDao.insert(note);
                 iterator.remove();
             }

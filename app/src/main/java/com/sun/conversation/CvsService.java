@@ -76,7 +76,7 @@ public class CvsService extends Service {
             int responseType = intent.getIntExtra(SocketService.KEY_INT_RESPONSE_TYPE, SOCKET_TYPE_JSON);
             String response = intent.getStringExtra(SocketService.KEY_STRING_RESPONSE);
             boolean connected = intent.getBooleanExtra(SocketService.KEY_BOOLEAN_CONNECTED, false);
-            if(connected){
+            if(connected && socketBinder != null){
                 try {
                     socketBinder.request(SocketTask.REQUEST_KEY_NOBODY, SocketMessage.SOCKET_TYPE_JSON, String.format(RequestDataHelper.CvsConnectRequest, mLastCvsRequestId,Application.App.getDeviceId()));
                 } catch (RemoteException e) {

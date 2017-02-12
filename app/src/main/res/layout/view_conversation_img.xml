@@ -33,14 +33,26 @@
             android:layout_marginStart="10dp"
             android:visibility="gone"
             android:textColor="#8B7355"/>
-        <ImageView
-            android:id="@+id/img_send_status"
+        <FrameLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginLeft="10dp"
-            android:layout_marginStart="10dp"
-            android:background="@drawable/aio_send_fail"
-            android:visibility="gone"/>
+            android:layout_marginRight="10dp"
+            android:layout_marginStart="10dp">
+
+            <ImageView
+                android:id="@+id/img_sending"
+                android:layout_width="15dp"
+                android:layout_height="15dp"
+                android:background="@mipmap/aio_refresh_nor"
+                android:visibility="gone" />
+
+            <ImageView
+                android:id="@+id/img_send_fail"
+                android:layout_width="15dp"
+                android:layout_height="15dp"
+                android:background="@drawable/aio_send_fail"
+                android:visibility="gone" />
+        </FrameLayout>
     </LinearLayout>
     <FrameLayout
         android:layout_width="match_parent"

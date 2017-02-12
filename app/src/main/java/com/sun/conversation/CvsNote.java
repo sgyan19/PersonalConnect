@@ -16,7 +16,7 @@ import org.greenrobot.greendao.annotation.Generated;
 })
 public class CvsNote implements Serializable {
     private static final long serialVersionUID = 1L;
-    public static final int STATUS_INIT = 0;
+    public static final int STATUS_SENDING = 0;
     public static final int STATUS_SUC = 1;
     public static final int STATUS_FAL = 2;
 
@@ -136,5 +136,18 @@ public class CvsNote implements Serializable {
 
     public void setPower(int power) {
         this.power = power;
+    }
+
+    public void clone(CvsNote tar){
+        tar.setSendStatus(sendStatus);
+        tar.setContent(content);
+        tar.setExtend(extend);
+        tar.setId(id);
+        tar.setPower(power);
+        tar.setTimeFormat(timeFormat);
+        tar.setTimeStamp(timeStamp);
+        tar.setType(type);
+        tar.setUserId(userId);
+        tar.setUserName(userName);
     }
 }

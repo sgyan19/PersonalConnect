@@ -1,6 +1,5 @@
 package com.sun.conversation;
 
-import com.sun.account.Account;
 import com.sun.personalconnect.Application;
 
 /**
@@ -9,7 +8,7 @@ import com.sun.personalconnect.Application;
 public class CvsNoteHelper {
     public static String getStatusText(CvsNote note){
         switch (note.getSendStatus()){
-            case CvsNote.STATUS_INIT:
+            case CvsNote.STATUS_SENDING:
                 return "(正在发送)";
             case CvsNote.STATUS_FAL:
                 return "(发送失败)";
