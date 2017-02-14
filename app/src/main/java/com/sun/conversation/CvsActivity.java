@@ -57,6 +57,7 @@ public class CvsActivity extends BaseActivity implements View.OnClickListener,Cv
     private int mKeyBoardHeight;
     private String mLastSubmit;
     private HashMap<String,WeakReference<CvsNote>> mWeakImageNoteMap = new HashMap<>();
+    private CvsImageDetailDialog mImgDetailDialog;
     //endregion
 
     //region 生命周期
@@ -245,8 +246,15 @@ public class CvsActivity extends BaseActivity implements View.OnClickListener,Cv
                     downloadImage(note.getContent());
                 }
                 break;
-            case EventNote.ACTION_NEED_SEEND:
+            case EventNote.ACTION_NEED_SEND:
                 serviceBinder.request(note);
+                break;
+            case EventNote.ACTION_IMG_DETAIL:
+                if(mImgDetailDialog == null){
+                    mImgDetailDialog = new CvsImageDetailDialog();
+                }
+                mImgDetailDialog.setImagePath(new File(Application.App.getSocketRawFolder(), note.getContent()));
+                mImgDetailDialog.show(getSupportFragmentManager(), note.getContent());
                 break;
         }
     }

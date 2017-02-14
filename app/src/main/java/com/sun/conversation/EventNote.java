@@ -5,7 +5,8 @@ package com.sun.conversation;
  */
 public class EventNote {
     public static final int ACTION_DOWNLOAD_IMAGE = 0;
-    public static final int ACTION_NEED_SEEND = 1;
+    public static final int ACTION_NEED_SEND = 1;
+    public static final int ACTION_IMG_DETAIL = 2;
 
     private CvsNote mCurrentNote;
     private int mAction;

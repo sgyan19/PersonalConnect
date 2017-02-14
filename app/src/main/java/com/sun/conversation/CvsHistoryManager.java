@@ -65,13 +65,23 @@ public class CvsHistoryManager {
     }
 
     public void insertCache(CvsNote note){
+        for(CvsNote item : mCvsCache){
+            if(item.getId() == note.getId()){
+                // 重复
+                return;
+            }
+        }
         mCvsCache.add(note);
 //        mWaitForSave.add(note);
         note.clone(mTmpNote);
         if(mTmpNote.getSendStatus() == CvsNote.STATUS_SENDING){
             mTmpNote.setSendStatus(CvsNote.STATUS_FAL);
         }
-        mCvsDao.insert(mTmpNote);
+        try {
+            mCvsDao.insert(mTmpNote);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
     }
 
     public boolean updateCache(long id){
@@ -138,5 +148,22 @@ public class CvsHistoryManager {
 
     public CvsNote getLastSendNote(){
         return mLastSendNote;
+    }
+
+    public CvsNote getLastSucNote(){
+        CvsNote rlt = null;
+        CvsNote index;
+        for(int i = mCvsCache.size() - 1; i >=0 ; i--){
+            if((index = mCvsCache.get(i)).getSendStatus() == CvsNote.STATUS_SUC){
+                rlt = index;
+                break;
+            }
+        }
+        return rlt;
+    }
+
+    public String getLastSucNoteId(){
+        CvsNote tmp;
+        return (tmp = getLastSucNote()) == null ? "" : String.valueOf(tmp.getId());
     }
 }

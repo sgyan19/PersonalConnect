@@ -51,9 +51,12 @@ public class CvsCardView extends CardView {
             int id = view.getId();
             switch (id){
                 case R.id.img_send_fail:
-                    EventBus.getDefault().post(new EventNote(mNote, EventNote.ACTION_NEED_SEEND));
+                    EventBus.getDefault().post(new EventNote(mNote, EventNote.ACTION_NEED_SEND));
                     mNote.setSendStatus(CvsNote.STATUS_SENDING);
                     update(mPosition, mNote);
+                    break;
+                case R.id.img_cvs_content:
+                    EventBus.getDefault().post(new EventNote(mNote, EventNote.ACTION_IMG_DETAIL));
                     break;
             }
         }
@@ -116,6 +119,9 @@ public class CvsCardView extends CardView {
                 mRotateAnimation.setDuration(1000);//设置动画持续时间
             }
             mInitAnimation = true;
+        }
+        if(mImgContent != null) {
+            mImgContent.setOnClickListener(mListener);
         }
         mImgFail.setOnClickListener(mListener);
     }
