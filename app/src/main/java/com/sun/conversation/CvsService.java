@@ -119,42 +119,42 @@ public class CvsService extends Service {
             if(handleResponse(responseObj) || "success".equals(responseObj.getData())){
                 return;
             }
-
-            RequestJson noteRequest = null;
+            Class<?> formater;
             try {
-                noteRequest = GsonUtils.mGson.fromJson(responseObj.getData(), RequestJson.class);
+                formater = getClassLoader().loadClass(responseObj.getFormat());
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
+                return;
+            }
+            Object object = null;
+            try {
+                object = GsonUtils.mGson.fromJson(responseObj.getData(), formater);
             }catch (Exception e){
                 e.printStackTrace();
             }
-            if(noteRequest == null || handleRequest(noteRequest)){
+            if(object == null){
                 return;
             }
-            CvsNote note = null;
-            try {
-                note = GsonUtils.mGson.fromJson(noteRequest.getArgs().get(0), CvsNote.class);
-            }catch (Exception e){
-                e.printStackTrace();
-            }
-            if(note == null){
-                return;
-            }
-            handleNote(note);
-            key = responseObj.getRequestId();
-            note.setSendStatus(CvsNote.STATUS_SUC);
-            if(key == SocketTask.REQUEST_KEY_ANYBODY){
-                Application.App.getCvsHistoryManager().insertCache(note);
+            if(object instanceof CvsNote) {
+                CvsNote note = (CvsNote) object;
+                handleNote(note);
+                key = responseObj.getRequestId();
+                note.setSendStatus(CvsNote.STATUS_SUC);
+                if (key == SocketTask.REQUEST_KEY_ANYBODY) {
+                    Application.App.getCvsHistoryManager().insertCache(note);
 //                Application.App.getCvsHistoryManager().saveCache(); // 新策略，已经废弃
-                if(( l = getOnCvsListener()) != null){
-                    l.onNew(note);
-                }else{
-                    showNotification(CvsService.this, note.getUserName(), note.getContent());
-                }
-            }else if(mRequestHistory.containsKey(key)){
-                mRequestHistory.get(key).setSendStatus(CvsNote.STATUS_SUC);
-                CvsNote localNote = mRequestHistory.remove(key);
-                Application.App.getCvsHistoryManager().updateCache(localNote.getId());
-                if(( l = getOnCvsListener()) != null){
-                    l.onSendSuccess(localNote);
+                    if ((l = getOnCvsListener()) != null) {
+                        l.onNew(note);
+                    } else {
+                        showNotification(CvsService.this, note.getUserName(), note.getContent());
+                    }
+                } else if (mRequestHistory.containsKey(key)) {
+                    mRequestHistory.get(key).setSendStatus(CvsNote.STATUS_SUC);
+                    CvsNote localNote = mRequestHistory.remove(key);
+                    Application.App.getCvsHistoryManager().updateCache(localNote.getId());
+                    if ((l = getOnCvsListener()) != null) {
+                        l.onSendSuccess(localNote);
+                    }
                 }
             }
         }

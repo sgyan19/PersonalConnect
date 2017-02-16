@@ -1,5 +1,6 @@
 package com.sun.personalconnect;
 
+import android.Manifest;
 import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
@@ -49,6 +50,15 @@ public class Application extends android.app.Application {
             init();
         }
         mDeviceId = "";
+        BaseActivity.requestPermissionExt(new Permission(
+                Manifest.permission.READ_PHONE_STATE,
+                new Permission.Runnable() {
+                    @Override
+                    public void run(Permission p) {
+                        initDeviceId();
+                    }
+                }
+        ));
         mSocketRawFolder = DirectoryManager.getDownloadPath();
     }
 
@@ -67,6 +77,16 @@ public class Application extends android.app.Application {
         startService(new Intent(this, CvsService.class));
         mRing = new Ring();
         mPowerTaskManager = new PowerTaskManager();
+
+        BaseActivity.requestPermissionExt(new Permission(
+                Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                new Permission.Runnable() {
+                    @Override
+                    public void run(Permission p) {
+                        initPaths(getContext());
+                    }
+                }
+        ));
         //socketTask = new SocketTask();
         //socketTask.start();
     }

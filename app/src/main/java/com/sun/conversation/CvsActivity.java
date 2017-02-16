@@ -165,18 +165,6 @@ public class CvsActivity extends BaseActivity implements View.OnClickListener,Cv
         }
     }
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if(requestCode == REQUEST_CODE_WRITE_STORAGE){
-            if(grantResults[0] == PermissionChecker.PERMISSION_GRANTED){
-                Application.App.initPaths(this);
-            }else{
-                Toast.makeText(this, "no permission callback", Toast.LENGTH_SHORT).show();
-            }
-        }
-    }
-
     //endregion
 
     //region 继承接口实现

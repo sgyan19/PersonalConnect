@@ -1,74 +1,108 @@
 package com.sun.personalconnect;
 
 import android.Manifest;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import com.sun.utils.Permissions;
 
+import java.util.Iterator;
+import java.util.LinkedList;
+
 /**
  * Created by guoyao on 2017/2/6.
  */
 public class BaseActivity extends AppCompatActivity {
-    private static boolean PermissionCheck = false;
-    public class Permission{
-        String name;
-        int request;
-        Runnable runnable;
-        boolean success = false;
-        public Permission(String name, int code, Runnable runnable){
-            this.name = name;
-            this.request = code;
-            this.runnable = runnable;
-        }
-    }
+    private static LinkedList<BaseActivity> InstanceStack = new LinkedList<>();
+    public static LinkedList<Permission> WaitForRequest = new LinkedList<>();
+    public static LinkedList<Permission> WaitForCallback = new LinkedList<>();
 
     public Permission[] PermissionData = new Permission[]{
-            new Permission(Manifest.permission.WRITE_EXTERNAL_STORAGE, 98, new Runnable() {
+            new Permission(Manifest.permission.WRITE_EXTERNAL_STORAGE, new Permission.Runnable() {
                 @Override
-                public void run() {
+                public void run(Permission p) {
                     Application.App.initPaths(Application.getContext());
                 }
             }),
-            new Permission(Manifest.permission.READ_PHONE_STATE, 99, new Runnable() {
+            new Permission(Manifest.permission.READ_PHONE_STATE, new Permission.Runnable() {
                 @Override
-                public void run() {
+                public void run(Permission p) {
                     Application.App.initDeviceId();
+                }
+            }),
+            new Permission(Manifest.permission.ACCESS_COARSE_LOCATION, new Permission.Runnable() {
+                @Override
+                public void run(Permission p) {
+//                    Application.App.initDeviceId();
                 }
             }),
     };
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if(!PermissionCheck) {
-            for (int i = 0; i < PermissionData.length; i++) {
-                boolean isPermission = Permissions.selfPermissionGranted(this, PermissionData[i].name);
-                if (!isPermission) {
-                    try {
-                        ActivityCompat.requestPermissions(this,
-                                new String[]{PermissionData[i].name},
-                                PermissionData[i].request);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                } else {
-                    PermissionData[i].runnable.run();
-                    PermissionData[i].success = true;
-                }
+        InstanceStack.add(this);
+        if(WaitForRequest.size() > 0 ) {
+            Iterator<Permission> iterator = WaitForRequest.iterator();
+            while (iterator.hasNext()) {
+                Permission p = iterator.next();
+                requestPermission(p);
+                iterator.remove();
             }
         }
-        PermissionCheck = true;
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        for(int i = 0 ; i < PermissionData.length; i ++){
-            if(requestCode == PermissionData[i].request){
-                PermissionData[i].runnable.run();
-                PermissionData[i].success = true;
-                break;
+
+        if(WaitForCallback.size() > 0 ) {
+            Iterator<Permission> iterator = WaitForCallback.iterator();
+            while (iterator.hasNext()) {
+                Permission p = iterator.next();
+                if(p.getRequest() == requestCode) {
+                    if(grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                        p.setSuccess(true);
+                        p.getRunnable().run(p);
+                    }else{
+                        p.setSuccess(false);
+                        p.getRunnable().run(p);
+                    }
+                    iterator.remove();
+                    break;
+                }
             }
         }
+    }
+
+    public void requestPermission(Permission permission){
+        boolean isPermission = Permissions.selfPermissionGranted(this, permission.getName());
+        if (!isPermission) {
+            try {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{permission.getName()},
+                        permission.getRequest());
+                WaitForCallback.add(permission);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        } else {
+            permission.setSuccess(true);
+            permission.getRunnable().run(permission);
+        }
+    }
+
+    public static void requestPermissionExt(Permission permission){
+        if(InstanceStack.size() == 0){
+            WaitForRequest.add(permission);
+        }else{
+            InstanceStack.getLast().requestPermission(permission);
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        InstanceStack.remove(this);
+        super.onDestroy();
     }
 }

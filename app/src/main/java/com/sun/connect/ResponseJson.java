@@ -7,6 +7,7 @@ public class ResponseJson {
     private String code;
     private String data;
     private int requestId;
+    private String format;
 
     public String getCode() {
         return code;
@@ -30,5 +31,13 @@ public class ResponseJson {
 
     public void setRequestId(int requestId) {
         this.requestId = requestId;
+    }
+
+    public String getFormat() {
+        return format;
+    }
+
+    public void setFormate(String format) {
+        this.format = format;
     }
 }

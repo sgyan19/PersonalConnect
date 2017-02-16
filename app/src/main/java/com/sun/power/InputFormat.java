@@ -63,12 +63,14 @@ public class InputFormat {
                 }
                 requestJson.clearArgs();
                 requestJson.addArg(GsonUtils.mGson.toJson(note));
+                requestJson.addArg(CvsNote.class.getName());
                 requestJson.addArg(String.valueOf(note.getId()));
             }
         }else{
             note.setContent(input);
             requestJson.setCode(RequestDataHelper.CODE_ConversationNote);
             requestJson.addArg(GsonUtils.mGson.toJson(note));
+            requestJson.addArg(CvsNote.class.getName());
             requestJson.addArg(String.valueOf(note.getId()));
         }
         result[0] = requestJson;
@@ -97,6 +99,7 @@ public class InputFormat {
 
         requestJson.setCode(RequestDataHelper.CODE_ConversationNote);
         requestJson.addArg(GsonUtils.mGson.toJson(note));
+        requestJson.addArg(CvsNote.class.getName());
         requestJson.addArg(String.valueOf(note.getId()));
 
         result[0] = requestJson;
@@ -110,6 +113,7 @@ public class InputFormat {
         requestJson.setRequestId(requestJson.hashCode());
         requestJson.setCode(RequestDataHelper.CODE_ConversationNote);
         requestJson.addArg(GsonUtils.mGson.toJson(note));
+        requestJson.addArg(CvsNote.class.getName());
         requestJson.addArg(String.valueOf(note.getId()));
         return requestJson;
     }
