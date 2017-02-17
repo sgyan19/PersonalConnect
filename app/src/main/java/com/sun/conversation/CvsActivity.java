@@ -8,7 +8,6 @@ import android.graphics.PointF;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;;
-import android.support.v4.content.PermissionChecker;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.LinearSmoothScroller;
 import android.support.v7.widget.RecyclerView;
@@ -118,7 +117,7 @@ public class CvsActivity extends BaseActivity implements View.OnClickListener,Cv
     protected void onPause() {
         super.onPause();
         if(serviceBinder != null){
-            serviceBinder.clearMyListener(this);
+            serviceBinder.clearListener(this);
         }
     }
 
@@ -181,8 +180,8 @@ public class CvsActivity extends BaseActivity implements View.OnClickListener,Cv
     }
 
     @Override
-    public void onNew(CvsNote note) {
-        Log.d(TAG, "onNew");
+    public void onNewCvsNote(CvsNote note) {
+        Log.d(TAG, "onNewCvsNote");
         ((CvsRecyclerAdapter)mCvsRcc.getAdapter()).removeTooMoreCache();
 //        ((CvsRecyclerAdapter)mCvsRcc.getAdapter()).notifyDataSetChangedLog();
         mCvsRcc.getAdapter().notifyItemRangeInserted(mCvsRcc.getAdapter().getItemCount() ,1);
@@ -190,13 +189,13 @@ public class CvsActivity extends BaseActivity implements View.OnClickListener,Cv
     }
 
     @Override
-    public void onRaw(File file) {
-        Log.d(TAG, "onRaw");
+    public void onNewFile(File file) {
+        Log.d(TAG, "onNewFile");
         WeakReference<CvsNote> noteReference = mWeakImageNoteMap.get(file.getName());
         if(noteReference != null){
             CvsNote note = noteReference.get();
             if(note != null){
-                Log.d(TAG, "onRaw notifyItemChanged");
+                Log.d(TAG, "onNewFile notifyItemChanged");
                 ((CvsRecyclerAdapter)mCvsRcc.getAdapter()).notifyItemChanged(note);
                 animationScrollEnd();
 //                scrollEnd();
