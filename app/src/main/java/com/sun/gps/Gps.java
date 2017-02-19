@@ -11,13 +11,16 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.location.LocationProvider;
 import android.os.Bundle;
+import android.os.Looper;
 import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 
+import com.sun.conversation.CvsService;
 import com.sun.personalconnect.Application;
 import com.sun.personalconnect.BaseActivity;
 import com.sun.personalconnect.Permission;
 
+import java.lang.ref.WeakReference;
 import java.util.Iterator;
 
 /**
@@ -37,25 +40,59 @@ public class Gps {
     private static final String ERROR_PREMISSION = "未获取到权限";
     private static final String ERROR_GPS_DISABLE = "GPS关闭状态";
 
-    public Gps(){
+    private WeakReference<GpsListener> mGpsListenerReference;
+
+    public void setGpsListener(GpsListener gpsListener) {
+        mGpsListenerReference = new WeakReference<>(gpsListener);
+    }
+
+    public void clearListener(GpsListener gpsListener) {
+        if (mGpsListenerReference != null && mGpsListenerReference.get() == gpsListener) {
+            mGpsListenerReference.clear();
+            mGpsListenerReference = null;
+        }
+    }
+
+    public Gps() {
         mContext = Application.App.getApplicationContext();
         lm = (LocationManager) mContext.getSystemService(Context.LOCATION_SERVICE);
     }
 
-    public void requestOnce(BaseActivity activity){
+    public void requestOnce(BaseActivity activity) {
         activity.requestPermission(new Permission(Manifest.permission.ACCESS_FINE_LOCATION, new Permission.Runnable() {
             @Override
             public void run(Permission p) {
-                if(p.isSuccess()){
+                if (p.isSuccess()) {
 
-                }else{
-
+                } else {
+                    GpsListener listener;
+                    if (mGpsListenerReference != null && (listener = mGpsListenerReference.get()) != null) {
+                        listener.onNonePermission();
+                    }
                 }
             }
         }));
     }
 
-    public void init(){
+    private Permission.Runnable mRequestOnce = new Permission.Runnable() {
+        @Override
+        public void run(Permission permission) {
+            if (permission.isSuccess()) {
+                try {
+                    lm.requestSingleUpdate(LocationManager.GPS_PROVIDER, locationListener, Looper.getMainLooper());
+                }catch (SecurityException e){
+                    e.printStackTrace();
+                }
+            }else{
+                GpsListener listener ;
+                if(mGpsListenerReference !=null && (listener =  mGpsListenerReference.get()) != null){
+                    listener.onNonePermission();
+                }
+            }
+        }
+    };
+
+    public void check(){
         // 判断GPS是否正常启动
         if (!lm.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
             Log.d(TAG, "GPS 未开启");

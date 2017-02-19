@@ -7,23 +7,29 @@ import android.os.Binder;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
 
+import com.sun.conversation.CvsService;
+
+import java.lang.ref.WeakReference;
+
 /**
  * Created by guoyao on 2017/2/16.
  */
 public class GpsService extends Service {
-    private Callback mCallbck;
+    private static final int REQ_MINE = 0;
+    private static final int REQ_USER = 1;
+    private static final int REQ_ALL = 2;
     private Gps mGpsCore;
-    private interface Callback{
-
-    }
 
     public class ServiceBinder extends Binder{
-        public void setCallback(Callback callback){
-            mCallbck = callback;
+        public void setGpsListener(GpsListener gpsListener){
+            mGpsCore.setGpsListener(gpsListener);
         }
 
-        public Location getLocation(){
-            return null;
+        public void clearListener(GpsListener gpsListener){
+            mGpsCore.clearListener(gpsListener);
+        }
+        public void requestGps(int model, String arg){
+            if(arg)
         }
     }
 
