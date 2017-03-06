@@ -5,7 +5,7 @@ import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
-import com.sun.utils.Permissions;
+import com.sun.utils.PermissionUtils;
 
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -76,7 +76,7 @@ public class BaseActivity extends AppCompatActivity {
     }
 
     public void requestPermission(Permission permission){
-        boolean isPermission = Permissions.selfPermissionGranted(this, permission.getName());
+        boolean isPermission = PermissionUtils.selfPermissionGranted(this, permission.getName());
         if (!isPermission) {
             try {
                 ActivityCompat.requestPermissions(this,

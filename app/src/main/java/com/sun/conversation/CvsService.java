@@ -68,7 +68,7 @@ public class CvsService extends Service {
                     e.printStackTrace();
                 }
             }
-            return true;
+            return false;
         }
 
         @Override

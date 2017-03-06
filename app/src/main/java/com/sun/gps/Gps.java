@@ -59,19 +59,7 @@ public class Gps {
     }
 
     public void requestOnce(BaseActivity activity) {
-        activity.requestPermission(new Permission(Manifest.permission.ACCESS_FINE_LOCATION, new Permission.Runnable() {
-            @Override
-            public void run(Permission p) {
-                if (p.isSuccess()) {
-
-                } else {
-                    GpsListener listener;
-                    if (mGpsListenerReference != null && (listener = mGpsListenerReference.get()) != null) {
-                        listener.onNonePermission();
-                    }
-                }
-            }
-        }));
+        activity.requestPermission(new Permission(Manifest.permission.ACCESS_FINE_LOCATION,mRequestOnce));
     }
 
     private Permission.Runnable mRequestOnce = new Permission.Runnable() {

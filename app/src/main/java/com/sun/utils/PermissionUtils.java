@@ -12,7 +12,7 @@ import android.support.v7.app.AlertDialog;
 /**
  * Created by guoyao on 2017/1/17.
  */
-public class Permissions {
+public class PermissionUtils {
 
     private void showMessageOKCancel(Context context, String message, DialogInterface.OnClickListener okListener) {
         new AlertDialog.Builder(context)
