@@ -1,64 +1,20 @@
 package com.sun.gps;
 
 /**
- * Created by guoyao on 2017/2/16.
+ * Created by guoyao on 2017/3/8.
  */
 public class GpsNote {
-    private long time;
-    private double longitude;
-    private double latitude;
-    private double altitude;
-    private String errInfo;
-    private String device;
+    private long id;
     private String userName;
     private int userId;
+    private GpsGear gpsGear;
 
-    public long getTime() {
-        return time;
+    public long getId() {
+        return id;
     }
 
-    public void setTime(long time) {
-        this.time = time;
-    }
-
-    public double getLongitude() {
-        return longitude;
-    }
-
-    public void setLongitude(double longitude) {
-        this.longitude = longitude;
-    }
-
-    public double getLatitude() {
-        return latitude;
-    }
-
-    public void setLatitude(double latitude) {
-        this.latitude = latitude;
-    }
-
-    public double getAltitude() {
-        return altitude;
-    }
-
-    public void setAltitude(double altitude) {
-        this.altitude = altitude;
-    }
-
-    public String getErrInfo() {
-        return errInfo;
-    }
-
-    public void setErrInfo(String errInfo) {
-        this.errInfo = errInfo;
-    }
-
-    public String getDevice() {
-        return device;
-    }
-
-    public void setDevice(String device) {
-        this.device = device;
+    public void setId(long id) {
+        this.id = id;
     }
 
     public String getUserName() {
@@ -75,5 +31,13 @@ public class GpsNote {
 
     public void setUserId(int userId) {
         this.userId = userId;
+    }
+
+    public GpsGear getGpsGear() {
+        return gpsGear;
+    }
+
+    public void setGpsGear(GpsGear gpsGear) {
+        this.gpsGear = gpsGear;
     }
 }

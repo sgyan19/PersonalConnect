@@ -11,6 +11,7 @@ import android.widget.EditText;
 import android.widget.Toast;
 import com.sun.conversation.CvsActivity;
 import com.sun.connect.SocketService;
+import com.sun.gps.GpsActivity;
 import com.sun.personalconnect.Application;
 import com.sun.personalconnect.BaseActivity;
 import com.sun.personalconnect.R;

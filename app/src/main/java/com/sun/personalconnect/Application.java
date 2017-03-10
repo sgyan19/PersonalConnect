@@ -13,8 +13,9 @@ import com.sun.account.Account;
 import com.sun.conversation.CvsHistoryManager;
 import com.sun.connect.SocketService;
 import com.sun.conversation.CvsService;
-import com.sun.power.PowerTaskManager;
-import com.sun.power.Ring;
+import com.sun.gps.GpsService;
+import com.sun.level.LevelCenter;
+import com.sun.level.Ring;
 import com.sun.utils.DirectoryManager;
 
 /**
@@ -37,7 +38,7 @@ public class Application extends android.app.Application {
 
     private String mSocketRawFolder;
     //private SocketTask socketTask;
-    private PowerTaskManager mPowerTaskManager;
+    private LevelCenter mLevelCenter;
     private Ring mRing;
     @Override
     public void onCreate() {
@@ -75,8 +76,9 @@ public class Application extends android.app.Application {
         ImageLoader.getInstance().init(config);
         startService(new Intent(this, SocketService.class));
         startService(new Intent(this, CvsService.class));
+        startService(new Intent(this, GpsService.class));
         mRing = new Ring();
-        mPowerTaskManager = new PowerTaskManager();
+        mLevelCenter = new LevelCenter();
 
         BaseActivity.requestPermissionExt(new Permission(
                 Manifest.permission.WRITE_EXTERNAL_STORAGE,
@@ -107,8 +109,8 @@ public class Application extends android.app.Application {
         return mRing;
     }
 
-    public PowerTaskManager getPowerTaskManger(){
-        return mPowerTaskManager;
+    public LevelCenter getLevelCenter(){
+        return mLevelCenter;
     }
     @Override
     public void onTerminate() {

@@ -1,4 +1,4 @@
-package com.sun.power;
+package com.sun.level;
 
 import android.os.Handler;
 import android.os.Looper;
@@ -9,7 +9,7 @@ import com.sun.personalconnect.Application;
 /**
  * Created by guoyao on 2017/1/5.
  */
-public class PowerTaskManager {
+public class LevelCenter {
 
     private RingNoteTask mRingNoteTask;
     private Handler mMainHandler;
@@ -39,5 +39,13 @@ public class PowerTaskManager {
 
     public boolean clientCheck(){
         return Application.App.getAccount().isLoginAccount(Account.Client.getId());
+    }
+
+    public static boolean serverCheck(long id){
+        return Account.Server.getId() == id;
+    }
+
+    public static boolean clientCheck(long id){
+        return Account.Client.getId() == id;
     }
 }

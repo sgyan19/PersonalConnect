@@ -5,7 +5,5 @@ package com.sun.gps;
  */
 
 public interface GpsListener {
-    void onGpsUpdate(GpsNote gpsNote);
-    void onNonePermission();
-    void onDeviceClose();
+    void onGpsUpdate(GpsResponse gpsResponse);
 }

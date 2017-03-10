@@ -1,5 +1,6 @@
 package com.sun.conversation;
 
+import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -21,11 +22,12 @@ import android.widget.Toast;
 import com.sun.account.Account;
 import com.sun.account.AccountActivity;
 import com.sun.conversation.CvsService.CvsListener;
+import com.sun.gps.GpsActivity;
 import com.sun.personalconnect.Application;
 import com.sun.personalconnect.BaseActivity;
 import com.sun.personalconnect.R;
-import com.sun.power.InputFormat;
-import com.sun.power.LocalCmd;
+import com.sun.utils.FormatUtils;
+import com.sun.level.LocalCmd;
 import com.sun.utils.FileUtils;
 import com.sun.utils.RequestCode;
 import com.sun.utils.ToastUtils;
@@ -51,8 +53,8 @@ public class CvsActivity extends BaseActivity implements View.OnClickListener,Cv
     //region 私有成员
     private EditText mEditContent;
     private RecyclerView mCvsRcc;
-    private CvsService.ServiceBinder serviceBinder;
-    private ServiceConnection serviceConn;
+    private CvsService.ServiceBinder mCvsServiceBinder;
+    private ServiceConnection mCvsServiceConn;
     private int mKeyBoardHeight;
     private String mLastSubmit;
     private HashMap<String,WeakReference<CvsNote>> mWeakImageNoteMap = new HashMap<>();
@@ -94,45 +96,50 @@ public class CvsActivity extends BaseActivity implements View.OnClickListener,Cv
         //endregion
 
         //region 绑定服务，注册eventbus
-        serviceConn = new ServiceConnection() {
+        mCvsServiceConn = new ServiceConnection() {
             @Override
             public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
-                serviceBinder = (CvsService.ServiceBinder) iBinder;
-                serviceBinder.setCvsListener(CvsActivity.this);
+                mCvsServiceBinder = (CvsService.ServiceBinder) iBinder;
+                mCvsServiceBinder.setCvsListener(CvsActivity.this);
             }
 
             @Override
             public void onServiceDisconnected(ComponentName componentName) {
-                serviceBinder = null;
+                mCvsServiceBinder = null;
             }
         };
-        bindService(new Intent(CvsActivity.this, CvsService.class), serviceConn, BIND_AUTO_CREATE);
+        bindService(new Intent(CvsActivity.this, CvsService.class), mCvsServiceConn, BIND_AUTO_CREATE);
         EventBus.getDefault().register(this);
         //endregion
 
-
+        findViewById(R.id.gps).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                startActivity(new Intent(CvsActivity.this, GpsActivity.class));
+            }
+        });
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        if(serviceBinder != null){
-            serviceBinder.clearListener(this);
+        if(mCvsServiceBinder != null){
+            mCvsServiceBinder.clearListener(this);
         }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        if(serviceBinder != null){
-            serviceBinder.setCvsListener(this);
+        if(mCvsServiceBinder != null){
+            mCvsServiceBinder.setCvsListener(this);
         }
     }
 
     @Override
     protected void onDestroy() {
-        if(serviceConn != null) {
-            unbindService(serviceConn);
+        if(mCvsServiceConn != null) {
+            unbindService(mCvsServiceConn);
         }
         EventBus.getDefault().unregister(this);
         super.onDestroy();
@@ -234,7 +241,7 @@ public class CvsActivity extends BaseActivity implements View.OnClickListener,Cv
                 }
                 break;
             case EventNote.ACTION_NEED_SEND:
-                serviceBinder.request(note);
+                mCvsServiceBinder.request(note);
                 break;
             case EventNote.ACTION_IMG_DETAIL:
                 if(mImgDetailDialog == null){
@@ -315,9 +322,9 @@ public class CvsActivity extends BaseActivity implements View.OnClickListener,Cv
             return;
         }
         mLastSubmit = content;
-        List<String> cmds = InputFormat.format(content);
+        List<String> cmds = FormatUtils.format(content);
         if(!LocalCmd.handleCmd(cmds)){
-            CvsNote note = serviceBinder.request(content, cmds);
+            CvsNote note = mCvsServiceBinder.request(content, cmds);
             if(note != null){
                 Application.App.getCvsHistoryManager().insertCache(note);
                 mCvsRcc.getAdapter().notifyItemRangeInserted(mCvsRcc.getAdapter().getItemCount(), 1);
@@ -348,7 +355,7 @@ public class CvsActivity extends BaseActivity implements View.OnClickListener,Cv
         } catch (IOException e) {
             e.printStackTrace();
         }
-        CvsNote note = serviceBinder.request(newFile);
+        CvsNote note = mCvsServiceBinder.request(newFile);
         if(note != null){
             note.setContent(newFile.getName());
             Application.App.getCvsHistoryManager().insertCache(note);
@@ -359,7 +366,7 @@ public class CvsActivity extends BaseActivity implements View.OnClickListener,Cv
     }
 
     private void downloadImage(String name){
-        serviceBinder.download(name);
+        mCvsServiceBinder.download(name);
     }
 
     private void animationScrollEnd(long delayMillis) {

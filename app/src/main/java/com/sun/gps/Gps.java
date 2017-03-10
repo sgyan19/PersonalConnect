@@ -2,7 +2,6 @@ package com.sun.gps;
 
 import android.Manifest;
 import android.content.Context;
-import android.content.pm.PackageManager;
 import android.location.Criteria;
 import android.location.GpsSatellite;
 import android.location.GpsStatus;
@@ -11,14 +10,13 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.location.LocationProvider;
 import android.os.Bundle;
-import android.os.Looper;
-import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 
-import com.sun.conversation.CvsService;
+import com.sun.device.BatteryReceiver;
 import com.sun.personalconnect.Application;
 import com.sun.personalconnect.BaseActivity;
 import com.sun.personalconnect.Permission;
+import com.sun.utils.FormatUtils;
 
 import java.lang.ref.WeakReference;
 import java.util.Iterator;
@@ -31,16 +29,31 @@ public class Gps {
     private static final String TAG = "Gps";
     private Context mContext;
 
-    public static final int STAT_NONE = 0;
-    public static final int STAT_SINGLE_UPDATING = 1;
-    public static final int STAT_SINGLE_UPDATED = 2;
-    public static final int STAT_UPDATING = 3;
-    private int mStatus;
-
-    private static final String ERROR_PREMISSION = "未获取到权限";
-    private static final String ERROR_GPS_DISABLE = "GPS关闭状态";
+    private GpsResponse mErrPermissionNote;
+    private GpsResponse mErrDeviceNote;
 
     private WeakReference<GpsListener> mGpsListenerReference;
+    private GpsGear mGpsGear = GpsGear.None;
+
+    private BaseActivity mListenBatteryContext;
+
+    private BatteryReceiver.BatteryListener mBatteryListener = new BatteryReceiver.BatteryListener() {
+        @Override
+        public void onHighPower() {
+            if(mGpsGear != GpsGear.High) {
+                mGpsGear = GpsGear.High;
+                mListenBatteryContext.requestPermission(new Permission(Manifest.permission.ACCESS_FINE_LOCATION, mRequestGpsUpdate));
+            }
+        }
+
+        @Override
+        public void onLowPower() {
+            if(mGpsGear != GpsGear.Low) {
+                mGpsGear = GpsGear.Low;
+                mListenBatteryContext.requestPermission(new Permission(Manifest.permission.ACCESS_FINE_LOCATION, mRequestGpsUpdate));
+            }
+        }
+    };
 
     public void setGpsListener(GpsListener gpsListener) {
         mGpsListenerReference = new WeakReference<>(gpsListener);
@@ -56,89 +69,115 @@ public class Gps {
     public Gps() {
         mContext = Application.App.getApplicationContext();
         lm = (LocationManager) mContext.getSystemService(Context.LOCATION_SERVICE);
+        mErrPermissionNote = new GpsResponse();
+        mErrPermissionNote.setErrInfo("");
+        mErrPermissionNote.setErrType(GpsResponse.ERR_TYPE_PERMISSION);
+        mErrDeviceNote = new GpsResponse();
+        mErrDeviceNote.setErrInfo("");
+        mErrDeviceNote.setErrType(GpsResponse.ERR_TYPE_DEVICE);
     }
 
-    public void requestOnce(BaseActivity activity) {
-        activity.requestPermission(new Permission(Manifest.permission.ACCESS_FINE_LOCATION,mRequestOnce));
+    public void requestUpdate(BaseActivity activity,GpsGear gpsGear){
+        if(gpsGear == null){
+            return;
+        }
+        if(gpsGear == GpsGear.None ){
+            stopUpdate();
+            return;
+        }
+        if(gpsGear == GpsGear.Once){
+            activity.requestPermission(new Permission(Manifest.permission.ACCESS_FINE_LOCATION, mRequestOnce));
+            return;
+        }
+        mGpsGear = gpsGear;
+        if(mListenBatteryContext != null){
+            BatteryReceiver.unregister(mListenBatteryContext);
+            mListenBatteryContext = null;
+        }
+        activity.requestPermission(new Permission(Manifest.permission.ACCESS_FINE_LOCATION, mRequestGpsUpdate));
+    }
+
+    public void requestAutoUpdate(BaseActivity activity){
+        if(mListenBatteryContext!= null && mListenBatteryContext != activity){
+            BatteryReceiver.unregister(mListenBatteryContext);
+        }
+        mListenBatteryContext = activity;
+        BatteryReceiver.register(activity, mBatteryListener);
+    }
+
+    public void stopUpdate(){
+        // TODO Auto-generated method stub
+        try {
+            lm.removeUpdates(mLocationListener);
+        }catch (SecurityException e){
+            e.printStackTrace();
+        }
+
+        if(mListenBatteryContext != null){
+            BatteryReceiver.unregister(mListenBatteryContext);
+            mListenBatteryContext = null;
+        }
     }
 
     private Permission.Runnable mRequestOnce = new Permission.Runnable() {
         @Override
         public void run(Permission permission) {
-            if (permission.isSuccess()) {
-                try {
-                    lm.requestSingleUpdate(LocationManager.GPS_PROVIDER, locationListener, Looper.getMainLooper());
-                }catch (SecurityException e){
-                    e.printStackTrace();
-                }
-            }else{
-                GpsListener listener ;
-                if(mGpsListenerReference !=null && (listener =  mGpsListenerReference.get()) != null){
-                    listener.onNonePermission();
+            GpsListener listener ;
+            if(mGpsListenerReference !=null && (listener =  mGpsListenerReference.get()) != null) {
+                if (permission.isSuccess()) {
+                    if (lm.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                        try {
+                            String bestProvider = lm.getBestProvider(getCriteria(), true);
+                            lm.requestSingleUpdate(bestProvider, mLocationListener, null);
+                            updateLocation(getLastKnownLocation());
+                        } catch (SecurityException e) {
+                            e.printStackTrace();
+                        }
+                    } else {
+                        FormatUtils.fillCommonArgs(mErrPermissionNote);
+                        listener.onGpsUpdate(mErrPermissionNote);
+                    }
+                } else {
+                    FormatUtils.fillCommonArgs(mErrDeviceNote);
+                    listener.onGpsUpdate(mErrDeviceNote);
                 }
             }
         }
     };
 
-    public void check(){
-        // 判断GPS是否正常启动
-        if (!lm.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-            Log.d(TAG, "GPS 未开启");
-            // 返回开启GPS导航设置界面
-//            Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
-//            startActivityForResult(intent, 0);
-        }else{
+    private Permission.Runnable mRequestGpsUpdate = new Permission.Runnable() {
+        @Override
+        public void run(Permission permission) {
+            GpsListener listener ;
+            if(mGpsListenerReference !=null && (listener =  mGpsListenerReference.get()) != null){
+                if (permission.isSuccess()){
+                    if (lm.isProviderEnabled(LocationManager.GPS_PROVIDER)){
+                        try {
+                            updateLocation(getLastKnownLocation());
+                            lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, mGpsGear.period, mGpsGear.minDistance, mLocationListener);
+                        }catch (SecurityException e) {
+                            e.printStackTrace();
+                        }
+                    }else{
+                        FormatUtils.fillCommonArgs(mErrPermissionNote);
+                        listener.onGpsUpdate(mErrPermissionNote);
+                    }
+                }else{
+                    FormatUtils.fillCommonArgs(mErrDeviceNote);
+                    listener.onGpsUpdate(mErrDeviceNote);
+                }
+            }
         }
-    }
-
-    public void release() {
-        // TODO Auto-generated method stub
-        try {
-            lm.removeUpdates(locationListener);
-        }catch (SecurityException e){
-            e.printStackTrace();
-        }
-    }
-
-    public boolean start() {
-
-        // 判断GPS是否正常启动
-        if (!lm.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-            Log.d(TAG, "GPS 未开启");
-            // 返回开启GPS导航设置界面
-//            Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
-//            startActivityForResult(intent, 0);
-            return false;
-        }
-        try {
-            Location location = getLastKnownLocation();
-            updateView(location);
-            // 监听状态
-            lm.addGpsStatusListener(listener);
-            // 绑定监听，有4个参数
-            // 参数1，设备：有GPS_PROVIDER和NETWORK_PROVIDER两种
-            // 参数2，位置信息更新周期，单位毫秒
-            // 参数3，位置变化最小距离：当位置距离变化超过此值时，将更新位置信息
-            // 参数4，监听
-            // 备注：参数2和3，如果参数3不为0，则以参数3为准；参数3为0，则通过时间来定时更新；两者为0，则随时刷新
-
-            // 1秒更新一次，或最小位移变化超过1米更新一次；
-            // 注意：此处更新准确度非常低，推荐在service里面启动一个Thread，在run中sleep(10000);然后执行handler.sendMessage(),更新位置
-            lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 1, locationListener);
-        }catch (SecurityException e){
-            e.printStackTrace();
-        }
-        return true;
-    }
+    };
 
     // 位置监听
-    private LocationListener locationListener = new LocationListener() {
+    private LocationListener mLocationListener = new LocationListener() {
 
         /**
          * 位置信息变化时触发
          */
         public void onLocationChanged(Location location) {
-            updateView(location);
+            updateLocation(location);
             Log.i(TAG, "时间：" + location.getTime());
             Log.i(TAG, "经度：" + location.getLongitude());
             Log.i(TAG, "纬度：" + location.getLatitude());
@@ -169,27 +208,21 @@ public class Gps {
          * GPS开启时触发
          */
         public void onProviderEnabled(String provider) {
-            if (ActivityCompat.checkSelfPermission(mContext, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(mContext, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                // TODO: Consider calling
-                //    ActivityCompat#requestPermissions
-                // here to request the missing permissions, and then overriding
-                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                //                                          int[] grantResults)
-                // to handle the case where the user grants the permission. See the documentation
-                // for ActivityCompat#requestPermissions for more details.
-                return;
-            }
             Location location = lm.getLastKnownLocation(provider);
-            updateView(location);
+            updateLocation(location);
         }
 
         /**
          * GPS禁用时触发
          */
         public void onProviderDisabled(String provider) {
-            updateView(null);
+            GpsListener listener ;
+            if(mGpsListenerReference !=null && (listener =  mGpsListenerReference.get()) != null){
+                FormatUtils.fillCommonArgs(mErrDeviceNote);
+                mErrDeviceNote.setErrInfo("gps设备被主动关闭");
+                listener.onGpsUpdate(mErrDeviceNote);
+            }
         }
-
     };
 
     // 状态监听
@@ -212,10 +245,10 @@ public class Gps {
                             .iterator();
                     int count = 0;
                     while (iters.hasNext() && count <= maxSatellites) {
-//                        GpsSatellite s = iters.next();
+                        GpsSatellite s = iters.next();
                         count++;
                     }
-                    System.out.println("搜索到：" + count + "颗卫星");
+                    Log.i(TAG, "搜索到：" + count + "颗卫星");
                     break;
                 // 定位启动
                 case GpsStatus.GPS_EVENT_STARTED:
@@ -234,15 +267,20 @@ public class Gps {
      *
      * @param location
      */
-    private void updateView(Location location) {
+    private void updateLocation(Location location) {
         if (location != null) {
-//            editText.setText("设备位置信息\n\n经度：");
-//            editText.append(String.valueOf(location.getLongitude()));
-//            editText.append("\n纬度：");
-//            editText.append(String.valueOf(location.getLatitude()));
+            GpsResponse note = new GpsResponse();
+            FormatUtils.fillCommonArgs(note);
+            note.setLongitude(location.getLongitude());
+            note.setLatitude(location.getLatitude());
+            note.setAltitude(location.getAltitude());
+            note.setTime(location.getTime());
+            note.setGpsGear(mGpsGear);
+            GpsListener l;
+            if(mGpsListenerReference != null && (l = mGpsListenerReference.get()) != null){
+                l.onGpsUpdate(note);
+            }
         } else {
-            // 清空EditText对象
-//            editText.getEditableText().clear();
         }
     }
 

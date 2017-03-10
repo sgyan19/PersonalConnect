@@ -27,7 +27,7 @@ import com.sun.connect.SocketService;
 import com.sun.connect.SocketTask;
 import com.sun.personalconnect.Application;
 import com.sun.personalconnect.R;
-import com.sun.power.InputFormat;
+import com.sun.utils.FormatUtils;
 import com.sun.utils.GsonUtils;
 
 import java.io.File;
@@ -151,7 +151,7 @@ public class CvsService extends Service {
             if(mSocketBinder == null){
                 return null;
             }
-            Object[] objects = InputFormat.makeRequest(file);
+            Object[] objects = FormatUtils.makeCvsRequest(file);
             if(objects == null) return null;
             CvsNote note = (CvsNote)objects[1];
             RequestJson requestJson = (RequestJson)objects[0];
@@ -168,9 +168,10 @@ public class CvsService extends Service {
 
         public CvsNote request(String content, List<String> cmds){
             if(mSocketBinder == null){
+                mReceiveListener.onError(SocketTask.REQUEST_KEY_NOBODY, "local service not bind");
                 return null;
             }
-            Object[] objects = InputFormat.makeRequest(content, cmds);
+            Object[] objects = FormatUtils.makeCvsRequest(content, cmds);
             if(objects == null) return null;
             CvsNote note = (CvsNote)objects[1];
             RequestJson requestJson = (RequestJson)objects[0];
@@ -186,7 +187,7 @@ public class CvsService extends Service {
         }
 
         public CvsNote request(CvsNote note){
-            RequestJson requestJson = InputFormat.makeRequest(note);
+            RequestJson requestJson = FormatUtils.makeCvsRequest(note);
             try {
                 mSocketBinder.request(requestJson.getRequestId(), SocketMessage.SOCKET_TYPE_JSON, GsonUtils.mGson.toJson(requestJson));
             } catch (RemoteException e) {
@@ -200,7 +201,7 @@ public class CvsService extends Service {
             if(mSocketBinder == null){
                 return;
             }
-            RequestJson requestJson = InputFormat.makeDownloadRequest(name);
+            RequestJson requestJson = FormatUtils.makeDownloadRequest(name);
             try {
                 mSocketBinder.request(requestJson.getRequestId(), SocketMessage.SOCKET_TYPE_JSON, GsonUtils.mGson.toJson(requestJson));
             } catch (RemoteException e) {
@@ -296,7 +297,7 @@ public class CvsService extends Service {
     private void handleNote(CvsNote note){
         switch (note.getPower()){
             case CvsNote.POWER_RING:
-                Application.App.getPowerTaskManger().executeRingNote();
+                Application.App.getLevelCenter().executeRingNote();
                 break;
             default:
                 break;

@@ -1,9 +1,13 @@
-package com.sun.power;
+package com.sun.utils;
 
 import com.sun.account.Account;
 import com.sun.connect.RequestJson;
 import com.sun.connect.RequestDataHelper;
 import com.sun.conversation.CvsNote;
+import com.sun.gps.GpsGear;
+import com.sun.gps.GpsResponse;
+import com.sun.gps.GpsRequest;
+import com.sun.level.CmdDefine;
 import com.sun.personalconnect.Application;
 import com.sun.utils.GsonUtils;
 import com.sun.utils.Utils;
@@ -15,7 +19,7 @@ import java.util.List;
 /**
  * Created by guoyao on 2017/1/4.
  */
-public class InputFormat {
+public class FormatUtils {
     public final static String Power_format_gap = "！？";
 
     public static List<String> format(String input){
@@ -35,7 +39,7 @@ public class InputFormat {
         return result;
     }
 
-    public static Object[] makeRequest(String input, List<String> format){
+    public static Object[] makeCvsRequest(String input, List<String> format){
         Object[] result = new Object[2];
         RequestJson requestJson = new RequestJson();
         requestJson.setDeviceId(Application.App.getDeviceId());
@@ -49,7 +53,7 @@ public class InputFormat {
         long time = System.currentTimeMillis();
         note.setTimeStamp(time);
         note.setTimeFormat(Utils.getFormatTime(time));
-        if(format != null && format.size() > 0 &&Application.App.getPowerTaskManger().serverCheck()){
+        if(format != null && format.size() > 0 &&Application.App.getLevelCenter().serverCheck()){
             if(CmdDefine.CMD_REMOTE_RING_NOTE.equalsIgnoreCase(format.get(0))){
                 requestJson.setCode(RequestDataHelper.CODE_ConversationNote);
                 note.setPower(CvsNote.POWER_RING);
@@ -78,7 +82,7 @@ public class InputFormat {
         return result;
     }
 
-    public static Object[] makeRequest(File file){
+    public static Object[] makeCvsRequest(File file){
         Object[] result = new Object[2];
         RequestJson requestJson = new RequestJson();
         requestJson.setDeviceId(Application.App.getDeviceId());
@@ -107,7 +111,7 @@ public class InputFormat {
         return result;
     }
 
-    public static RequestJson makeRequest(CvsNote note){
+    public static RequestJson makeCvsRequest(CvsNote note){
         RequestJson requestJson = new RequestJson();
         requestJson.setDeviceId(Application.App.getDeviceId());
         requestJson.setRequestId(requestJson.hashCode());
@@ -118,6 +122,49 @@ public class InputFormat {
         return requestJson;
     }
 
+    public static Object[] makeGpsRequest(GpsGear gpsGear){
+        Object[] result = new Object[2];
+        Account account = Application.App.getAccount();
+        GpsRequest gpsRequest = new GpsRequest();
+        gpsRequest.setId(System.currentTimeMillis());
+        gpsRequest.setUserId(account.getLoginId());
+        gpsRequest.setUserName(account.getLoginName());
+        gpsRequest.setGpsGear(gpsGear);
+
+        RequestJson requestJson = new RequestJson();
+        requestJson.setDeviceId(Application.App.getDeviceId());
+        requestJson.setRequestId(requestJson.hashCode());
+        requestJson.setCode(RequestDataHelper.CODE_ConversationNote);
+        requestJson.addArg(GsonUtils.mGson.toJson(gpsRequest));
+        requestJson.addArg(GpsRequest.class.getName());
+        requestJson.addArg(String.valueOf(gpsRequest.getId()));
+        result[0] = requestJson;
+        result[1] = gpsRequest;
+        return result;
+    }
+
+    public static RequestJson makeGpsReponseRequest(GpsResponse gpsResponse){
+        RequestJson requestJson = new RequestJson();
+        requestJson.setDeviceId(Application.App.getDeviceId());
+        requestJson.setRequestId(requestJson.hashCode());
+        requestJson.setCode(RequestDataHelper.CODE_ConversationNote);
+        requestJson.addArg(GsonUtils.mGson.toJson(gpsResponse));
+        requestJson.addArg(GpsResponse.class.getName());
+        requestJson.addArg(String.valueOf(gpsResponse.getId()));
+        return requestJson;
+    }
+
+    public static RequestJson makeGpsRequest(GpsResponse gpsResponse){
+        RequestJson requestJson = new RequestJson();
+        requestJson.setDeviceId(Application.App.getDeviceId());
+        requestJson.setRequestId(requestJson.hashCode());
+        requestJson.setCode(RequestDataHelper.CODE_ConversationNote);
+        requestJson.addArg(GsonUtils.mGson.toJson(gpsResponse));
+        requestJson.addArg(GpsResponse.class.getName());
+        requestJson.addArg(String.valueOf(gpsResponse.getId()));
+        return requestJson;
+    }
+
     public static RequestJson makeDownloadRequest(String name){
         RequestJson requestJson = new RequestJson();
         requestJson.setDeviceId(Application.App.getDeviceId());
@@ -125,5 +172,16 @@ public class InputFormat {
         requestJson.setCode(RequestDataHelper.CODE_ConversationImage);
         requestJson.addArg(name);
         return requestJson;
+    }
+
+    public static GpsResponse fillCommonArgs(GpsResponse note){
+        if(note != null){
+            note.setTime(System.currentTimeMillis());
+            note.setDevice(Application.App.getDeviceId());
+            note.setUserId(Application.App.getAccount().getLoginId());
+            note.setUserName(Application.App.getAccount().getLoginName());
+            note.setErrInfo("");
+        }
+        return note;
     }
 }

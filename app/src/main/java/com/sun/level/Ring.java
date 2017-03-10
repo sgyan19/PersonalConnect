@@ -1,11 +1,9 @@
-package com.sun.power;
+package com.sun.level;
 
 import android.media.MediaPlayer;
 import android.media.RingtoneManager;
 
 import com.sun.personalconnect.Application;
-
-import java.io.IOException;
 
 /**
  * Created by guoyao on 2017/1/4.

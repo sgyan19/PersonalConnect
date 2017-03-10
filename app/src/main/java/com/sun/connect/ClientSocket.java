@@ -349,7 +349,8 @@ public class ClientSocket {
 //                return HostList[i];
 //            }
 //        }
-        return HostList[0].tryTimes <= HostList[1].tryTimes ? HostList[0] : HostList[1];
+        return HostList[1];
+//        return HostList[0].tryTimes <= HostList[1].tryTimes ? HostList[0] : HostList[1];
     }
 
     public static void setRawFolder(String path){

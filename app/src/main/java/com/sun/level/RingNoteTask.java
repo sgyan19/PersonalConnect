@@ -1,7 +1,6 @@
-package com.sun.power;
+package com.sun.level;
 
 import android.os.Handler;
-import android.os.Looper;
 
 import com.sun.conversation.CvsNote;
 import com.sun.personalconnect.Application;

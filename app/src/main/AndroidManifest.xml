@@ -45,8 +45,14 @@
             android:windowSoftInputMode="adjustResize"
             android:launchMode="singleTask">
         </activity>
+        <activity android:name="com.sun.gps.GpsActivity"
+            android:launchMode="singleTask">
+        </activity>
         <service
             android:name="com.sun.conversation.CvsService">
+        </service>
+        <service
+            android:name="com.sun.gps.GpsService">
         </service>
         <service
             android:name="com.sun.connect.SocketService"

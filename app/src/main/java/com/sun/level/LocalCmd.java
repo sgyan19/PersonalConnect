@@ -1,4 +1,4 @@
-package com.sun.power;
+package com.sun.level;
 
 import com.sun.personalconnect.Application;
 
@@ -16,7 +16,7 @@ public class LocalCmd {
 
         String code = cmds.get(0);
         if(CmdDefine.CMD_STOP_RING.equals(code)){
-            Application.App.getPowerTaskManger().closeRingNote();
+            Application.App.getLevelCenter().closeRingNote();
             return true;
         }
         return false;

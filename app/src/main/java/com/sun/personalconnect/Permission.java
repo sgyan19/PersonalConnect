@@ -14,7 +14,7 @@ public class Permission {
 
     public Permission(String name, Runnable runnable){
         this.name = name;
-        this.request = hashCode();
+        this.request = hashCode() & 0xffff;
         this.runnable = runnable;
     }
 

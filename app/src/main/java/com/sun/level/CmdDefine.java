@@ -1,4 +1,4 @@
-package com.sun.power;
+package com.sun.level;
 
 /**
  * Created by guoyao on 2017/1/6.

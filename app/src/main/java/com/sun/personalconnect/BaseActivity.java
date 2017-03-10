@@ -100,6 +100,13 @@ public class BaseActivity extends AppCompatActivity {
         }
     }
 
+    public static BaseActivity getAnyInstance(){
+        if(InstanceStack.size() == 0){
+            return null;
+        }
+        return InstanceStack.getLast();
+    }
+
     @Override
     protected void onDestroy() {
         InstanceStack.remove(this);
