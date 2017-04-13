@@ -29,4 +29,5 @@ dependencies {
     compile 'org.greenrobot:greendao:3.2.0'
     compile files('libs/eventbus-2.2.0.jar')
     compile files('libs/library-imgs.jar')
+    compile files('libs/Amap_2DMap_V4.2.0_20170209.jar')
 }

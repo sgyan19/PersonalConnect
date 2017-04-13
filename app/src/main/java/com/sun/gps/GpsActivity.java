@@ -91,21 +91,21 @@ public class GpsActivity extends BaseActivity implements GpsListener{
     @Override
     public void onGpsUpdate(GpsResponse gpsResponse) {
         if(gpsResponse != null){
-            if(gpsResponse.getErrType() == GpsResponse.ERR_TYPE_NONE){
-                mTxtIndex.setText(String.format("index:%d", updateIndex++));
-                mTxtLongitude.setText(String.format("经度:%f" , gpsResponse.getLongitude()));
-                mTxtLatitude.setText(String.format("纬度:%f" , gpsResponse.getLatitude()));
-                mTxtAltitude.setText(String.format("海拔:%f" , gpsResponse.getAltitude()));
-                mTxtTime.setText(String.format("时间:%s", Utils.getFormatTime(gpsResponse.getTime())));
-                mTxtUser.setText(String.format("用户:%s", gpsResponse.getUserName()));
-                mTxtDevice.setText(String.format("设备:%s",gpsResponse.getDevice()));
-                mTxtErr.setText(String.format("错误：%s", gpsResponse.getErrInfo()));
-                mTxtSource.setText(String.format("来源:%s %s", gpsResponse.getProvider(), gpsResponse.getDebugMsg()));
-            }else if(gpsResponse.getErrType() == GpsResponse.ERR_TYPE_DEVICE){
-                ToastUtils.show(String.format("gps 设备未启动， %s", gpsResponse.getErrInfo()), Toast.LENGTH_SHORT);
-            }else if(gpsResponse.getErrType() == GpsResponse.ERR_TYPE_PERMISSION){
-
-            }
+            mTxtIndex.setText(String.format("index:%d", updateIndex++));
+            mTxtLongitude.setText(String.format("经度:%f" , gpsResponse.getLongitude()));
+            mTxtLatitude.setText(String.format("纬度:%f" , gpsResponse.getLatitude()));
+            mTxtAltitude.setText(String.format("海拔:%f" , gpsResponse.getAltitude()));
+            mTxtTime.setText(String.format("时间:%s", Utils.getFormatTime(gpsResponse.getTime())));
+            mTxtUser.setText(String.format("用户:%s", gpsResponse.getUserName()));
+            mTxtDevice.setText(String.format("设备:%s",gpsResponse.getDevice()));
+            mTxtErr.setText(String.format("错误：%s", gpsResponse.getErrInfo()));
+            mTxtSource.setText(String.format("来源:%s %s", gpsResponse.getProvider(), gpsResponse.getDebugMsg()));
+//            if(gpsResponse.getErrType() == GpsResponse.ERR_TYPE_NONE){
+//            }else if(gpsResponse.getErrType() == GpsResponse.ERR_TYPE_DEVICE){
+//                ToastUtils.show(String.format("gps 设备未启动， %s", gpsResponse.getErrInfo()), Toast.LENGTH_SHORT);
+//            }else if(gpsResponse.getErrType() == GpsResponse.ERR_TYPE_PERMISSION){
+//
+//            }
         }
     }
 }
