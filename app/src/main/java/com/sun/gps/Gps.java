@@ -37,6 +37,9 @@ public class Gps {
 
     private BaseActivity mListenBatteryContext;
 
+    private MyLocationListener mGpsListener = new MyLocationListener();
+    private MyLocationListener mNetworkListener = new MyLocationListener();
+
     private BatteryReceiver.BatteryListener mBatteryListener = new BatteryReceiver.BatteryListener() {
         @Override
         public void onHighPower() {
@@ -108,7 +111,8 @@ public class Gps {
     public void stopUpdate(){
         // TODO Auto-generated method stub
         try {
-            lm.removeUpdates(mLocationListener);
+            lm.removeUpdates(mGpsListener);
+            lm.removeUpdates(mNetworkListener);
         }catch (SecurityException e){
             e.printStackTrace();
         }
@@ -125,15 +129,28 @@ public class Gps {
             GpsListener listener ;
             if(mGpsListenerReference !=null && (listener =  mGpsListenerReference.get()) != null) {
                 if (permission.isSuccess()) {
+                    boolean start = false;
                     if (lm.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
                         try {
-                            String bestProvider = lm.getBestProvider(getCriteria(), true);
-                            lm.requestSingleUpdate(bestProvider, mLocationListener, null);
-                            updateLocation(getLastKnownLocation());
+//                            String bestProvider = lm.getBestProvider(getCriteria(), true);
+                            lm.requestSingleUpdate(LocationManager.GPS_PROVIDER, mGpsListener, null);
+                            start = true;
+                            updateLocation(getLastKnownLocation(), "getLastKnownLocation");
                         } catch (SecurityException e) {
                             e.printStackTrace();
                         }
-                    } else {
+                    }
+
+                    if(lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER)){
+                        try {
+                            lm.requestSingleUpdate(LocationManager.NETWORK_PROVIDER, mNetworkListener, null);
+                            start = true;
+                        }catch (SecurityException e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+                    if(!start) {
                         FormatUtils.fillCommonArgs(mErrPermissionNote);
                         listener.onGpsUpdate(mErrPermissionNote);
                     }
@@ -151,14 +168,25 @@ public class Gps {
             GpsListener listener ;
             if(mGpsListenerReference !=null && (listener =  mGpsListenerReference.get()) != null){
                 if (permission.isSuccess()){
+                    updateLocation(getLastKnownLocation(), "getLastKnownLocation");
+                    boolean start = false;
                     if (lm.isProviderEnabled(LocationManager.GPS_PROVIDER)){
                         try {
-                            updateLocation(getLastKnownLocation());
-                            lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, mGpsGear.period, mGpsGear.minDistance, mLocationListener);
+                            lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, mGpsGear.period, mGpsGear.minDistance, mGpsListener);
+                            start = true;
                         }catch (SecurityException e) {
                             e.printStackTrace();
                         }
-                    }else{
+                    }
+                    if(lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER)){
+                        try {
+                            lm.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, mGpsGear.period, mGpsGear.minDistance, mNetworkListener);
+                            start = true;
+                        }catch (SecurityException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    if(!start){
                         FormatUtils.fillCommonArgs(mErrPermissionNote);
                         listener.onGpsUpdate(mErrPermissionNote);
                     }
@@ -170,14 +198,12 @@ public class Gps {
         }
     };
 
-    // 位置监听
-    private LocationListener mLocationListener = new LocationListener() {
-
+    private class MyLocationListener implements LocationListener{
         /**
          * 位置信息变化时触发
          */
         public void onLocationChanged(Location location) {
-            updateLocation(location);
+            updateLocation(location, "onLocationChanged");
             Log.i(TAG, "时间：" + location.getTime());
             Log.i(TAG, "经度：" + location.getLongitude());
             Log.i(TAG, "纬度：" + location.getLatitude());
@@ -209,7 +235,7 @@ public class Gps {
          */
         public void onProviderEnabled(String provider) {
             Location location = lm.getLastKnownLocation(provider);
-            updateLocation(location);
+            updateLocation(location, "onProviderEnabled");
         }
 
         /**
@@ -223,7 +249,7 @@ public class Gps {
                 listener.onGpsUpdate(mErrDeviceNote);
             }
         }
-    };
+    }
 
     // 状态监听
     GpsStatus.Listener listener = new GpsStatus.Listener() {
@@ -267,7 +293,7 @@ public class Gps {
      *
      * @param location
      */
-    private void updateLocation(Location location) {
+    private void updateLocation(Location location, String debugMsg) {
         if (location != null) {
             GpsResponse note = new GpsResponse();
             FormatUtils.fillCommonArgs(note);
@@ -275,7 +301,9 @@ public class Gps {
             note.setLatitude(location.getLatitude());
             note.setAltitude(location.getAltitude());
             note.setTime(location.getTime());
+            note.setProvider(location.getProvider());
             note.setGpsGear(mGpsGear);
+            note.setDebugMsg(debugMsg);
             GpsListener l;
             if(mGpsListenerReference != null && (l = mGpsListenerReference.get()) != null){
                 l.onGpsUpdate(note);
@@ -290,7 +318,11 @@ public class Gps {
         Location location;
         // 获取位置信息
         // 如果不设置查询要求，getLastKnownLocation方法传入的参数为LocationManager.GPS_PROVIDER
-        location = lm.getLastKnownLocation(bestProvider);
+//        location = lm.getLastKnownLocation(bestProvider);
+        location = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+        if(location == null){
+            location = lm.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+        }
         return location;
     }
 
@@ -306,7 +338,7 @@ public class Gps {
         // 设置是否要求速度
         criteria.setSpeedRequired(false);
         // 设置是否允许运营商收费
-        criteria.setCostAllowed(false);
+        criteria.setCostAllowed(true);
         // 设置是否需要方位信息
         criteria.setBearingRequired(false);
         // 设置是否需要海拔信息

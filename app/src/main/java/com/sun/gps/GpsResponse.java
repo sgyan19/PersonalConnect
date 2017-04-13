@@ -14,6 +14,8 @@ public class GpsResponse extends GpsNote{
     private String errInfo;
     private int errType = ERR_TYPE_NONE;
     private String device;
+    private String provider;
+    private String debugMsg;
 
     public long getTime() {
         return time;
@@ -69,5 +71,21 @@ public class GpsResponse extends GpsNote{
 
     public void setDevice(String device) {
         this.device = device;
+    }
+
+    public String getProvider() {
+        return provider;
+    }
+
+    public void setProvider(String provider) {
+        this.provider = provider;
+    }
+
+    public String getDebugMsg() {
+        return debugMsg;
+    }
+
+    public void setDebugMsg(String debugMsg) {
+        this.debugMsg = debugMsg;
     }
 }

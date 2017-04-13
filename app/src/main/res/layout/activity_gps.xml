@@ -4,6 +4,11 @@
     android:layout_height="match_parent"
     android:background="@android:color/darker_gray">
     <TextView
+        android:id="@+id/txt_gps_index"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="index:"/>
+    <TextView
         android:id="@+id/txt_gps_longitude"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -18,6 +23,31 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="海拔:"/>
+    <TextView
+        android:id="@+id/txt_gps_time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="时间:"/>
+    <TextView
+        android:id="@+id/txt_gps_user"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="用户:"/>
+    <TextView
+        android:id="@+id/txt_gps_device"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="设备:"/>
+    <TextView
+        android:id="@+id/txt_gps_err"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="错误:"/>
+    <TextView
+        android:id="@+id/txt_gps_source"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="来源:"/>
 
     <View
         android:layout_width="match_parent"
