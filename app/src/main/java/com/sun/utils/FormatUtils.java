@@ -176,7 +176,7 @@ public class FormatUtils {
 
     public static GpsResponse fillCommonArgs(GpsResponse note){
         if(note != null){
-            note.setTime(System.currentTimeMillis());
+//            note.setTime(System.currentTimeMillis());
             note.setDevice(Application.App.getDeviceId());
             note.setUserId(Application.App.getAccount().getLoginId());
             note.setUserName(Application.App.getAccount().getLoginName());

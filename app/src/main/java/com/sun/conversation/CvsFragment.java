@@ -1,5 +1,6 @@
 package com.sun.conversation;
 
+import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -7,31 +8,33 @@ import android.content.ServiceConnection;
 import android.graphics.PointF;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.IBinder;;
+import android.os.IBinder;
+import android.support.annotation.Nullable;
+import android.support.v4.app.Fragment;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.LinearSmoothScroller;
 import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
-import android.view.View.OnLayoutChangeListener;
+import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.Toast;
+
 import com.sun.account.Account;
 import com.sun.account.AccountActivity;
-import com.sun.conversation.CvsService.CvsListener;
-import com.sun.gps.GaoDeMapActivity;
-import com.sun.personalconnect.Application;
-import com.sun.personalconnect.BaseActivity;
-import com.sun.personalconnect.R;
-import com.sun.utils.FormatUtils;
 import com.sun.level.LocalCmd;
+import com.sun.personalconnect.Application;
+import com.sun.personalconnect.R;
 import com.sun.utils.FileUtils;
+import com.sun.utils.FormatUtils;
 import com.sun.utils.RequestCode;
 import com.sun.utils.ToastUtils;
 import com.sun.utils.UriUtils;
 import com.sun.utils.Utils;
+
 import java.io.File;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
@@ -41,9 +44,9 @@ import java.util.List;
 import de.greenrobot.event.EventBus;
 
 /**
- * Created by guoyao on 2016/12/13.
+ * Created by guoyao on 2017/4/14.
  */
-public class CvsActivity extends BaseActivity implements View.OnClickListener,CvsListener,OnLayoutChangeListener {
+public class CvsFragment extends Fragment implements View.OnClickListener,CvsService.CvsListener,View.OnLayoutChangeListener {
     //region 常量
     public final static String TAG = "CvsActivity";
     public final static int REQUEST_CODE_WRITE_STORAGE = 99;
@@ -62,24 +65,33 @@ public class CvsActivity extends BaseActivity implements View.OnClickListener,Cv
 
     //region 生命周期
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         //region 先决条件
         Account account = Application.App.getAccount();
         if(!account.isLogin()){
-            startActivity(new Intent(this, AccountActivity.class));
-            finish();
-            return ;
+            startActivity(new Intent(getActivity(), AccountActivity.class));
+            getActivity().finish();
         }
-        //endregion
+    }
 
+    @Nullable
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        inflater.inflate(R.layout.activity_conversation,container, true);
+
+        return super.onCreateView(inflater, container, savedInstanceState);
+    }
+
+    @Override
+    public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
         //region ui控制
-        setContentView(R.layout.activity_conversation);
-        mCvsRcc = (RecyclerView)findViewById(R.id.rcr_cvs_content);
+        mCvsRcc = (RecyclerView)view.findViewById(R.id.rcr_cvs_content);
         mCvsRcc.setItemViewCacheSize(8);
         //mCvsRcc.setHasFixedSize(true);
-        mCvsRcc.setLayoutManager(new ScrollSpeedLinearLayoutManger(this).setSpeedSlow());
-        mCvsRcc.setAdapter(new CvsRecyclerAdapter(this));
+        mCvsRcc.setLayoutManager(new ScrollSpeedLinearLayoutManger(getActivity()).setSpeedSlow());
+        mCvsRcc.setAdapter(new CvsRecyclerAdapter(getActivity()));
         mCvsRcc.addOnLayoutChangeListener(this);
         mCvsRcc.post(new Runnable() {
             @Override
@@ -87,40 +99,16 @@ public class CvsActivity extends BaseActivity implements View.OnClickListener,Cv
                 mKeyBoardHeight = mCvsRcc.getMeasuredHeight() / 3;
             }
         });
-        mEditContent = (EditText)findViewById(R.id.edit_cvs_content);
+        mEditContent = (EditText)view.findViewById(R.id.edit_cvs_content);
         if(((CvsRecyclerAdapter)mCvsRcc.getAdapter()).removeTooMoreCache() > 0){
             mCvsRcc.getAdapter().notifyDataSetChanged();
         }
         scrollEnd();
         //endregion
-
-        //region 绑定服务，注册eventbus
-        mCvsServiceConn = new ServiceConnection() {
-            @Override
-            public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
-                mCvsServiceBinder = (CvsService.ServiceBinder) iBinder;
-                mCvsServiceBinder.setCvsListener(CvsActivity.this);
-            }
-
-            @Override
-            public void onServiceDisconnected(ComponentName componentName) {
-                mCvsServiceBinder = null;
-            }
-        };
-        bindService(new Intent(CvsActivity.this, CvsService.class), mCvsServiceConn, BIND_AUTO_CREATE);
-        EventBus.getDefault().register(this);
-        //endregion
-
-        findViewById(R.id.gps).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                startActivity(new Intent(CvsActivity.this, GaoDeMapActivity.class));
-            }
-        });
     }
 
     @Override
-    protected void onPause() {
+    public void onPause() {
         super.onPause();
         if(mCvsServiceBinder != null){
             mCvsServiceBinder.clearListener(this);
@@ -128,7 +116,7 @@ public class CvsActivity extends BaseActivity implements View.OnClickListener,Cv
     }
 
     @Override
-    protected void onResume() {
+    public void onResume() {
         super.onResume();
         if(mCvsServiceBinder != null){
             mCvsServiceBinder.setCvsListener(this);
@@ -136,9 +124,9 @@ public class CvsActivity extends BaseActivity implements View.OnClickListener,Cv
     }
 
     @Override
-    protected void onDestroy() {
+    public void onDestroy() {
         if(mCvsServiceConn != null) {
-            unbindService(mCvsServiceConn);
+            getActivity().unbindService(mCvsServiceConn);
         }
         EventBus.getDefault().unregister(this);
         super.onDestroy();
@@ -157,7 +145,7 @@ public class CvsActivity extends BaseActivity implements View.OnClickListener,Cv
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         switch (requestCode){
             case RequestCode.CHOSE_IMAGE:
@@ -169,7 +157,6 @@ public class CvsActivity extends BaseActivity implements View.OnClickListener,Cv
                 break;
         }
     }
-
     //endregion
 
     //region 继承接口实现
@@ -247,7 +234,7 @@ public class CvsActivity extends BaseActivity implements View.OnClickListener,Cv
                     mImgDetailDialog = new CvsImageDetailDialog();
                 }
                 mImgDetailDialog.setImagePath(new File(Application.App.getSocketRawFolder(), note.getContent()));
-                mImgDetailDialog.show(getSupportFragmentManager(), note.getContent());
+                mImgDetailDialog.show(getFragmentManager(), note.getContent());
                 break;
         }
     }
@@ -266,7 +253,7 @@ public class CvsActivity extends BaseActivity implements View.OnClickListener,Cv
     //endregion
 
     //region 私有内部类。ScrollSpeedLinearLayoutManger，RecyclerView滑动速度
-    private static class ScrollSpeedLinearLayoutManger extends LinearLayoutManager{
+    private static class ScrollSpeedLinearLayoutManger extends LinearLayoutManager {
         private float MILLISECONDS_PER_INCH = 0.03f;
         private Context context;
 
@@ -344,7 +331,7 @@ public class CvsActivity extends BaseActivity implements View.OnClickListener,Cv
 
     private void submitImage(Uri uri){
         if ( null == uri ) return;
-        String path = UriUtils.getPath(this, uri);
+        String path = UriUtils.getPath(getContext(), uri);
         File file = new File(path);
         if(!file.exists()) return;
         File newFile = new File(Application.App.getSocketRawFolder(), Utils.makeSoleName());

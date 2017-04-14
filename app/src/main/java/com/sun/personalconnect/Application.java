@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
 import android.telephony.TelephonyManager;
 
 import com.nostra13.universalimageloader.core.ImageLoader;
@@ -160,7 +161,7 @@ public class Application extends android.app.Application {
     }
 
     public void initDeviceId(){
-        mDeviceId = ((TelephonyManager) getSystemService(TELEPHONY_SERVICE))
+        mDeviceId = Build.MODEL + "-" + ((TelephonyManager) getSystemService(TELEPHONY_SERVICE))
                 .getDeviceId();
     }
 }

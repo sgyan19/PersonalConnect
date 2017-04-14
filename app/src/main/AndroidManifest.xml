@@ -26,8 +26,7 @@
         android:supportsRtl="true"
         android:theme="@style/MyTheme">
 
-        <meta-data android:name="com.amap.api.v2.apikey" android:value="key">
-            36c0bd418f6817db2432a6a691712d07
+        <meta-data android:name="com.amap.api.v2.apikey" android:value="36c0bd418f6817db2432a6a691712d07">
         </meta-data>
 
 
@@ -54,7 +53,7 @@
         <activity android:name="com.sun.gps.GpsActivity"
             android:launchMode="singleTask">
         </activity>
-        <activity android:name="com.sun.gps.MapActivity"
+        <activity android:name="com.sun.gps.GaoDeMapActivity"
             android:launchMode="singleTask">
         </activity>
         <service

@@ -297,13 +297,9 @@ public class Gps {
         if (location != null) {
             GpsResponse note = new GpsResponse();
             FormatUtils.fillCommonArgs(note);
-            note.setLongitude(location.getLongitude());
-            note.setLatitude(location.getLatitude());
-            note.setAltitude(location.getAltitude());
-            note.setTime(location.getTime());
-            note.setProvider(location.getProvider());
             note.setGpsGear(mGpsGear);
             note.setDebugMsg(debugMsg);
+            note.setLocation(location);
             GpsListener l;
             if(mGpsListenerReference != null && (l = mGpsListenerReference.get()) != null){
                 l.onGpsUpdate(note);

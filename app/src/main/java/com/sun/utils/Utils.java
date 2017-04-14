@@ -105,7 +105,7 @@ public class Utils {
     private static SimpleDateFormat simpleDateFormat;
     public static String getFormatTime(long time){
         if(simpleDateFormat == null){
-            simpleDateFormat = new SimpleDateFormat("HH:mm:ss", Locale.ENGLISH);
+            simpleDateFormat = new SimpleDateFormat("HH:mm:ss", Locale.CHINESE);
         }
         return simpleDateFormat.format(time);
     }

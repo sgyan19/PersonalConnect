@@ -1,5 +1,7 @@
 package com.sun.gps;
 
+import android.location.Location;
+
 /**
  * Created by guoyao on 2017/2/16.
  */
@@ -11,6 +13,10 @@ public class GpsResponse extends GpsNote{
     private double longitude;
     private double latitude;
     private double altitude;
+    private long elapsedRealtimeNanos;
+    private float speed;
+    private float bearing;
+    private float accuracy;
     private String errInfo;
     private int errType = ERR_TYPE_NONE;
     private String device;
@@ -47,6 +53,38 @@ public class GpsResponse extends GpsNote{
 
     public void setAltitude(double altitude) {
         this.altitude = altitude;
+    }
+
+    public long getElapsedRealtimeNanos() {
+        return elapsedRealtimeNanos;
+    }
+
+    public void setElapsedRealtimeNanos(long elapsedRealtimeNanos) {
+        this.elapsedRealtimeNanos = elapsedRealtimeNanos;
+    }
+
+    public float getSpeed() {
+        return speed;
+    }
+
+    public void setSpeed(float speed) {
+        this.speed = speed;
+    }
+
+    public float getBearing() {
+        return bearing;
+    }
+
+    public void setBearing(float bearing) {
+        this.bearing = bearing;
+    }
+
+    public float getAccuracy() {
+        return accuracy;
+    }
+
+    public void setAccuracy(float accuracy) {
+        this.accuracy = accuracy;
     }
 
     public String getErrInfo() {
@@ -87,5 +125,30 @@ public class GpsResponse extends GpsNote{
 
     public void setDebugMsg(String debugMsg) {
         this.debugMsg = debugMsg;
+    }
+
+    public void setLocation(Location l){
+        time = l.getTime();
+        elapsedRealtimeNanos = l.getElapsedRealtimeNanos();
+        latitude = l.getLatitude();
+        longitude = l.getLongitude();
+        altitude = l.getAltitude();
+        speed = l.getSpeed();
+        bearing = l.getBearing();
+        accuracy = l.getAccuracy();
+        provider = l.getProvider();
+    }
+
+    public Location getLocation(){
+        Location l = new Location(provider);
+        l.setLongitude(longitude);
+        l.setLatitude(latitude);
+        l.setAltitude(altitude);
+        l.setAccuracy(accuracy);
+        l.setSpeed(speed);
+        l.setBearing(bearing);
+        l.setTime(time);
+        l.setElapsedRealtimeNanos(elapsedRealtimeNanos);
+        return l;
     }
 }

@@ -1,23 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/container_gps_main"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
-    <com.amap.api.maps2d.MapView
+    <com.amap.api.maps.MapView
         android:id="@+id/map"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="@android:color/holo_green_light"/>
-    <View
-        android:id="@+id/view_gps_hide"
-        android:layout_width="50dp"
-        android:layout_height="50dp"
-        android:layout_gravity="right|top"/>
+
     <LinearLayout
-        android:id="@+id/container_gps_debug"
         android:orientation="vertical" android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:visibility="gone">
+        android:layout_height="match_parent">
         <TextView
             android:id="@+id/txt_gps_index"
             android:layout_width="wrap_content"
@@ -68,20 +61,16 @@
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"/>
-        <LinearLayout
-            android:layout_width="wrap_content"
+
+        <Button
+            android:id="@+id/btn_gps_get_local"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
-            <Button
-                android:id="@+id/btn_gps_get_local"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="获取本地"/>
-            <Button
-                android:id="@+id/btn_gps_get_remote"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="获取远程"/>
-        </LinearLayout>
+            android:text="获取本地"/>
+        <Button
+            android:id="@+id/btn_gps_get_remote"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="获取远程"/>
     </LinearLayout>
 </FrameLayout>
