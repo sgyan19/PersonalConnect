@@ -11,6 +11,7 @@ import com.nostra13.universalimageloader.core.ImageLoader;
 import com.nostra13.universalimageloader.core.ImageLoaderConfiguration;
 import com.nostra13.universalimageloader.core.assist.QueueProcessingType;
 import com.sun.account.Account;
+import com.sun.connect.AppLifeNetworkService;
 import com.sun.conversation.CvsHistoryManager;
 import com.sun.connect.SocketService;
 import com.sun.conversation.CvsService;
@@ -45,7 +46,7 @@ public class Application extends android.app.Application {
     private LevelCenter mLevelCenter;
     private Ring mRing;
 
-    private NetworkService mNetworkService;
+    private AppLifeNetworkService mAppLifeNetworkService;
     @Override
     public void onCreate() {
         super.onCreate();
@@ -73,7 +74,7 @@ public class Application extends android.app.Application {
         account = new Account();
         cvsHistoryManager = new CvsHistoryManager();
         cvsHistoryManager.init(this);
-        mNetworkService = new NetworkService();
+        mAppLifeNetworkService = new AppLifeNetworkService();
         ImageLoaderConfiguration config = new ImageLoaderConfiguration.Builder(getContext())
                 .threadPriority(Thread.NORM_PRIORITY - 1).threadPoolSize(4)
                 .denyCacheImageMultipleSizesInMemory().tasksProcessingOrder(QueueProcessingType.LIFO)
@@ -83,7 +84,7 @@ public class Application extends android.app.Application {
         startService(new Intent(this, SocketService.class));
         startService(new Intent(this, CvsService.class));
         startService(new Intent(this, GpsService.class));
-        mNetworkService.init();
+        mAppLifeNetworkService.init();
         mRing = new Ring();
         mLevelCenter = new LevelCenter();
 
@@ -123,7 +124,7 @@ public class Application extends android.app.Application {
     public void onTerminate() {
         if(mUiApp) {
             cvsHistoryManager.close();
-            mNetworkService.release();
+            mAppLifeNetworkService.release();
         }
         super.onTerminate();
     }
@@ -173,7 +174,7 @@ public class Application extends android.app.Application {
         SharedPreferencesUtil.putString(KEY_STRING_DEVICEID, mDeviceId);
     }
 
-    public NetworkService getNetworkService(){
-        return mNetworkService;
+    public AppLifeNetworkService getNetworkService(){
+        return mAppLifeNetworkService;
     }
 }

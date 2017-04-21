@@ -1,4 +1,4 @@
-package com.sun.personalconnect;
+package com.sun.connect;
 
 import android.content.ComponentName;
 import android.content.Context;
@@ -12,6 +12,7 @@ import com.sun.connect.ResponseJson;
 import com.sun.connect.SocketMessage;
 import com.sun.connect.SocketReceiver;
 import com.sun.connect.SocketService;
+import com.sun.personalconnect.Application;
 
 import java.io.File;
 import java.util.HashMap;
@@ -22,11 +23,11 @@ import de.greenrobot.event.EventBus;
 /**
  * Created by guoyao on 2017/4/21.
  */
-public class NetworkService {
+public class AppLifeNetworkService {
     private ServiceConnection mSocketConn;
     private ISocketServiceBinder mSocketBinder;
     private HashMap<Integer,String> mWaitSend;
-    public NetworkService(){
+    public AppLifeNetworkService(){
         mWaitSend = new HashMap<>();
         mSocketConn = new ServiceConnection() {
             @Override
@@ -56,29 +57,51 @@ public class NetworkService {
     }
 
     private SocketReceiver.SocketReceiveListener mReceiveListener = new SocketReceiver.SocketReceiveListener() {
+        EventNetwork mEventNetwork = new EventNetwork();
+
         @Override
         public boolean onReconnected(boolean connected) {
+            mEventNetwork.reset();
+            EventBus.getDefault().post(mEventNetwork);
             return false;
         }
 
         @Override
         public boolean onError(int key, String error) {
+            mEventNetwork.setError(error);
+            mEventNetwork.setKey(key);
+            mEventNetwork.setStep(1);
+            EventBus.getDefault().post(mEventNetwork);
             return false;
         }
 
         @Override
         public boolean onParserResponse(int key, ResponseJson json, String info) {
+            mEventNetwork.setError(info);
+            mEventNetwork.setKey(key);
+            mEventNetwork.setResponse(json);
+            mEventNetwork.setStep(2);
+            EventBus.getDefault().post(mEventNetwork);
             return false;
         }
 
         @Override
         public boolean onReceiveFile(int key, File file, String info) {
+            mEventNetwork.setError(info);
+            mEventNetwork.setKey(key);
+            mEventNetwork.setObject(file);
+            mEventNetwork.setStep(3);
+            EventBus.getDefault().post(mEventNetwork);
             return false;
         }
 
         @Override
         public boolean onParserData(int key, ResponseJson json, Object data, String info) {
-            EventBus.getDefault().post(data);
+            mEventNetwork.setError(info);
+            mEventNetwork.setKey(key);
+            mEventNetwork.setObject(data);
+            mEventNetwork.setStep(3);
+            EventBus.getDefault().post(mEventNetwork);
             return false;
         }
     };
