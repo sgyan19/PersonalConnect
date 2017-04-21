@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.TextView;
 
 import com.amap.api.maps2d.AMap;
@@ -23,6 +24,7 @@ import com.amap.api.maps2d.model.MyLocationStyle;
 import com.sun.personalconnect.Application;
 import com.sun.personalconnect.BaseActivity;
 import com.sun.personalconnect.R;
+import com.sun.utils.StatusFragment;
 import com.sun.utils.Utils;
 
 import java.util.HashMap;
@@ -50,8 +52,12 @@ public class GaoDeMapActivity extends BaseActivity implements GpsListener,Locati
     private TextView mTxtErr;
     private TextView mTxtSource;
 
-    private HashMap<String,Marker> markers = new HashMap<>();
+    private ViewGroup mDebugView2;
 
+    private HashMap<String,Marker> markers = new HashMap<>();
+    private HashMap<String, LocationTrajectory> mUserTrajectory = new HashMap<>();
+
+    private StatusFragment mStatusFragment;
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -84,6 +90,12 @@ public class GaoDeMapActivity extends BaseActivity implements GpsListener,Locati
                 mDebugView.setVisibility(mDebugView.getVisibility() == View.GONE ? View.VISIBLE : View.GONE);
             }
         });
+        findViewById(R.id.view_gps_hide_2).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mDebugView2.setVisibility(mDebugView2.getVisibility() == View.GONE ? View.VISIBLE : View.GONE);
+            }
+        });
         mDebugView = (ViewGroup)findViewById(R.id.container_gps_debug);
         mTxtIndex = (TextView) findViewById(R.id.txt_gps_index);
         mTxtLongitude = (TextView)findViewById(R.id.txt_gps_longitude);
@@ -110,6 +122,10 @@ public class GaoDeMapActivity extends BaseActivity implements GpsListener,Locati
                 }
             }
         });
+
+        mDebugView2 = (ViewGroup)findViewById(R.id.container_gps_debug_2);
+        mStatusFragment = new StatusFragment();
+        getSupportFragmentManager().beginTransaction().add(R.id.container_gps_debug_2, mStatusFragment).commit();
 
         MyLocationStyle myLocationStyle;
         myLocationStyle = new MyLocationStyle();//初始化定位蓝点样式类
@@ -154,23 +170,40 @@ public class GaoDeMapActivity extends BaseActivity implements GpsListener,Locati
         if(mGpsServiceConn != null) {
             unbindService(mGpsServiceConn);
         }
+        if(mGpsServiceBinder != null){
+            mGpsServiceBinder.stopGpsUpdate( GpsService.WHO_MINE);
+            mGpsServiceBinder.stopGpsUpdate(GpsService.WHO_USER);
+        }
         mMapView.onDestroy();
     }
 
     @Override
     public void onGpsUpdate(GpsResponse gpsResponse) {
         if(gpsResponse == null) return;
+        Location l = gpsResponse.getLocation();
+
+        LocationTrajectory trajectory = mUserTrajectory.get(gpsResponse.getUserName());
+        if(trajectory == null){
+            trajectory = new LocationTrajectory();
+            mUserTrajectory.put(gpsResponse.getUserName(), trajectory);
+        }
+
+        if(!trajectory.update(l)){
+            return;
+        }
+
+        mStatusFragment.addMessage(String.format("%s,%s,%s,%s", gpsResponse.getUserName(), Utils.getFormatTime(l.getTime()), l.getProvider(), gpsResponse.getDevice()));
 
         mTxtIndex.setText(String.format("index:%d", updateIndex++));
         mTxtUser.setText(String.format("用户:%s", gpsResponse.getUserName()));
         mTxtDevice.setText(String.format("设备:%s",gpsResponse.getDevice()));
         mTxtErr.setText(String.format("错误：%s", gpsResponse.getErrInfo()));
-        Location l = gpsResponse.getLocation();
         mTxtLongitude.setText(String.format("经度:%f" , l.getLongitude()));
         mTxtLatitude.setText(String.format("纬度:%f" , l.getLatitude()));
         mTxtAltitude.setText(String.format("海拔:%f" , l.getAltitude()));
         mTxtSource.setText(String.format("来源:%s %s", l.getProvider(), gpsResponse.getDebugMsg()));
         mTxtTime.setText(String.format("时间:%s", Utils.getFormatTime(l.getTime())));
+
         Location gaoDeLocation = GPSUtil.gps84_To_Gcj02(l);
 
         if(gpsResponse.getUserId() == Application.App.getAccount().getLoginId() && mListener != null){

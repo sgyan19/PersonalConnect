@@ -3,7 +3,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.BatteryManager;
+import android.os.Build;
 
+import com.sun.personalconnect.Application;
 import com.sun.personalconnect.BaseReceiver;
 
 import java.util.Map;
@@ -21,6 +23,9 @@ public class BatteryReceiver extends BaseReceiver<BatteryReceiver.BatteryListene
     }
 
     public static Battery getBattery(){
+        IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+        Intent batteryStatus = Application.App.registerReceiver(null, ifilter);
+        update(batteryStatus);
         return mBattery;
     }
 
@@ -47,6 +52,11 @@ public class BatteryReceiver extends BaseReceiver<BatteryReceiver.BatteryListene
 
     @Override
     public void onReceive(Context context, Intent intent) {
+        update(intent);
+        notifyListener();
+    }
+
+    public static void update(Intent intent){
         int extraStatus = intent.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
         boolean isCharging  = extraStatus == BatteryManager.BATTERY_STATUS_CHARGING ||
                 extraStatus == BatteryManager.BATTERY_STATUS_FULL;
@@ -68,8 +78,21 @@ public class BatteryReceiver extends BaseReceiver<BatteryReceiver.BatteryListene
 
         mBattery.setVoltage(intent.getIntExtra(BatteryManager.EXTRA_VOLTAGE, 0));  //电池电压
         mBattery.setTemperature(intent.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0));  //电池温度
+    }
 
-        notifyListener();
+
+    public static Battery getBattery2(){
+        Battery battery = null;
+        if(Build.VERSION.SDK_INT >= 21) {
+            battery = new Battery();
+            Context context = Application.App.getApplicationContext();
+            BatteryManager batteryManager = (BatteryManager) context.getSystemService(Context.BATTERY_SERVICE);
+            batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CHARGE_COUNTER);
+            batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_AVERAGE);
+            batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW);
+
+        }
+        return battery;
     }
 
     private void notifyListener(){

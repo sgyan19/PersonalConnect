@@ -18,11 +18,14 @@ import com.sun.gps.GpsService;
 import com.sun.level.LevelCenter;
 import com.sun.level.Ring;
 import com.sun.utils.DirectoryManager;
+import com.sun.utils.SharedPreferencesUtil;
 
 /**
  * Created by guoyao on 2016/12/13.
  */
 public class Application extends android.app.Application {
+
+    public String KEY_STRING_DEVICEID = "device_id";
 
     public static Application App;
 
@@ -41,6 +44,8 @@ public class Application extends android.app.Application {
     //private SocketTask socketTask;
     private LevelCenter mLevelCenter;
     private Ring mRing;
+
+    private NetworkService mNetworkService;
     @Override
     public void onCreate() {
         super.onCreate();
@@ -51,7 +56,7 @@ public class Application extends android.app.Application {
             mUiApp = true;
             init();
         }
-        mDeviceId = "";
+        mDeviceId = SharedPreferencesUtil.getString(KEY_STRING_DEVICEID);
         BaseActivity.requestPermissionExt(new Permission(
                 Manifest.permission.READ_PHONE_STATE,
                 new Permission.Runnable() {
@@ -68,7 +73,7 @@ public class Application extends android.app.Application {
         account = new Account();
         cvsHistoryManager = new CvsHistoryManager();
         cvsHistoryManager.init(this);
-
+        mNetworkService = new NetworkService();
         ImageLoaderConfiguration config = new ImageLoaderConfiguration.Builder(getContext())
                 .threadPriority(Thread.NORM_PRIORITY - 1).threadPoolSize(4)
                 .denyCacheImageMultipleSizesInMemory().tasksProcessingOrder(QueueProcessingType.LIFO)
@@ -78,6 +83,7 @@ public class Application extends android.app.Application {
         startService(new Intent(this, SocketService.class));
         startService(new Intent(this, CvsService.class));
         startService(new Intent(this, GpsService.class));
+        mNetworkService.init();
         mRing = new Ring();
         mLevelCenter = new LevelCenter();
 
@@ -117,6 +123,7 @@ public class Application extends android.app.Application {
     public void onTerminate() {
         if(mUiApp) {
             cvsHistoryManager.close();
+            mNetworkService.release();
         }
         super.onTerminate();
     }
@@ -163,5 +170,10 @@ public class Application extends android.app.Application {
     public void initDeviceId(){
         mDeviceId = Build.MODEL + "-" + ((TelephonyManager) getSystemService(TELEPHONY_SERVICE))
                 .getDeviceId();
+        SharedPreferencesUtil.putString(KEY_STRING_DEVICEID, mDeviceId);
+    }
+
+    public NetworkService getNetworkService(){
+        return mNetworkService;
     }
 }

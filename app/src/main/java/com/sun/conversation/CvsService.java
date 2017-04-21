@@ -63,7 +63,7 @@ public class CvsService extends Service {
         public boolean onReconnected(boolean connected) {
             if(connected && mSocketBinder != null){
                 try {
-                    mSocketBinder.request(SocketTask.REQUEST_KEY_NOBODY, SocketMessage.SOCKET_TYPE_JSON, String.format(RequestDataHelper.CvsConnectRequest, Application.App.getCvsHistoryManager().getLastSucNoteId(), Application.App.getDeviceId()));
+                    mSocketBinder.request(SocketTask.REQUEST_KEY_NOBODY, SocketMessage.SOCKET_TYPE_JSON, RequestDataHelper.getCvsConnectRequest(Application.App.getCvsHistoryManager().getLastSucNoteId(), Application.App.getDeviceId()));
                 } catch (RemoteException e) {
                     e.printStackTrace();
                 }
@@ -137,7 +137,7 @@ public class CvsService extends Service {
                     }
                 }
                 return true;
-            }
+                }
             return false;
         }
     };
@@ -244,7 +244,7 @@ public class CvsService extends Service {
                     mSocketBinder = ISocketServiceBinder.Stub.asInterface(iBinder);
                     try {
                         if(mSocketBinder.isConnected()){
-                            mSocketBinder.request(SocketTask.REQUEST_KEY_NOBODY, SocketMessage.SOCKET_TYPE_JSON, String.format(RequestDataHelper.CvsConnectRequest, Application.App.getCvsHistoryManager().getLastSucNoteId(), Application.App.getDeviceId()));
+                            mSocketBinder.request(SocketTask.REQUEST_KEY_NOBODY, SocketMessage.SOCKET_TYPE_JSON, RequestDataHelper.getCvsConnectRequest(Application.App.getCvsHistoryManager().getLastSucNoteId(), Application.App.getDeviceId()));
                         }
                     } catch (RemoteException e) {
                         e.printStackTrace();

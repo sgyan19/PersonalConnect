@@ -21,7 +21,6 @@ import android.widget.Toast;
 import com.sun.account.Account;
 import com.sun.account.AccountActivity;
 import com.sun.conversation.CvsService.CvsListener;
-import com.sun.gps.GaoDeMapActivity;
 import com.sun.personalconnect.Application;
 import com.sun.personalconnect.BaseActivity;
 import com.sun.personalconnect.R;
@@ -74,7 +73,10 @@ public class CvsActivity extends BaseActivity implements View.OnClickListener,Cv
         //endregion
 
         //region ui控制
-        setContentView(R.layout.activity_conversation);
+        setContentView(R.layout.fragment_conversation);
+        findViewById(R.id.btn_cvs_text).setOnClickListener(this);
+        findViewById(R.id.btn_cvs_last).setOnClickListener(this);
+        findViewById(R.id.btn_cvs_img).setOnClickListener(this);
         mCvsRcc = (RecyclerView)findViewById(R.id.rcr_cvs_content);
         mCvsRcc.setItemViewCacheSize(8);
         //mCvsRcc.setHasFixedSize(true);
@@ -110,13 +112,6 @@ public class CvsActivity extends BaseActivity implements View.OnClickListener,Cv
         bindService(new Intent(CvsActivity.this, CvsService.class), mCvsServiceConn, BIND_AUTO_CREATE);
         EventBus.getDefault().register(this);
         //endregion
-
-        findViewById(R.id.gps).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                startActivity(new Intent(CvsActivity.this, GaoDeMapActivity.class));
-            }
-        });
     }
 
     @Override

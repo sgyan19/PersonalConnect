@@ -46,6 +46,11 @@
             </intent-filter>
         </activity>
 
+        <activity android:name="com.sun.personalconnect.HomeActivity"
+            android:windowSoftInputMode="adjustResize"
+            android:launchMode="singleTask">
+        </activity>
+
         <activity android:name="com.sun.conversation.CvsActivity"
             android:windowSoftInputMode="adjustResize"
             android:launchMode="singleTask">

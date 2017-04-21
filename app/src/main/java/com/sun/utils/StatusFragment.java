@@ -14,13 +14,16 @@
  * limitations under the License.
  */
 package com.sun.utils;
-
-import android.app.ListActivity;
 import android.os.Bundle;
+import android.support.v4.app.ListFragment;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.ListView;
 
 import com.sun.personalconnect.R;
 
@@ -30,20 +33,19 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Set;
 
-public class StatusActivity extends ListActivity {
-
+public class StatusFragment extends ListFragment {
     private static final int LIMIT = 20;
 
-    private static final LinkedList<String> messages = new LinkedList<String>();
-    private static final Set<ArrayAdapter<String>> adapters = new HashSet<ArrayAdapter<String>>();
+    private final LinkedList<String> messages = new LinkedList<String>();
+    private final Set<ArrayAdapter<String>> adapters = new HashSet<ArrayAdapter<String>>();
 
-    private static void notifyAdapters() {
+    private void notifyAdapters() {
         for (ArrayAdapter<String> adapter : adapters) {
             adapter.notifyDataSetChanged();
         }
     }
 
-    public static void addMessage(String message) {
+    public void addMessage(String message) {
         DateFormat format = DateFormat.getTimeInstance(DateFormat.SHORT);
         message = format.format(new Date()) + " - " + message;
         messages.add(message);
@@ -53,7 +55,7 @@ public class StatusActivity extends ListActivity {
         notifyAdapters();
     }
 
-    public static void clearMessages() {
+    public void clearMessages() {
         messages.clear();
         notifyAdapters();
     }
@@ -61,25 +63,34 @@ public class StatusActivity extends ListActivity {
     private ArrayAdapter<String> adapter;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_status);
-        adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, android.R.id.text1, messages);
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+//        return super.onCreateView(inflater, container, savedInstanceState);
+        return inflater.inflate(R.layout.activity_status,container,false);
+    }
+
+    @Override
+    public void onViewCreated(View view, Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        adapter = new ArrayAdapter<String>(getActivity(), android.R.layout.simple_list_item_1, android.R.id.text1, messages);
         setListAdapter(adapter);
         adapters.add(adapter);
     }
 
     @Override
-    protected void onDestroy() {
+    public void onDestroy() {
         adapters.remove(adapter);
         super.onDestroy();
     }
 
     @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        MenuInflater inflater = getMenuInflater();
+    public void onCreateOptionsMenu(Menu menu,MenuInflater inflater) {
+        super.onCreateOptionsMenu(menu, inflater);
         inflater.inflate(R.menu.status, menu);
-        return super.onCreateOptionsMenu(menu);
     }
 
     @Override
@@ -89,6 +100,10 @@ public class StatusActivity extends ListActivity {
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    public void setOnItemclickListener(ListView.OnItemClickListener l){
+        getListView().setOnItemClickListener(l);
     }
 
 }

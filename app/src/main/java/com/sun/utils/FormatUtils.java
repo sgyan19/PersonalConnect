@@ -4,13 +4,13 @@ import com.sun.account.Account;
 import com.sun.connect.RequestJson;
 import com.sun.connect.RequestDataHelper;
 import com.sun.conversation.CvsNote;
+import com.sun.device.AnswerNote;
 import com.sun.gps.GpsGear;
 import com.sun.gps.GpsResponse;
 import com.sun.gps.GpsRequest;
 import com.sun.level.CmdDefine;
 import com.sun.personalconnect.Application;
-import com.sun.utils.GsonUtils;
-import com.sun.utils.Utils;
+import com.sun.device.AskNote;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -119,6 +119,35 @@ public class FormatUtils {
         requestJson.addArg(GsonUtils.mGson.toJson(note));
         requestJson.addArg(CvsNote.class.getName());
         requestJson.addArg(String.valueOf(note.getId()));
+        return requestJson;
+    }
+
+    public static RequestJson makeAskRequest(AskNote note){
+        if(note == null) {
+            note = new AskNote();
+        }
+        RequestJson requestJson = new RequestJson();
+        requestJson.setDeviceId(Application.App.getDeviceId());
+        requestJson.setRequestId(requestJson.hashCode());
+        requestJson.setCode(RequestDataHelper.CODE_ConversationNote);
+        requestJson.addArg(GsonUtils.mGson.toJson(note));
+        requestJson.addArg(AnswerNote.class.getName());
+        return requestJson;
+    }
+
+    public static RequestJson makeAnswerRequest(AnswerNote note){
+        if(note == null) {
+            note = new AnswerNote();
+            note.setDeviceId(Application.App.getDeviceId());
+            note.setUserId(Application.App.getAccount().getLoginId());
+            note.setUserName(Application.App.getAccount().getLoginName());
+        }
+        RequestJson requestJson = new RequestJson();
+        requestJson.setDeviceId(Application.App.getDeviceId());
+        requestJson.setRequestId(requestJson.hashCode());
+        requestJson.setCode(RequestDataHelper.CODE_ConversationNote);
+        requestJson.addArg(GsonUtils.mGson.toJson(note));
+        requestJson.addArg(AnswerNote.class.getName());
         return requestJson;
     }
 

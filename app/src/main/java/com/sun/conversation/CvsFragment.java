@@ -1,6 +1,5 @@
 package com.sun.conversation;
 
-import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -73,20 +72,41 @@ public class CvsFragment extends Fragment implements View.OnClickListener,CvsSer
             startActivity(new Intent(getActivity(), AccountActivity.class));
             getActivity().finish();
         }
+
+        //region 绑定服务，注册eventbus
+        mCvsServiceConn = new ServiceConnection() {
+            @Override
+            public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
+                mCvsServiceBinder = (CvsService.ServiceBinder) iBinder;
+                mCvsServiceBinder.setCvsListener(CvsFragment.this);
+            }
+
+            @Override
+            public void onServiceDisconnected(ComponentName componentName) {
+                mCvsServiceBinder = null;
+            }
+        };
+        getContext().bindService(new Intent(getContext(), CvsService.class), mCvsServiceConn, Context.BIND_AUTO_CREATE);
+        EventBus.getDefault().register(this);
+        //endregion
     }
 
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        inflater.inflate(R.layout.activity_conversation,container, true);
+        return inflater.inflate(R.layout.fragment_conversation, container, false);
 
-        return super.onCreateView(inflater, container, savedInstanceState);
+//        return super.onCreateView(inflater, container, savedInstanceState);
     }
 
     @Override
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         //region ui控制
+        view.findViewById(R.id.btn_cvs_text).setOnClickListener(this);
+        view.findViewById(R.id.btn_cvs_last).setOnClickListener(this);
+        view.findViewById(R.id.btn_cvs_img).setOnClickListener(this);
+
         mCvsRcc = (RecyclerView)view.findViewById(R.id.rcr_cvs_content);
         mCvsRcc.setItemViewCacheSize(8);
         //mCvsRcc.setHasFixedSize(true);
@@ -227,7 +247,9 @@ public class CvsFragment extends Fragment implements View.OnClickListener,CvsSer
                 }
                 break;
             case EventNote.ACTION_NEED_SEND:
-                mCvsServiceBinder.request(note);
+                if(checkService()) {
+                    mCvsServiceBinder.request(note);
+                }
                 break;
             case EventNote.ACTION_IMG_DETAIL:
                 if(mImgDetailDialog == null){
@@ -309,7 +331,7 @@ public class CvsFragment extends Fragment implements View.OnClickListener,CvsSer
         }
         mLastSubmit = content;
         List<String> cmds = FormatUtils.format(content);
-        if(!LocalCmd.handleCmd(cmds)){
+        if(!LocalCmd.handleCmd(cmds) && checkService()){
             CvsNote note = mCvsServiceBinder.request(content, cmds);
             if(note != null){
                 Application.App.getCvsHistoryManager().insertCache(note);
@@ -341,18 +363,22 @@ public class CvsFragment extends Fragment implements View.OnClickListener,CvsSer
         } catch (IOException e) {
             e.printStackTrace();
         }
-        CvsNote note = mCvsServiceBinder.request(newFile);
-        if(note != null){
-            note.setContent(newFile.getName());
-            Application.App.getCvsHistoryManager().insertCache(note);
-            mCvsRcc.getAdapter().notifyItemRangeInserted(mCvsRcc.getAdapter().getItemCount() ,1);
-            animationScrollEnd(500);
-            Application.App.getCvsHistoryManager().keepLastSendNote(note);
+        if(checkService()) {
+            CvsNote note = mCvsServiceBinder.request(newFile);
+            if (note != null) {
+                note.setContent(newFile.getName());
+                Application.App.getCvsHistoryManager().insertCache(note);
+                mCvsRcc.getAdapter().notifyItemRangeInserted(mCvsRcc.getAdapter().getItemCount(), 1);
+                animationScrollEnd(500);
+                Application.App.getCvsHistoryManager().keepLastSendNote(note);
+            }
         }
     }
 
     private void downloadImage(String name){
-        mCvsServiceBinder.download(name);
+        if(checkService()) {
+            mCvsServiceBinder.download(name);
+        }
     }
 
     private void animationScrollEnd(long delayMillis) {
@@ -392,6 +418,14 @@ public class CvsFragment extends Fragment implements View.OnClickListener,CvsSer
                 }
             }
         });
+    }
+
+    private boolean checkService(){
+        if(mCvsServiceBinder == null){
+            ToastUtils.show("服务未启动", Toast.LENGTH_SHORT);
+            return false;
+        }
+        return true;
     }
     //endregion
 }

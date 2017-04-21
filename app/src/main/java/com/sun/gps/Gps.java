@@ -17,6 +17,7 @@ import com.sun.personalconnect.Application;
 import com.sun.personalconnect.BaseActivity;
 import com.sun.personalconnect.Permission;
 import com.sun.utils.FormatUtils;
+import com.sun.utils.PermissionUtils;
 
 import java.lang.ref.WeakReference;
 import java.util.Iterator;
@@ -88,16 +89,25 @@ public class Gps {
             stopUpdate();
             return;
         }
-        if(gpsGear == GpsGear.Once){
-            activity.requestPermission(new Permission(Manifest.permission.ACCESS_FINE_LOCATION, mRequestOnce));
-            return;
+        if(activity == null){
+            boolean isPermission = PermissionUtils.selfPermissionGranted(Application.App, Manifest.permission.ACCESS_FINE_LOCATION);
+            if(gpsGear == GpsGear.Once) {
+                mRequestOnce.run(isPermission);
+            }else{
+                mRequestGpsUpdate.run(isPermission);
+            }
+        }else {
+            if (gpsGear == GpsGear.Once) {
+                activity.requestPermission(new Permission(Manifest.permission.ACCESS_FINE_LOCATION, mRequestOnce));
+            } else {
+                mGpsGear = gpsGear;
+                if (mListenBatteryContext != null) {
+                    BatteryReceiver.unregister(mListenBatteryContext);
+                    mListenBatteryContext = null;
+                }
+                activity.requestPermission(new Permission(Manifest.permission.ACCESS_FINE_LOCATION, mRequestGpsUpdate));
+            }
         }
-        mGpsGear = gpsGear;
-        if(mListenBatteryContext != null){
-            BatteryReceiver.unregister(mListenBatteryContext);
-            mListenBatteryContext = null;
-        }
-        activity.requestPermission(new Permission(Manifest.permission.ACCESS_FINE_LOCATION, mRequestGpsUpdate));
     }
 
     public void requestAutoUpdate(BaseActivity activity){
@@ -122,13 +132,16 @@ public class Gps {
             mListenBatteryContext = null;
         }
     }
+    private interface PermissionCallback extends Permission.Runnable{
+        void run(boolean permission);
+    }
 
-    private Permission.Runnable mRequestOnce = new Permission.Runnable() {
-        @Override
-        public void run(Permission permission) {
+
+    private PermissionCallback mRequestOnce = new PermissionCallback() {
+        public void run(boolean permission){
             GpsListener listener ;
             if(mGpsListenerReference !=null && (listener =  mGpsListenerReference.get()) != null) {
-                if (permission.isSuccess()) {
+                if (permission) {
                     boolean start = false;
                     if (lm.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
                         try {
@@ -144,7 +157,6 @@ public class Gps {
                     if(lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER)){
                         try {
                             lm.requestSingleUpdate(LocationManager.NETWORK_PROVIDER, mNetworkListener, null);
-                            start = true;
                         }catch (SecurityException e) {
                             e.printStackTrace();
                         }
@@ -160,19 +172,25 @@ public class Gps {
                 }
             }
         }
-    };
 
-    private Permission.Runnable mRequestGpsUpdate = new Permission.Runnable() {
         @Override
         public void run(Permission permission) {
+            run(permission.isSuccess());
+        }
+    };
+
+    private PermissionCallback mRequestGpsUpdate = new PermissionCallback() {
+        public void run(boolean permission){
             GpsListener listener ;
             if(mGpsListenerReference !=null && (listener =  mGpsListenerReference.get()) != null){
-                if (permission.isSuccess()){
+                if (permission){
                     updateLocation(getLastKnownLocation(), "getLastKnownLocation");
                     boolean start = false;
                     if (lm.isProviderEnabled(LocationManager.GPS_PROVIDER)){
                         try {
-                            lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, mGpsGear.period, mGpsGear.minDistance, mGpsListener);
+                            // 这个太耗电，暂时不用
+//                            lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, mGpsGear.period, mGpsGear.minDistance, mGpsListener);
+                            lm.requestSingleUpdate(LocationManager.GPS_PROVIDER, mGpsListener, null);
                             start = true;
                         }catch (SecurityException e) {
                             e.printStackTrace();
@@ -195,6 +213,11 @@ public class Gps {
                     listener.onGpsUpdate(mErrDeviceNote);
                 }
             }
+        }
+
+        @Override
+        public void run(Permission permission) {
+            run(permission.isSuccess());
         }
     };
 
@@ -310,7 +333,7 @@ public class Gps {
 
     public Location getLastKnownLocation() throws SecurityException{
         // 为获取地理位置信息时设置查询条件
-        String bestProvider = lm.getBestProvider(getCriteria(), true);
+//        String bestProvider = lm.getBestProvider(getCriteria(), true);
         Location location;
         // 获取位置信息
         // 如果不设置查询要求，getLastKnownLocation方法传入的参数为LocationManager.GPS_PROVIDER

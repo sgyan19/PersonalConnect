@@ -18,11 +18,10 @@ import com.sun.connect.SocketReceiver;
 import com.sun.connect.SocketService;
 import com.sun.connect.SocketTask;
 import com.sun.level.LevelCenter;
-import com.sun.personalconnect.Application;
 import com.sun.personalconnect.BaseActivity;
 import com.sun.utils.FormatUtils;
 import com.sun.utils.GsonUtils;
-import com.sun.utils.StatusActivity;
+import com.sun.utils.StatusFragment;
 
 import java.io.File;
 import java.util.LinkedHashMap;
@@ -136,7 +135,7 @@ public class GpsService extends Service {
             if(mRequestHistory.containsKey(key)){
                 GpsNote note = mRequestHistory.get(key);
                 mRequestHistory.remove(key);
-                StatusActivity.addMessage(String.format("gps request error,id:%d,gear:%s", note.getId(), note.getGpsGear()));
+//                StatusFragment.addMessage(String.format("gps request error,id:%d,gear:%s", note.getId(), note.getGpsGear()));
                 return true;
             }else {
                 return false;
@@ -158,7 +157,7 @@ public class GpsService extends Service {
             if(mRequestHistory.containsKey(key)){
                 GpsNote note = mRequestHistory.get(key);
                 mRequestHistory.remove(key);
-                StatusActivity.addMessage(String.format("gps request success,id:%d", note.getId()));
+//                StatusFragment.addMessage(String.format("gps request success,id:%d", note.getId()));
                 return true;
             }
             if(data != null) {

@@ -77,7 +77,7 @@ public class CvsServiceBack extends Service {
             boolean connected = intent.getBooleanExtra(SocketService.KEY_BOOLEAN_CONNECTED, false);
             if(connected && socketBinder != null){
                 try {
-                    socketBinder.request(SocketTask.REQUEST_KEY_NOBODY, SocketMessage.SOCKET_TYPE_JSON, String.format(RequestDataHelper.CvsConnectRequest, Application.App.getCvsHistoryManager().getLastSucNoteId(),Application.App.getDeviceId()));
+                    socketBinder.request(SocketTask.REQUEST_KEY_NOBODY, SocketMessage.SOCKET_TYPE_JSON, RequestDataHelper.getCvsConnectRequest(Application.App.getCvsHistoryManager().getLastSucNoteId(), Application.App.getDeviceId()));
                 } catch (RemoteException e) {
                     e.printStackTrace();
                 }
@@ -262,7 +262,7 @@ public class CvsServiceBack extends Service {
                     socketBinder = ISocketServiceBinder.Stub.asInterface(iBinder);
                     try {
                         if(socketBinder.isConnected()){
-                            socketBinder.request(SocketTask.REQUEST_KEY_NOBODY, SocketMessage.SOCKET_TYPE_JSON, String.format(RequestDataHelper.CvsConnectRequest, Application.App.getCvsHistoryManager().getLastSucNoteId(), Application.App.getDeviceId()));
+                            socketBinder.request(SocketTask.REQUEST_KEY_NOBODY, SocketMessage.SOCKET_TYPE_JSON, RequestDataHelper.getCvsConnectRequest(Application.App.getCvsHistoryManager().getLastSucNoteId(), Application.App.getDeviceId()));
                         }
                     } catch (RemoteException e) {
                         e.printStackTrace();

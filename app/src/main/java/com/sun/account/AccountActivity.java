@@ -14,6 +14,7 @@ import com.sun.connect.SocketService;
 import com.sun.gps.GpsActivity;
 import com.sun.personalconnect.Application;
 import com.sun.personalconnect.BaseActivity;
+import com.sun.personalconnect.HomeActivity;
 import com.sun.personalconnect.R;
 import com.sun.settings.Config;
 import com.sun.utils.ToastUtils;
@@ -72,7 +73,7 @@ public class AccountActivity extends BaseActivity implements View.OnClickListene
     }
 
     private void loginJump(){
-        startActivity(new Intent(AccountActivity.this, CvsActivity.class));
+        startActivity(new Intent(AccountActivity.this, HomeActivity.class));
         finish();
         /*
         SocketTask.getInstance().Ready(new Runnable() {

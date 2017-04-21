@@ -8,11 +8,6 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="@android:color/holo_green_light"/>
-    <View
-        android:id="@+id/view_gps_hide"
-        android:layout_width="50dp"
-        android:layout_height="50dp"
-        android:layout_gravity="right|top"/>
     <LinearLayout
         android:id="@+id/container_gps_debug"
         android:orientation="vertical" android:layout_width="match_parent"
@@ -84,4 +79,20 @@
                 android:text="获取远程"/>
         </LinearLayout>
     </LinearLayout>
+    <FrameLayout
+        android:id="@+id/container_gps_debug_2"
+        android:visibility="gone"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"/>
+    <View
+        android:id="@+id/view_gps_hide"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:layout_gravity="right|top"/>
+    <View
+        android:id="@+id/view_gps_hide_2"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:layout_marginEnd="80dp"
+        android:layout_gravity="right|top"/>
 </FrameLayout>
