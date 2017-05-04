@@ -31,4 +31,9 @@ public class AnswerNote {
     public void setUserName(String userName) {
         this.userName = userName;
     }
+
+    @Override
+    public String toString() {
+        return String.format("Did:%s, uid:%d, name:%s",deviceId,userId,userName);
+    }
 }

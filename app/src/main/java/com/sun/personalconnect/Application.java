@@ -47,6 +47,7 @@ public class Application extends android.app.Application {
     private Ring mRing;
 
     private AppLifeNetworkService mAppLifeNetworkService;
+    private InfoKeeper mInfoKeeper;
     @Override
     public void onCreate() {
         super.onCreate();
@@ -97,6 +98,7 @@ public class Application extends android.app.Application {
                     }
                 }
         ));
+        mInfoKeeper = new InfoKeeper();
         //socketTask = new SocketTask();
         //socketTask.start();
     }
@@ -176,5 +178,9 @@ public class Application extends android.app.Application {
 
     public AppLifeNetworkService getNetworkService(){
         return mAppLifeNetworkService;
+    }
+
+    public InfoKeeper getInfoKeeper(){
+        return mInfoKeeper;
     }
 }

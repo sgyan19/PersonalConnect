@@ -131,7 +131,7 @@ public class FormatUtils {
         requestJson.setRequestId(requestJson.hashCode());
         requestJson.setCode(RequestDataHelper.CODE_ConversationNote);
         requestJson.addArg(GsonUtils.mGson.toJson(note));
-        requestJson.addArg(AnswerNote.class.getName());
+        requestJson.addArg(AskNote.class.getName());
         return requestJson;
     }
 

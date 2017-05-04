@@ -6,12 +6,6 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.IBinder;
 import android.os.RemoteException;
-
-import com.sun.connect.ISocketServiceBinder;
-import com.sun.connect.ResponseJson;
-import com.sun.connect.SocketMessage;
-import com.sun.connect.SocketReceiver;
-import com.sun.connect.SocketService;
 import com.sun.personalconnect.Application;
 
 import java.io.File;
@@ -27,6 +21,11 @@ public class AppLifeNetworkService {
     private ServiceConnection mSocketConn;
     private ISocketServiceBinder mSocketBinder;
     private HashMap<Integer,String> mWaitSend;
+
+    public static AppLifeNetworkService getInstance(){
+        return Application.App.getNetworkService();
+    }
+
     public AppLifeNetworkService(){
         mWaitSend = new HashMap<>();
         mSocketConn = new ServiceConnection() {
@@ -68,6 +67,7 @@ public class AppLifeNetworkService {
 
         @Override
         public boolean onError(int key, String error) {
+            mEventNetwork.reset();
             mEventNetwork.setError(error);
             mEventNetwork.setKey(key);
             mEventNetwork.setStep(1);
@@ -77,6 +77,7 @@ public class AppLifeNetworkService {
 
         @Override
         public boolean onParserResponse(int key, ResponseJson json, String info) {
+            mEventNetwork.reset();
             mEventNetwork.setError(info);
             mEventNetwork.setKey(key);
             mEventNetwork.setResponse(json);
@@ -87,6 +88,7 @@ public class AppLifeNetworkService {
 
         @Override
         public boolean onReceiveFile(int key, File file, String info) {
+            mEventNetwork.reset();
             mEventNetwork.setError(info);
             mEventNetwork.setKey(key);
             mEventNetwork.setObject(file);
@@ -97,6 +99,7 @@ public class AppLifeNetworkService {
 
         @Override
         public boolean onParserData(int key, ResponseJson json, Object data, String info) {
+            mEventNetwork.reset();
             mEventNetwork.setError(info);
             mEventNetwork.setKey(key);
             mEventNetwork.setObject(data);
@@ -121,5 +124,9 @@ public class AppLifeNetworkService {
         }else{
             mWaitSend.put(key,request);
         }
+    }
+
+    public boolean isServiceAlive(){
+        return mSocketBinder != null;
     }
 }

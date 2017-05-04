@@ -61,6 +61,9 @@
         <activity android:name="com.sun.gps.GaoDeMapActivity"
             android:launchMode="singleTask">
         </activity>
+
+        <activity android:name="com.sun.utils.PageFragmentActivity" android:windowSoftInputMode="adjustPan"/>
+
         <service
             android:name="com.sun.conversation.CvsService">
         </service>

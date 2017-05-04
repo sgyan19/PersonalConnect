@@ -108,7 +108,7 @@ public class SocketReceiver extends BaseReceiver<SocketReceiver.SocketReceiveLis
             Object obj = null;
             if(responseObj.getFormat() != null){
                 try {
-                    Class<?> format = context.getClassLoader().loadClass(responseObj.getFormat());
+                     Class<?> format = context.getClassLoader().loadClass(responseObj.getFormat());
                     obj = GsonUtils.mGson.fromJson(responseObj.getData(), format);
                     if(obj == null) {
                         info = "format failed";

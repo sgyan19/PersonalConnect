@@ -28,6 +28,7 @@ import android.widget.ListView;
 import com.sun.personalconnect.R;
 
 import java.text.DateFormat;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -49,6 +50,15 @@ public class StatusFragment extends ListFragment {
         DateFormat format = DateFormat.getTimeInstance(DateFormat.SHORT);
         message = format.format(new Date()) + " - " + message;
         messages.add(message);
+        while (messages.size() > LIMIT) {
+            messages.removeFirst();
+        }
+        notifyAdapters();
+    }
+
+    public void setMessages(Collection<String> msgs){
+        messages.clear();
+        messages.addAll(msgs);
         while (messages.size() > LIMIT) {
             messages.removeFirst();
         }
