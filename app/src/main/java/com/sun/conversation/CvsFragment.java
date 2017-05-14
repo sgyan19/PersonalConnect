@@ -181,7 +181,7 @@ public class CvsFragment extends Fragment implements View.OnClickListener,CvsSer
 
     //region 继承接口实现
     @Override
-    public void onSendFailed(long key, CvsNote note, String message) {
+    public void onSendFailed(String key, CvsNote note, String message) {
         ToastUtils.show(message, Toast.LENGTH_SHORT);
         ((CvsRecyclerAdapter) mCvsRcc.getAdapter()).notifyItemChanged(note);
     }

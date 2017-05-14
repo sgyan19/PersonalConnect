@@ -1,8 +1,11 @@
 package com.sun.utils;
 
+import android.content.Context;
+
 import com.sun.account.Account;
 import com.sun.connect.RequestJson;
 import com.sun.connect.RequestDataHelper;
+import com.sun.connect.ResponseJson;
 import com.sun.conversation.CvsNote;
 import com.sun.device.AnswerNote;
 import com.sun.gps.GpsGear;
@@ -43,7 +46,8 @@ public class FormatUtils {
         Object[] result = new Object[2];
         RequestJson requestJson = new RequestJson();
         requestJson.setDeviceId(Application.App.getDeviceId());
-        requestJson.setRequestId(requestJson.hashCode());
+        requestJson.setRequestId(IdUtils.make());
+        requestJson.setCode(RequestDataHelper.MobileTerminalJson);
 
         CvsNote note = new CvsNote();
         Account account = Application.App.getAccount();
@@ -55,7 +59,6 @@ public class FormatUtils {
         note.setTimeFormat(Utils.getFormatTime(time));
         if(format != null && format.size() > 0 &&Application.App.getLevelCenter().serverCheck()){
             if(CmdDefine.CMD_REMOTE_RING_NOTE.equalsIgnoreCase(format.get(0))){
-                requestJson.setCode(RequestDataHelper.CODE_ConversationNote);
                 note.setPower(CvsNote.POWER_RING);
                 if(format.size()  > 1) {
                     note.setContent(format.get(1));
@@ -66,16 +69,14 @@ public class FormatUtils {
                     note.setExtend(format.get(2));
                 }
                 requestJson.clearArgs();
-                requestJson.addArg(GsonUtils.mGson.toJson(note));
                 requestJson.addArg(CvsNote.class.getName());
-                requestJson.addArg(String.valueOf(note.getId()));
+                requestJson.addArg(GsonUtils.mGson.toJson(note));
             }
         }else{
             note.setContent(input);
-            requestJson.setCode(RequestDataHelper.CODE_ConversationNote);
-            requestJson.addArg(GsonUtils.mGson.toJson(note));
+            requestJson.clearArgs();
             requestJson.addArg(CvsNote.class.getName());
-            requestJson.addArg(String.valueOf(note.getId()));
+            requestJson.addArg(GsonUtils.mGson.toJson(note));
         }
         result[0] = requestJson;
         result[1] = note;
@@ -86,7 +87,7 @@ public class FormatUtils {
         Object[] result = new Object[2];
         RequestJson requestJson = new RequestJson();
         requestJson.setDeviceId(Application.App.getDeviceId());
-        requestJson.setRequestId(requestJson.hashCode());
+        requestJson.setRequestId(IdUtils.make());
 
         CvsNote note = new CvsNote();
         Account account = Application.App.getAccount();
@@ -101,11 +102,10 @@ public class FormatUtils {
         note.setType(CvsNote.TYPE_IMAGE);
         note.setExtend(String.valueOf(file.length()));
 
-        requestJson.setCode(RequestDataHelper.CODE_ConversationNote);
-        requestJson.addArg(GsonUtils.mGson.toJson(note));
+        requestJson.setCode(RequestDataHelper.MobileTerminalJson);
         requestJson.addArg(CvsNote.class.getName());
-        requestJson.addArg(String.valueOf(note.getId()));
-
+        requestJson.addArg(GsonUtils.mGson.toJson(note));
+        requestJson.setRequestId(IdUtils.make());
         result[0] = requestJson;
         result[1] = note;
         return result;
@@ -114,11 +114,10 @@ public class FormatUtils {
     public static RequestJson makeCvsRequest(CvsNote note){
         RequestJson requestJson = new RequestJson();
         requestJson.setDeviceId(Application.App.getDeviceId());
-        requestJson.setRequestId(requestJson.hashCode());
-        requestJson.setCode(RequestDataHelper.CODE_ConversationNote);
-        requestJson.addArg(GsonUtils.mGson.toJson(note));
+        requestJson.setRequestId(IdUtils.make());
+        requestJson.setCode(RequestDataHelper.MobileTerminalJson);
         requestJson.addArg(CvsNote.class.getName());
-        requestJson.addArg(String.valueOf(note.getId()));
+        requestJson.addArg(GsonUtils.mGson.toJson(note));
         return requestJson;
     }
 
@@ -128,10 +127,10 @@ public class FormatUtils {
         }
         RequestJson requestJson = new RequestJson();
         requestJson.setDeviceId(Application.App.getDeviceId());
-        requestJson.setRequestId(requestJson.hashCode());
-        requestJson.setCode(RequestDataHelper.CODE_ConversationNote);
-        requestJson.addArg(GsonUtils.mGson.toJson(note));
+        requestJson.setRequestId(IdUtils.make());
+        requestJson.setCode(RequestDataHelper.MobileTerminalJson);
         requestJson.addArg(AskNote.class.getName());
+        requestJson.addArg(GsonUtils.mGson.toJson(note));
         return requestJson;
     }
 
@@ -144,10 +143,10 @@ public class FormatUtils {
         }
         RequestJson requestJson = new RequestJson();
         requestJson.setDeviceId(Application.App.getDeviceId());
-        requestJson.setRequestId(requestJson.hashCode());
-        requestJson.setCode(RequestDataHelper.CODE_ConversationNote);
-        requestJson.addArg(GsonUtils.mGson.toJson(note));
+        requestJson.setRequestId(IdUtils.make());
+        requestJson.setCode(RequestDataHelper.MobileTerminalJson);
         requestJson.addArg(AnswerNote.class.getName());
+        requestJson.addArg(GsonUtils.mGson.toJson(note));
         return requestJson;
     }
 
@@ -162,11 +161,10 @@ public class FormatUtils {
 
         RequestJson requestJson = new RequestJson();
         requestJson.setDeviceId(Application.App.getDeviceId());
-        requestJson.setRequestId(requestJson.hashCode());
-        requestJson.setCode(RequestDataHelper.CODE_ConversationNote);
-        requestJson.addArg(GsonUtils.mGson.toJson(gpsRequest));
+        requestJson.setRequestId(IdUtils.make());
+        requestJson.setCode(RequestDataHelper.MobileTerminalJson);
         requestJson.addArg(GpsRequest.class.getName());
-        requestJson.addArg(String.valueOf(gpsRequest.getId()));
+        requestJson.addArg(GsonUtils.mGson.toJson(gpsRequest));
         result[0] = requestJson;
         result[1] = gpsRequest;
         return result;
@@ -175,30 +173,28 @@ public class FormatUtils {
     public static RequestJson makeGpsReponseRequest(GpsResponse gpsResponse){
         RequestJson requestJson = new RequestJson();
         requestJson.setDeviceId(Application.App.getDeviceId());
-        requestJson.setRequestId(requestJson.hashCode());
-        requestJson.setCode(RequestDataHelper.CODE_ConversationNote);
-        requestJson.addArg(GsonUtils.mGson.toJson(gpsResponse));
+        requestJson.setRequestId(IdUtils.make());
+        requestJson.setCode(RequestDataHelper.MobileTerminalJson);
         requestJson.addArg(GpsResponse.class.getName());
-        requestJson.addArg(String.valueOf(gpsResponse.getId()));
+        requestJson.addArg(GsonUtils.mGson.toJson(gpsResponse));
         return requestJson;
     }
 
     public static RequestJson makeGpsRequest(GpsResponse gpsResponse){
         RequestJson requestJson = new RequestJson();
         requestJson.setDeviceId(Application.App.getDeviceId());
-        requestJson.setRequestId(requestJson.hashCode());
-        requestJson.setCode(RequestDataHelper.CODE_ConversationNote);
-        requestJson.addArg(GsonUtils.mGson.toJson(gpsResponse));
+        requestJson.setRequestId(IdUtils.make());
+        requestJson.setCode(RequestDataHelper.MobileTerminalJson);
         requestJson.addArg(GpsResponse.class.getName());
-        requestJson.addArg(String.valueOf(gpsResponse.getId()));
+        requestJson.addArg(GsonUtils.mGson.toJson(gpsResponse));
         return requestJson;
     }
 
     public static RequestJson makeDownloadRequest(String name){
         RequestJson requestJson = new RequestJson();
         requestJson.setDeviceId(Application.App.getDeviceId());
-        requestJson.setRequestId(requestJson.hashCode());
-        requestJson.setCode(RequestDataHelper.CODE_ConversationImage);
+        requestJson.setRequestId(IdUtils.make());
+        requestJson.setCode(RequestDataHelper.MoboleTerminalRaw);
         requestJson.addArg(name);
         return requestJson;
     }
@@ -212,5 +208,18 @@ public class FormatUtils {
             note.setErrInfo("");
         }
         return note;
+    }
+
+    public static Object getFormatData(Context context , ResponseJson responseJson) throws Exception{
+        if(context == null || responseJson == null){
+            return null;
+        }
+        ClassLoader loader = context.getClassLoader();
+        if(responseJson.getData() == null || responseJson.getData().length < 2){
+            return null;
+        }
+        String format = responseJson.getData()[0];
+        Class clazz = loader.loadClass(format);
+        return GsonUtils.mGson.fromJson(responseJson.getData()[1], clazz);
     }
 }

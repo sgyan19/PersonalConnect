@@ -39,22 +39,22 @@ public class GpsService extends Service {
     private ServiceBinder mBinder;
     private ISocketServiceBinder mSocketBinder;
     private ServiceConnection mSocketConn;
-    private LinkedHashMap<Integer, GpsNote> mRequestHistory = new LinkedHashMap<>();
+    private LinkedHashMap<String, GpsNote> mRequestHistory = new LinkedHashMap<>();
 
 
     private GpsListener mInGpsListener = new GpsListener() {
         @Override
         public void onGpsUpdate(GpsResponse gpsResponse) {
             RequestJson requestJson = FormatUtils.makeGpsReponseRequest(gpsResponse);
+            mRequestHistory.put(requestJson.getRequestId(),gpsResponse);
             if(mSocketBinder != null){
                 try {
                     mSocketBinder.request(requestJson.getRequestId(), SocketMessage.SOCKET_TYPE_JSON, GsonUtils.mGson.toJson(requestJson));
-                    mRequestHistory.put(requestJson.getRequestId(),gpsResponse);
                 } catch (RemoteException e) {
                     e.printStackTrace();
                 }
             }else{
-                mReceiveListener.onError(SocketTask.REQUEST_KEY_NOBODY, "local service not bind");
+                mReceiveListener.onError(requestJson.getRequestId(), "local service not bind");
             }
         }
     };
@@ -93,7 +93,7 @@ public class GpsService extends Service {
                         e.printStackTrace();
                     }
                 }else{
-                    mReceiveListener.onError(SocketTask.REQUEST_KEY_NOBODY, "local service not bind");
+                    mReceiveListener.onError(requestJson.getRequestId(), "local service not bind");
                 }
             }
         }
@@ -116,7 +116,7 @@ public class GpsService extends Service {
                         e.printStackTrace();
                     }
                 }else{
-                    mReceiveListener.onError(SocketTask.REQUEST_KEY_NOBODY, "local service not bind");
+                    mReceiveListener.onError(requestJson.getRequestId(), "local service not bind");
                 }
             }
 
@@ -131,7 +131,7 @@ public class GpsService extends Service {
         }
 
         @Override
-        public boolean onError(int key, String error) {
+        public boolean onError(String key, String error) {
             if(mRequestHistory.containsKey(key)){
                 GpsNote note = mRequestHistory.get(key);
                 mRequestHistory.remove(key);
@@ -143,17 +143,17 @@ public class GpsService extends Service {
         }
 
         @Override
-        public boolean onParserResponse(int key, ResponseJson json, String info) {
+        public boolean onParserResponse(String key, ResponseJson json, String info) {
             return false;
         }
 
         @Override
-        public boolean onReceiveFile(int key, File file, String info) {
+        public boolean onReceiveFile(String key, File file, String info) {
             return false;
         }
 
         @Override
-        public boolean onParserData(int key, ResponseJson json, Object data, String info) {
+        public boolean onParserData(String key, ResponseJson json, Object data, String info) {
             if(mRequestHistory.containsKey(key)){
                 GpsNote note = mRequestHistory.get(key);
                 mRequestHistory.remove(key);

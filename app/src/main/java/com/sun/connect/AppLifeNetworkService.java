@@ -20,7 +20,7 @@ import de.greenrobot.event.EventBus;
 public class AppLifeNetworkService {
     private ServiceConnection mSocketConn;
     private ISocketServiceBinder mSocketBinder;
-    private HashMap<Integer,String> mWaitSend;
+    private HashMap<String,String> mWaitSend;
 
     public static AppLifeNetworkService getInstance(){
         return Application.App.getNetworkService();
@@ -32,8 +32,8 @@ public class AppLifeNetworkService {
             @Override
             public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
                 mSocketBinder = ISocketServiceBinder.Stub.asInterface(iBinder);
-                HashMap<Integer, String> tmp = new HashMap<>(mWaitSend);
-                for(Map.Entry<Integer, String> entry : tmp.entrySet()){
+                HashMap<String, String> tmp = new HashMap<>(mWaitSend);
+                for(Map.Entry<String, String> entry : tmp.entrySet()){
                     request(entry.getKey(), entry.getValue());
                 }
             }
@@ -66,7 +66,7 @@ public class AppLifeNetworkService {
         }
 
         @Override
-        public boolean onError(int key, String error) {
+        public boolean onError(String key, String error) {
             mEventNetwork.reset();
             mEventNetwork.setError(error);
             mEventNetwork.setKey(key);
@@ -76,7 +76,7 @@ public class AppLifeNetworkService {
         }
 
         @Override
-        public boolean onParserResponse(int key, ResponseJson json, String info) {
+        public boolean onParserResponse(String key, ResponseJson json, String info) {
             mEventNetwork.reset();
             mEventNetwork.setError(info);
             mEventNetwork.setKey(key);
@@ -87,7 +87,7 @@ public class AppLifeNetworkService {
         }
 
         @Override
-        public boolean onReceiveFile(int key, File file, String info) {
+        public boolean onReceiveFile(String key, File file, String info) {
             mEventNetwork.reset();
             mEventNetwork.setError(info);
             mEventNetwork.setKey(key);
@@ -98,7 +98,7 @@ public class AppLifeNetworkService {
         }
 
         @Override
-        public boolean onParserData(int key, ResponseJson json, Object data, String info) {
+        public boolean onParserData(String key, ResponseJson json, Object data, String info) {
             mEventNetwork.reset();
             mEventNetwork.setError(info);
             mEventNetwork.setKey(key);
@@ -109,7 +109,7 @@ public class AppLifeNetworkService {
         }
     };
 
-    public void request(int key, String request){
+    public void request(String key, String request){
         boolean send = false;
         if(mSocketBinder != null){
             try {

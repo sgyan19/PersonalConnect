@@ -9,7 +9,7 @@ import java.util.List;
 public class RequestJson {
     private String code;
     private List<String> args;
-    private int requestId = 0;
+    private String requestId = "0";
 
     private String deviceId;
 
@@ -37,11 +37,11 @@ public class RequestJson {
         args.clear();
     }
 
-    public int getRequestId() {
+    public String getRequestId() {
         return requestId;
     }
 
-    public void setRequestId(int requestId) {
+    public void setRequestId(String requestId) {
         this.requestId = requestId;
     }
 

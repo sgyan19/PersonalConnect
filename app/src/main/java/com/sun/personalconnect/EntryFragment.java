@@ -22,6 +22,7 @@ import com.sun.gps.GaoDeMapActivity;
 import com.sun.gps.GpsActivity;
 import com.sun.utils.FormatUtils;
 import com.sun.utils.GsonUtils;
+import com.sun.utils.IdUtils;
 import com.sun.utils.PageFragmentActivity;
 import com.sun.utils.StatusFragment;
 import com.sun.utils.ToastUtils;
@@ -65,7 +66,7 @@ public class EntryFragment extends Fragment implements OnClickListener{
         int id = v.getId();
         switch (id){
             case R.id.btn_entry_users:
-                AppLifeNetworkService.getInstance().request(-1, GsonUtils.mGson.toJson(FormatUtils.makeAskRequest(null)));
+                AppLifeNetworkService.getInstance().request(IdUtils.make(), GsonUtils.mGson.toJson(FormatUtils.makeAskRequest(null)));
                 PageFragmentActivity.fastJump(getActivity(), mUserCountFragment);
                 break;
             case R.id.btn_entry_gps:
@@ -93,11 +94,11 @@ public class EntryFragment extends Fragment implements OnClickListener{
                 mUserCountFragment.setMessages(info);
             }
         }else if(eventNetwork.getObject() instanceof AskNote){
-            if(eventNetwork.getKey() != ){
-
-            }
+//            if(eventNetwork.getKey() != ){
+//
+//            }
             if(TextUtils.isEmpty(eventNetwork.getError())){
-                AppLifeNetworkService.getInstance().request(-1, GsonUtils.mGson.toJson(FormatUtils.makeAskRequest(null)));
+                AppLifeNetworkService.getInstance().request(IdUtils.make(), GsonUtils.mGson.toJson(FormatUtils.makeAskRequest(null)));
             }
         }
     }

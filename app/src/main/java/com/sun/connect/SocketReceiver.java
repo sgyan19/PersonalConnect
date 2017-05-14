@@ -6,9 +6,9 @@ import android.content.IntentFilter;
 import android.text.TextUtils;
 import android.util.Log;
 
-import com.google.gson.JsonSyntaxException;
 import com.sun.personalconnect.Application;
 import com.sun.personalconnect.BaseReceiver;
+import com.sun.utils.FormatUtils;
 import com.sun.utils.GsonUtils;
 import java.io.File;
 import java.util.Map;
@@ -28,10 +28,10 @@ public class SocketReceiver extends BaseReceiver<SocketReceiver.SocketReceiveLis
 
     public interface SocketReceiveListener{
         boolean onReconnected(boolean connected);
-        boolean onError(int key, String error);
-        boolean onParserResponse(int key, ResponseJson json, String info);
-        boolean onReceiveFile(int key, File file, String info);
-        boolean onParserData(int key, ResponseJson json, Object data, String info);
+        boolean onError(String key, String error);
+        boolean onParserResponse(String key, ResponseJson json, String info);
+        boolean onReceiveFile(String key, File file, String info);
+        boolean onParserData(String key, ResponseJson json, Object data, String info);
     }
 
     public static void register(Context context, SocketReceiveListener listener){
@@ -46,8 +46,8 @@ public class SocketReceiver extends BaseReceiver<SocketReceiver.SocketReceiveLis
     public void onReceive(Context context, Intent intent) {
         Log.d(TAG, "onReceive");
 
-        int key = intent.getIntExtra(SocketService.KEY_INT_REQUESTKEY, SocketTask.REQUEST_KEY_NOBODY);
-        if(key == SocketTask.REQUEST_KEY_NOBODY) {
+        String key = intent.getStringExtra(SocketService.KEY_STRING_REQUESTKEY);
+        if(SocketTask.REQUEST_KEY_NOBODY.equals(key)) {
             return;
         }
         String error = intent.getStringExtra(SocketService.KEY_STRING_ERROR);
@@ -106,19 +106,11 @@ public class SocketReceiver extends BaseReceiver<SocketReceiver.SocketReceiveLis
             key = responseObj.getRequestId();
             String info = null;
             Object obj = null;
-            if(responseObj.getFormat() != null){
-                try {
-                     Class<?> format = context.getClassLoader().loadClass(responseObj.getFormat());
-                    obj = GsonUtils.mGson.fromJson(responseObj.getData(), format);
-                    if(obj == null) {
-                        info = "format failed";
-                    }
-                } catch (ClassNotFoundException|JsonSyntaxException e) {
-                    e.printStackTrace();
-                    info = e.toString();
-                }
-            }else{
-                info = "response format == null";
+            try{
+                obj = FormatUtils.getFormatData(context, responseObj);
+            }catch (Exception e) {
+                e.printStackTrace();
+                info = e.toString();
             }
             for (Map.Entry<Context, SocketReceiveListener> entry : getListeners().entrySet()) {
                 if (entry.getValue().onParserData(key, responseObj, obj, info)) {

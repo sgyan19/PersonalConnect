@@ -4,7 +4,7 @@ package com.sun.connect;
  * Created by guoyao on 2017/4/21.
  */
 public class EventNetwork {
-    private int key;
+    private String key;
     private ResponseJson response;
     private String error;
     private int step;
@@ -13,16 +13,16 @@ public class EventNetwork {
     public void reset(){
         object = null;
         step = 0;
-        key = -1;
+        key = "";
         response = null;
         error = "";
     }
 
-    public int getKey() {
+    public String getKey() {
         return key;
     }
 
-    public void setKey(int key) {
+    public void setKey(String key) {
         this.key = key;
     }
 

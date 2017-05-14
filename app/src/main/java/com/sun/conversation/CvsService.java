@@ -29,6 +29,7 @@ import com.sun.personalconnect.Application;
 import com.sun.personalconnect.R;
 import com.sun.utils.FormatUtils;
 import com.sun.utils.GsonUtils;
+import com.sun.utils.IdUtils;
 
 import java.io.File;
 import java.lang.ref.WeakReference;
@@ -43,12 +44,12 @@ public class CvsService extends Service {
     private final static String TAG = "CvsService";
     private CvsService.ServiceBinder mServiceBinder;
     private ISocketServiceBinder mSocketBinder;
-    private LinkedHashMap<Integer, CvsNote> mRequestHistory = new LinkedHashMap<>();
+    private LinkedHashMap<String, CvsNote> mRequestHistory = new LinkedHashMap<>();
     private WeakReference<CvsListener> mCvsListenerReference;
     private ServiceConnection mSocketConn;
 
     public interface CvsListener {
-        void onSendFailed(long key, CvsNote note, String message);
+        void onSendFailed(String key, CvsNote note, String message);
         void onSendSuccess(CvsNote note);
         void onNewCvsNote(CvsNote note);
         void onNewFile(File file);
@@ -63,7 +64,7 @@ public class CvsService extends Service {
         public boolean onReconnected(boolean connected) {
             if(connected && mSocketBinder != null){
                 try {
-                    mSocketBinder.request(SocketTask.REQUEST_KEY_NOBODY, SocketMessage.SOCKET_TYPE_JSON, RequestDataHelper.getCvsConnectRequest(Application.App.getCvsHistoryManager().getLastSucNoteId(), Application.App.getDeviceId()));
+                    mSocketBinder.request(IdUtils.make(), SocketMessage.SOCKET_TYPE_JSON, RequestDataHelper.getCvsConnectRequest( Application.App.getDeviceId()));
                 } catch (RemoteException e) {
                     e.printStackTrace();
                 }
@@ -72,7 +73,7 @@ public class CvsService extends Service {
         }
 
         @Override
-        public boolean onError(int key, String error) {
+        public boolean onError(String key, String error) {
             if(mRequestHistory.containsKey(key)){
                 CvsNote note = mRequestHistory.get(key);
                 note.setSendStatus(CvsNote.STATUS_FAL);
@@ -89,7 +90,7 @@ public class CvsService extends Service {
         }
 
         @Override
-        public boolean onParserResponse(int key, ResponseJson json, String info) {
+        public boolean onParserResponse(String key, ResponseJson json, String info) {
             if(!TextUtils.isEmpty(info)){
                 return onError(key, info);
             }
@@ -97,7 +98,7 @@ public class CvsService extends Service {
         }
 
         @Override
-        public boolean onReceiveFile(int key, File file, String info) {
+        public boolean onReceiveFile(String key, File file, String info) {
             Log.d(TAG, "BroadcastReceiver SOCKET_TYPE_RAW");
             if(!TextUtils.isEmpty(info)){
                 return onError(key, info);
@@ -113,14 +114,14 @@ public class CvsService extends Service {
         }
 
         @Override
-        public boolean onParserData(int key, ResponseJson json,Object data, String info) {
+        public boolean onParserData(String key, ResponseJson json,Object data, String info) {
             if(data instanceof CvsNote) {
                 CvsNote note = (CvsNote) data;
                 handleNote(note);
                 key = json.getRequestId();
                 note.setSendStatus(CvsNote.STATUS_SUC);
                 CvsListener listener;
-                if (key == SocketTask.REQUEST_KEY_ANYBODY) {
+                if (SocketTask.REQUEST_KEY_ANYBODY.equals(key)) {
                     Application.App.getCvsHistoryManager().insertCache(note);
 //                Application.App.getCvsHistoryManager().saveCache(); // 新策略，已经废弃
                     if ((listener = getOnCvsListener()) != null) {
@@ -167,21 +168,21 @@ public class CvsService extends Service {
         }
 
         public CvsNote request(String content, List<String> cmds){
-            if(mSocketBinder == null){
-                mReceiveListener.onError(SocketTask.REQUEST_KEY_NOBODY, "local service not bind");
-                return null;
-            }
             Object[] objects = FormatUtils.makeCvsRequest(content, cmds);
             if(objects == null) return null;
             CvsNote note = (CvsNote)objects[1];
             RequestJson requestJson = (RequestJson)objects[0];
+            if(note != null) {
+                mRequestHistory.put(requestJson.getRequestId(), note);
+            }
+            if(mSocketBinder == null){
+                mReceiveListener.onError(requestJson.getRequestId(), "local service not bind");
+                return null;
+            }
             try {
                 mSocketBinder.request(requestJson.getRequestId(), SocketMessage.SOCKET_TYPE_JSON, GsonUtils.mGson.toJson(requestJson));
             } catch (RemoteException e) {
                 e.printStackTrace();
-            }
-            if(note != null) {
-                mRequestHistory.put(requestJson.getRequestId(), note);
             }
             return note;
         }
@@ -244,7 +245,7 @@ public class CvsService extends Service {
                     mSocketBinder = ISocketServiceBinder.Stub.asInterface(iBinder);
                     try {
                         if(mSocketBinder.isConnected()){
-                            mSocketBinder.request(SocketTask.REQUEST_KEY_NOBODY, SocketMessage.SOCKET_TYPE_JSON, RequestDataHelper.getCvsConnectRequest(Application.App.getCvsHistoryManager().getLastSucNoteId(), Application.App.getDeviceId()));
+                            mSocketBinder.request(IdUtils.make(), SocketMessage.SOCKET_TYPE_JSON, RequestDataHelper.getCvsConnectRequest(Application.App.getDeviceId()));
                         }
                     } catch (RemoteException e) {
                         e.printStackTrace();

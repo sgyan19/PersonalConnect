@@ -24,8 +24,8 @@ public class SocketTask implements Runnable {
     public static final int MSG_CONNECT_CHECK = 4;
     public static final int MSG_DISCONNECT = 9;
 
-    public static final int REQUEST_KEY_NOBODY = -1;
-    public static final int REQUEST_KEY_ANYBODY = 0;
+    public static final String REQUEST_KEY_NOBODY = "";
+    public static final String REQUEST_KEY_ANYBODY ="0";
 
     public static final int TIME_HEARTBEAT = 2 * 60 * 1000; // 2分钟一次
 
@@ -89,8 +89,10 @@ public class SocketTask implements Runnable {
     public static class MessageData{
         private SocketCallback callback;
         private SocketMessage requestData;
+        private String key;
 
-        public MessageData(SocketCallback callback, SocketMessage data){
+        public MessageData(String key, SocketCallback callback, SocketMessage data){
+            this.key = key;
             this.callback = callback;
             this.requestData = data;
         }
@@ -109,16 +111,17 @@ public class SocketTask implements Runnable {
             if(st == null){
                 return;
             }
+            String key = ((MessageData) msg.obj).key;
             boolean connected;
             SocketCallback callback = st.mReceiving ? st.mDupLexCallback :((msg.obj != null && msg.obj instanceof MessageData)? ((MessageData) msg.obj).callback : null);
             switch (what){
                 case MSG_CONNECT:
-                    st.makeSureConnected(msg.arg1, callback, callback,null);
+                    st.makeSureConnected(key, callback, callback,null);
                     break;
                 case MSG_REQUEST:
-                    connected = st.makeSureConnected(msg.arg1, null,callback,null);
+                    connected = st.makeSureConnected(key, null,callback,null);
                     if(connected){
-                        st.request(msg.arg1, (MessageData) msg.obj);
+                        st.request(key, (MessageData) msg.obj);
                     }
                     break;
                 case MSG_RECEIVE:
@@ -197,7 +200,7 @@ public class SocketTask implements Runnable {
         });
     }
 
-    public boolean makeSureConnected(int id, SocketCallback sucBack, SocketCallback errBack,SocketCallback onConnectCallback){
+    public boolean makeSureConnected(String id, SocketCallback sucBack, SocketCallback errBack,SocketCallback onConnectCallback){
         boolean connected ;
         if(mCoreSocket.isConnecting()){
             connected = true;
@@ -226,7 +229,7 @@ public class SocketTask implements Runnable {
         return connected;
     }
 
-    private void request(int id, MessageData messageData){
+    private void request(String id, MessageData messageData){
         Log.d(TAG, "requestJson data" + messageData.requestData.data);
         if(mReceiving) {
             if(messageData.requestData.type == SocketMessage.SOCKET_TYPE_JSON) {
@@ -254,19 +257,17 @@ public class SocketTask implements Runnable {
         }
     }
 
-    public void sendMessage(int what, int key, SocketMessage data, SocketCallback callback){
+    public void sendMessage(int what, String key, SocketMessage data, SocketCallback callback){
         Message msg = new Message();
-        msg.arg1 = key;
         msg.what = what;
-        msg.obj = new MessageData(callback, data);
+        msg.obj = new MessageData(key,callback, data);
         mHandler.sendMessage(msg);
     }
 
-    public void sendMessage(int what, int key, int type, String data, SocketCallback callback){
+    public void sendMessage(int what, String key, int type, String data, SocketCallback callback){
         Message msg = new Message();
-        msg.arg1 = key;
         msg.what = what;
-        msg.obj = new MessageData(callback, new SocketMessage(type,data));
+        msg.obj = new MessageData(key, callback, new SocketMessage(type,data));
         mHandler.sendMessage(msg);
     }
 

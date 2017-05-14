@@ -5,9 +5,8 @@ package com.sun.connect;
  */
 public class ResponseJson {
     private String code;
-    private String data;
-    private int requestId;
-    private String format;
+    private String[] data;
+    private String requestId;
 
     public String getCode() {
         return code;
@@ -17,27 +16,19 @@ public class ResponseJson {
         this.code = code;
     }
 
-    public String getData() {
+    public String[] getData() {
         return data;
     }
 
-    public void setData(String data) {
+    public void setData(String[] data) {
         this.data = data;
     }
 
-    public int getRequestId() {
+    public String getRequestId() {
         return requestId;
     }
 
-    public void setRequestId(int requestId) {
+    public void setRequestId(String requestId) {
         this.requestId = requestId;
-    }
-
-    public String getFormat() {
-        return format;
-    }
-
-    public void setFormate(String format) {
-        this.format = format;
     }
 }

@@ -10,7 +10,6 @@ import android.support.annotation.Nullable;
 import android.util.Log;
 
 import com.sun.personalconnect.Application;
-import com.sun.utils.DirectoryManager;
 import com.sun.utils.FileUtils;
 
 import java.io.File;
@@ -22,7 +21,7 @@ import java.io.File;
 public class SocketService extends Service {
     public static final String TAG = "SocketService";
     public static final String SocketReceiveBroadcast = "com.sun.connect.SocketService.Receive";
-    public static final String KEY_INT_REQUESTKEY = "requestKey";
+    public static final String KEY_STRING_REQUESTKEY = "requestKey";
     public static final String KEY_INT_RESPONSE_TYPE = "responseType";
     public static final String KEY_STRING_RESPONSE = "response";
     public static final String KEY_STRING_ERROR = "error";
@@ -40,18 +39,18 @@ public class SocketService extends Service {
 
     private SocketCallback mReceiveCallback = new SocketCallback() {
         @Override
-        public void onError(int requestKey, Throwable e) {
+        public void onError(String requestKey, Throwable e) {
             Intent intent = new Intent(SocketReceiveBroadcast);
-            intent.putExtra(KEY_INT_REQUESTKEY, requestKey);
+            intent.putExtra(KEY_STRING_REQUESTKEY, requestKey);
             intent.putExtra(KEY_STRING_ERROR, e == null ? "unknown" : e.toString());
             SocketService.this.sendBroadcast(intent);
         }
 
         @Override
-        public void onComplete(int requestKey, SocketMessage response) {
+        public void onComplete(String requestKey, SocketMessage response) {
             if(response != null){
                 Intent intent = new Intent(SocketReceiveBroadcast);
-                intent.putExtra(KEY_INT_REQUESTKEY, requestKey);
+                intent.putExtra(KEY_STRING_REQUESTKEY, requestKey);
                 intent.putExtra(KEY_STRING_RESPONSE, response.data);
                 intent.putExtra(KEY_INT_RESPONSE_TYPE, response.type);
                 SocketService.this.sendBroadcast(intent);
@@ -59,9 +58,9 @@ public class SocketService extends Service {
         }
 
         @Override
-        public void onConnected(int requestKey) {
+        public void onConnected(String requestKey) {
             Intent intent = new Intent(SocketReceiveBroadcast);
-            intent.putExtra(KEY_INT_REQUESTKEY, SocketTask.REQUEST_KEY_ANYBODY);
+            intent.putExtra(KEY_STRING_REQUESTKEY, SocketTask.REQUEST_KEY_ANYBODY);
             intent.putExtra(KEY_BOOLEAN_CONNECTED, true);
             SocketService.this.sendBroadcast(intent);
 //            SocketService.this.getSocketTask().sendMessage(SocketTask.MSG_REQUEST, SocketTask.REQUEST_KEY_NOBODY, SocketMessage.SOCKET_TYPE_JSON,String.format(RequestDataHelper.CvsConnectRequest, Application.App.getDeviceId()), null);
@@ -73,7 +72,7 @@ public class SocketService extends Service {
             return SocketService.this;
         }
 
-        public void request(int key, int type, String request){
+        public void request(String key, int type, String request){
             SocketService.this.getSocketTask().sendMessage(SocketTask.MSG_REQUEST, key, type, request, null);
         }
 
@@ -84,7 +83,7 @@ public class SocketService extends Service {
 
     public ISocketServiceBinder.Stub stub = new ISocketServiceBinder.Stub() {
         @Override
-        public void request(int key, int type, String request) throws RemoteException {
+        public void request(String key, int type, String request) throws RemoteException {
             SocketService.this.getSocketTask().sendMessage(SocketTask.MSG_REQUEST, key, type,request, null);
         }
 
