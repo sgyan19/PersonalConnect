@@ -12,6 +12,7 @@ import com.nostra13.universalimageloader.core.ImageLoaderConfiguration;
 import com.nostra13.universalimageloader.core.assist.QueueProcessingType;
 import com.sun.account.Account;
 import com.sun.connect.AppLifeNetworkService;
+import com.sun.connect.ResponseHistoryManager;
 import com.sun.conversation.CvsHistoryManager;
 import com.sun.connect.SocketService;
 import com.sun.conversation.CvsService;
@@ -35,6 +36,8 @@ public class Application extends android.app.Application {
     }
 
     private CvsHistoryManager cvsHistoryManager;
+    private ResponseHistoryManager responseHistoryManager;
+    private DaoSessionManager daoSessionManager;
     private Account account;
 
     private boolean mUiApp;
@@ -73,8 +76,12 @@ public class Application extends android.app.Application {
 
     private void init(){
         account = new Account();
+        daoSessionManager = new DaoSessionManager();
         cvsHistoryManager = new CvsHistoryManager();
-        cvsHistoryManager.init(this);
+        responseHistoryManager = new ResponseHistoryManager();
+        responseHistoryManager.init(daoSessionManager.getDaoSession(this));
+        cvsHistoryManager.init(daoSessionManager.getDaoSession(this));
+
         mAppLifeNetworkService = new AppLifeNetworkService();
         ImageLoaderConfiguration config = new ImageLoaderConfiguration.Builder(getContext())
                 .threadPriority(Thread.NORM_PRIORITY - 1).threadPoolSize(4)
@@ -107,6 +114,14 @@ public class Application extends android.app.Application {
         return cvsHistoryManager;
     }
 
+    public ResponseHistoryManager getResponseHistoryManager(){
+        return responseHistoryManager;
+    }
+
+    public DaoSessionManager getDaoSessionManager(){
+        return daoSessionManager;
+    }
+
     public Account getAccount(){
         return account;
     }
@@ -125,7 +140,7 @@ public class Application extends android.app.Application {
     @Override
     public void onTerminate() {
         if(mUiApp) {
-            cvsHistoryManager.close();
+            daoSessionManager.release();
             mAppLifeNetworkService.release();
         }
         super.onTerminate();
@@ -171,7 +186,7 @@ public class Application extends android.app.Application {
     }
 
     public void initDeviceId(){
-        mDeviceId = Build.MODEL + "-" + ((TelephonyManager) getSystemService(TELEPHONY_SERVICE))
+        mDeviceId = Build.MODEL.replace(" ","").replace("-","_") + "_" + ((TelephonyManager) getSystemService(TELEPHONY_SERVICE))
                 .getDeviceId();
         SharedPreferencesUtil.putString(KEY_STRING_DEVICEID, mDeviceId);
     }

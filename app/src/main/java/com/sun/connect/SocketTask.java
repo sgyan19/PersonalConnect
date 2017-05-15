@@ -111,8 +111,8 @@ public class SocketTask implements Runnable {
             if(st == null){
                 return;
             }
-            String key = ((MessageData) msg.obj).key;
             boolean connected;
+            String key =  msg.obj == null? REQUEST_KEY_NOBODY: ((MessageData) msg.obj).key;
             SocketCallback callback = st.mReceiving ? st.mDupLexCallback :((msg.obj != null && msg.obj instanceof MessageData)? ((MessageData) msg.obj).callback : null);
             switch (what){
                 case MSG_CONNECT:
@@ -230,7 +230,7 @@ public class SocketTask implements Runnable {
     }
 
     private void request(String id, MessageData messageData){
-        Log.d(TAG, "requestJson data" + messageData.requestData.data);
+        Log.d(TAG, "requestJson data " + messageData.requestData.data);
         if(mReceiving) {
             if(messageData.requestData.type == SocketMessage.SOCKET_TYPE_JSON) {
                 mCoreSocket.requestJsonWithoutBack(messageData.requestData.data);

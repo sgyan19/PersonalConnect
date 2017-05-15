@@ -360,6 +360,7 @@ public class CvsFragment extends Fragment implements View.OnClickListener,CvsSer
         if(newFile.exists()) newFile.delete();
         try {
             FileUtils.copyFile(file, newFile);
+            Log.d(TAG, "copyFile:"+ newFile.getAbsolutePath());
         } catch (IOException e) {
             e.printStackTrace();
         }

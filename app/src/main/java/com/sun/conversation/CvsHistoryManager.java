@@ -1,10 +1,8 @@
 package com.sun.conversation;
 
-import android.content.Context;
+import com.sun.connect.DaoSession;
 
-import org.greenrobot.greendao.database.Database;
 import org.greenrobot.greendao.query.Query;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -15,14 +13,6 @@ import java.util.List;
  * Created by guoyao on 2016/12/16.
  */
 public class CvsHistoryManager {
-    /** A flag to show how easily you can switch from standard SQLite to the encrypted SQLCipher. */
-    public static final boolean ENCRYPTED = false;
-
-    public static String DbName;
-
-    public DaoMaster.DevOpenHelper devOpenHelper;
-    private DaoSession daoSession;
-
     private CvsNoteDao mCvsDao; // CvsNoteDao 由GreenDao自动生成，一般位于build/generated目录
     private Query<CvsNote> mCvsLast10TimeDescQuery;
 
@@ -32,11 +22,7 @@ public class CvsHistoryManager {
     private CvsNote mLastSendNote;
     private CvsNote mTmpNote = new CvsNote();
 
-    public void init(Context context){
-        DbName = context.getPackageName();
-        devOpenHelper = new DaoMaster.DevOpenHelper(context, ENCRYPTED ? DbName + "-db-encrypted" : DbName +"-db");
-        Database db = ENCRYPTED ? devOpenHelper.getEncryptedWritableDb("super-secret") : devOpenHelper.getWritableDb();
-        daoSession = new DaoMaster(db).newSession();
+    public void init(DaoSession daoSession){
         mCvsDao = daoSession.getCvsNoteDao();
 
         mCvsLast10TimeDescQuery = mCvsDao.queryBuilder().orderDesc(CvsNoteDao.Properties.TimeStamp).limit(15).build();
@@ -134,12 +120,6 @@ public class CvsHistoryManager {
         mCvsCache.addAll(tmp);
         tmp.clear();
         return index;
-    }
-
-    public void close(){
-        if(devOpenHelper != null) {
-            devOpenHelper.close();
-        }
     }
 
     public void keepLastSendNote(CvsNote note){

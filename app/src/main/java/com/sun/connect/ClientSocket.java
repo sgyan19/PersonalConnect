@@ -211,9 +211,12 @@ public class ClientSocket {
         InputStream fileStream = null;
         try {
             int len;
+            long total = 0;
             fileStream = new FileInputStream(file);
             while((len = fileStream.read(sendBuffer, 0, size > sendBuffer.length ? sendBuffer.length: size)) > 0){
+                total += len;
                 stream.write(sendBuffer, 0, len);
+                Log.d(TAG, String.format("send receiveRawFrame size:%d total:%d", len,total));
             }
         }finally {
             if(fileStream != null){

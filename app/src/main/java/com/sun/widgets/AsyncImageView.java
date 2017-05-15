@@ -110,6 +110,7 @@ public class AsyncImageView extends ImageView {
 
 	public void setImageAsync(String imageUri, DisplayImageOptions options,
 			ImageLoadingListener listener) {
+		Log.d(TAG,"setImageAsync:" + imageUri);
 		mExternalListener = listener;
 		String oldUrl = (String)getTag();
 		if(oldUrl == imageUri || (oldUrl != null && oldUrl.equals(imageUri))){

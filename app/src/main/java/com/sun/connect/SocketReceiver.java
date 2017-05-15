@@ -50,6 +50,7 @@ public class SocketReceiver extends BaseReceiver<SocketReceiver.SocketReceiveLis
         if(SocketTask.REQUEST_KEY_NOBODY.equals(key)) {
             return;
         }
+
         String error = intent.getStringExtra(SocketService.KEY_STRING_ERROR);
         int responseType = intent.getIntExtra(SocketService.KEY_INT_RESPONSE_TYPE, SOCKET_TYPE_JSON);
         String response = intent.getStringExtra(SocketService.KEY_STRING_RESPONSE);
@@ -72,6 +73,7 @@ public class SocketReceiver extends BaseReceiver<SocketReceiver.SocketReceiveLis
         ResponseJson responseObj  = null;
         if(!TextUtils.isEmpty(response)){
             if(responseType == SocketMessage.SOCKET_TYPE_JSON) {
+
                 String info = null;
                 try {
                     responseObj = GsonUtils.mGson.fromJson(response, ResponseJson.class);
@@ -82,8 +84,11 @@ public class SocketReceiver extends BaseReceiver<SocketReceiver.SocketReceiveLis
                     e.printStackTrace();
                     info = e.toString();
                 }
-                if(handleResponse(responseObj)){
+                if(handleResponse(responseObj, response)){
                     return;
+                }
+                if(responseObj != null){
+                    key = responseObj.getRequestId();
                 }
                 for (Map.Entry<Context, SocketReceiveListener> entry : getListeners().entrySet()) {
                     if (entry.getValue().onParserResponse(key, responseObj, info)) {
@@ -120,13 +125,22 @@ public class SocketReceiver extends BaseReceiver<SocketReceiver.SocketReceiveLis
         }
     }
 
-    private boolean handleResponse(ResponseJson response){
+    private boolean handleResponse(ResponseJson response, String responseStr){
         if(response == null)
             return false;
         switch (response.getCode()){
             default:
                 break;
         }
-        return "success".equals(response.getData());
+
+        if(!SocketTask.REQUEST_KEY_ANYBODY.equals(response.getRequestId())){
+            ResponseHistoryManager responseHistoryManager = Application.App.getResponseHistoryManager();
+            boolean neverHandleThis = responseHistoryManager.insert(new ResponseNote(response.getRequestId(),responseStr));
+            if(!neverHandleThis){
+                return true;
+            }
+        }
+
+        return response.getData().length > 0 && "success".equals(response.getData()[0]);
     }
 }

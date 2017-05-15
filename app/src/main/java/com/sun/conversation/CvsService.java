@@ -115,13 +115,30 @@ public class CvsService extends Service {
 
         @Override
         public boolean onParserData(String key, ResponseJson json,Object data, String info) {
+            CvsListener listener;
+            if(!TextUtils.isEmpty(info) && mRequestHistory.containsKey(key)){
+                mRequestHistory.get(key).setSendStatus(CvsNote.STATUS_FAL);
+                CvsNote localNote = mRequestHistory.remove(key);
+                Application.App.getCvsHistoryManager().updateCache(localNote.getId());
+                if ((listener = getOnCvsListener()) != null) {
+                    listener.onSendFailed(key,localNote,info);
+                }
+                return true;
+            }
+
             if(data instanceof CvsNote) {
                 CvsNote note = (CvsNote) data;
                 handleNote(note);
                 key = json.getRequestId();
                 note.setSendStatus(CvsNote.STATUS_SUC);
-                CvsListener listener;
-                if (SocketTask.REQUEST_KEY_ANYBODY.equals(key)) {
+                if (mRequestHistory.containsKey(key)) {
+                    mRequestHistory.get(key).setSendStatus(CvsNote.STATUS_SUC);
+                    CvsNote localNote = mRequestHistory.remove(key);
+                    Application.App.getCvsHistoryManager().updateCache(localNote.getId());
+                    if ((listener = getOnCvsListener()) != null) {
+                        listener.onSendSuccess(localNote);
+                    }
+                } else /*if (SocketTask.REQUEST_KEY_ANYBODY.equals(key))*/ {
                     Application.App.getCvsHistoryManager().insertCache(note);
 //                Application.App.getCvsHistoryManager().saveCache(); // 新策略，已经废弃
                     if ((listener = getOnCvsListener()) != null) {
@@ -129,16 +146,9 @@ public class CvsService extends Service {
                     } else {
                         showNotification(CvsService.this, note.getUserName(), note.getContent());
                     }
-                } else if (mRequestHistory.containsKey(key)) {
-                    mRequestHistory.get(key).setSendStatus(CvsNote.STATUS_SUC);
-                    CvsNote localNote = mRequestHistory.remove(key);
-                    Application.App.getCvsHistoryManager().updateCache(localNote.getId());
-                    if ((listener = getOnCvsListener()) != null) {
-                        listener.onSendSuccess(localNote);
-                    }
                 }
                 return true;
-                }
+            }
             return false;
         }
     };
@@ -156,14 +166,14 @@ public class CvsService extends Service {
             if(objects == null) return null;
             CvsNote note = (CvsNote)objects[1];
             RequestJson requestJson = (RequestJson)objects[0];
+            if(note != null)
+                mRequestHistory.put(requestJson.getRequestId(), note);
             try {
                 mSocketBinder.request(requestJson.getRequestId(), SocketMessage.SOCKET_TYPE_JSON, GsonUtils.mGson.toJson(requestJson));
                 mSocketBinder.request(requestJson.getRequestId(), SocketMessage.SOCKET_TYPE_RAW, file.getName());
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
-            if(note != null)
-                mRequestHistory.put(requestJson.getRequestId(), note);
             return note;
         }
 
@@ -189,12 +199,12 @@ public class CvsService extends Service {
 
         public CvsNote request(CvsNote note){
             RequestJson requestJson = FormatUtils.makeCvsRequest(note);
+            mRequestHistory.put(requestJson.getRequestId(), note);
             try {
                 mSocketBinder.request(requestJson.getRequestId(), SocketMessage.SOCKET_TYPE_JSON, GsonUtils.mGson.toJson(requestJson));
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
-            mRequestHistory.put(requestJson.getRequestId(), note);
             return note;
         }
 
