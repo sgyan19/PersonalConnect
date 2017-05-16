@@ -54,7 +54,7 @@ public class Account {
 
     public Account(){}
 
-    public boolean Login(String password){
+    public boolean login(String password){
         String md5 = Utils.md5(password.toLowerCase());
         if(Client.password.equals(md5)){
             SharedPreferencesUtil.putLong(KEY_LONG_LOGIN_HISTORY, System.currentTimeMillis());
@@ -96,5 +96,11 @@ public class Account {
 
     public boolean isLoginAccount(int id){
         return login != null && login.id == id;
+    }
+
+    public void logout(){
+        SharedPreferencesUtil.putLong(KEY_LONG_LOGIN_HISTORY, 0);
+        SharedPreferencesUtil.putInt(KEY_INT_LOGIN_USER, -1);
+        login = null;
     }
 }

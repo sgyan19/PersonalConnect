@@ -156,10 +156,12 @@ public class GpsService extends Service {
         public boolean onParserData(String key, ResponseJson json, Object data, String info) {
             if(mRequestHistory.containsKey(key)){
                 GpsNote note = mRequestHistory.get(key);
+                Log.d(TAG, String.format("request back key:%s,note:%d", key, note.getId()));
                 mRequestHistory.remove(key);
 //                StatusFragment.addMessage(String.format("gps request success,id:%d", note.getId()));
                 return true;
             }
+
             if(data != null) {
                 if (data instanceof GpsNote) {
                     if (data instanceof GpsRequest) {

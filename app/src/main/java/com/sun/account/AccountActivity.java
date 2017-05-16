@@ -2,16 +2,13 @@ package com.sun.account;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
 import android.text.InputType;
 import android.text.TextUtils;
 import android.view.View;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.Toast;
-import com.sun.conversation.CvsActivity;
-import com.sun.connect.SocketService;
-import com.sun.gps.GpsActivity;
+
 import com.sun.personalconnect.Application;
 import com.sun.personalconnect.BaseActivity;
 import com.sun.personalconnect.HomeActivity;
@@ -58,7 +55,7 @@ public class AccountActivity extends BaseActivity implements View.OnClickListene
                 if(TextUtils.isEmpty(mEditPassword.getText().toString())){
                     ToastUtils.show("凭据不能为空", Toast.LENGTH_SHORT);
                 }else{
-                    boolean rlt = Application.App.getAccount().Login(mEditPassword.getText().toString());
+                    boolean rlt = Application.App.getAccount().login(mEditPassword.getText().toString());
                     if(rlt){
                         loginJump();
                     }else{

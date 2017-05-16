@@ -6,6 +6,7 @@ import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
 
 import com.sun.conversation.CvsFragment;
+import com.sun.home.EntryFragment;
 
 /**
  * Created by guoyao on 2017/4/14.
