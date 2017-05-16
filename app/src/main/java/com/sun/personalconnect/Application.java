@@ -4,8 +4,13 @@ import android.Manifest;
 import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Build;
+import android.os.FileObserver;
+import android.provider.CalendarContract;
 import android.telephony.TelephonyManager;
+import android.text.TextUtils;
+import android.util.Log;
 
 import com.nostra13.universalimageloader.core.ImageLoader;
 import com.nostra13.universalimageloader.core.ImageLoaderConfiguration;
@@ -20,18 +25,22 @@ import com.sun.gps.GpsService;
 import com.sun.level.LevelCenter;
 import com.sun.level.Ring;
 import com.sun.utils.DirectoryManager;
+import com.sun.utils.FileUtils;
 import com.sun.utils.SharedPreferencesUtil;
+
+import java.io.File;
 
 /**
  * Created by guoyao on 2016/12/13.
  */
 public class Application extends android.app.Application {
+    private static final String TAG = "APPApplication";
 
     public String KEY_STRING_DEVICEID = "device_id";
 
     public static Application App;
 
-    public static Context getContext(){
+    public static Context getContext() {
         return App.getApplicationContext();
     }
 
@@ -51,30 +60,32 @@ public class Application extends android.app.Application {
 
     private AppLifeNetworkService mAppLifeNetworkService;
     private InfoKeeper mInfoKeeper;
+
     @Override
     public void onCreate() {
         super.onCreate();
         App = this;
         String packageName = getPackageName();
         String processName = getProcessName();
-        if(packageName.equals(processName)) {
+        if (packageName.equals(processName)) {
             mUiApp = true;
             init();
-        }
-        mDeviceId = SharedPreferencesUtil.getString(KEY_STRING_DEVICEID);
-        BaseActivity.requestPermissionExt(new Permission(
-                Manifest.permission.READ_PHONE_STATE,
-                new Permission.Runnable() {
+        }else {
+            mDeviceId = getDeviceId();
+            if(TextUtils.isEmpty(mDeviceId)){
+                SharedPreferencesUtil.ObserverSharedPreferenceChange(KEY_STRING_DEVICEID, new SharedPreferencesUtil.OnPreferencesChangedListener() {
                     @Override
-                    public void run(Permission p) {
-                        initDeviceId();
+                    public void onChanged(String key, String value) {
+                        Log.d(TAG, "mDeviceId SharedPreferenceChange:" + value);
+                        mDeviceId = value;
                     }
-                }
-        ));
+                },false);
+            }
+        }
         mSocketRawFolder = DirectoryManager.getDownloadPath();
     }
 
-    private void init(){
+    private void init() {
         account = new Account();
         daoSessionManager = new DaoSessionManager();
         cvsHistoryManager = new CvsHistoryManager();
@@ -101,7 +112,22 @@ public class Application extends android.app.Application {
                 new Permission.Runnable() {
                     @Override
                     public void run(Permission p) {
+                        Log.d(TAG, "WRITE_EXTERNAL_STORAGE permission " + p.isSuccess());
                         initPaths(getContext());
+                    }
+                }
+        ));
+        BaseActivity.requestPermissionExt(new Permission(
+                Manifest.permission.READ_PHONE_STATE,
+                new Permission.Runnable() {
+                    @Override
+                    public void run(Permission p) {
+                        if(p.isSuccess()) {
+                            Log.d(TAG, "READ_PHONE_STATE permission OK");
+                            initDeviceId();
+                        }else {
+                            Log.d(TAG, "READ_PHONE_STATE no permission");
+                        }
                     }
                 }
         ));
@@ -110,19 +136,19 @@ public class Application extends android.app.Application {
         //socketTask.start();
     }
 
-    public CvsHistoryManager getCvsHistoryManager(){
+    public CvsHistoryManager getCvsHistoryManager() {
         return cvsHistoryManager;
     }
 
-    public ResponseHistoryManager getResponseHistoryManager(){
+    public ResponseHistoryManager getResponseHistoryManager() {
         return responseHistoryManager;
     }
 
-    public DaoSessionManager getDaoSessionManager(){
+    public DaoSessionManager getDaoSessionManager() {
         return daoSessionManager;
     }
 
-    public Account getAccount(){
+    public Account getAccount() {
         return account;
     }
 
@@ -130,16 +156,17 @@ public class Application extends android.app.Application {
 //        return socketTask;
 //    }
 
-    public Ring getRing(){
+    public Ring getRing() {
         return mRing;
     }
 
-    public LevelCenter getLevelCenter(){
+    public LevelCenter getLevelCenter() {
         return mLevelCenter;
     }
+
     @Override
     public void onTerminate() {
-        if(mUiApp) {
+        if (mUiApp) {
             daoSessionManager.release();
             mAppLifeNetworkService.release();
         }
@@ -162,11 +189,15 @@ public class Application extends android.app.Application {
         return null;
     }
 
-    public String getDeviceId(){
+    public String getDeviceId() {
+        Log.d(TAG, "getDeviceId:" + mDeviceId);
+        if(TextUtils.isEmpty(mDeviceId)){
+            mDeviceId = SharedPreferencesUtil.getString(KEY_STRING_DEVICEID);
+        }
         return mDeviceId;
     }
 
-    public String getSocketRawFolder(){
+    public String getSocketRawFolder() {
         return mSocketRawFolder;
     }
 
@@ -185,17 +216,18 @@ public class Application extends android.app.Application {
         DirectoryManager.checkPath(DirectoryManager.getDownloadPath());
     }
 
-    public void initDeviceId(){
-        mDeviceId = Build.MODEL.replace(" ","").replace("-","_") + "_" + ((TelephonyManager) getSystemService(TELEPHONY_SERVICE))
+    public void initDeviceId() {
+        mDeviceId = Build.MODEL.replace(" ", "").replace("-", "_") + "_" + ((TelephonyManager) getSystemService(TELEPHONY_SERVICE))
                 .getDeviceId();
+        Log.d(TAG, "initDeviceId:" + mDeviceId);
         SharedPreferencesUtil.putString(KEY_STRING_DEVICEID, mDeviceId);
     }
 
-    public AppLifeNetworkService getNetworkService(){
+    public AppLifeNetworkService getNetworkService() {
         return mAppLifeNetworkService;
     }
 
-    public InfoKeeper getInfoKeeper(){
+    public InfoKeeper getInfoKeeper() {
         return mInfoKeeper;
     }
 }

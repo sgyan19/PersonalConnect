@@ -136,4 +136,24 @@ public class SharedPreferencesUtil {
         editor.clear();
         editor.apply();
     }
+
+    public static void ObserverSharedPreferenceChange(final String k, final OnPreferencesChangedListener l, final boolean once){
+        SharedPreferences.OnSharedPreferenceChangeListener listener = new SharedPreferences.OnSharedPreferenceChangeListener(){
+            @Override
+            public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+                if(k.equals(key)) {
+                    if (once) {
+                        sharedPreferences.unregisterOnSharedPreferenceChangeListener(this);
+                    }
+                    String value = sharedPreferences.getString(key, "");
+                    l.onChanged(key, value);
+                }
+            }
+        };
+        Application.getContext().getSharedPreferences(mDefaultName,Context.MODE_PRIVATE).registerOnSharedPreferenceChangeListener(listener);
+    }
+
+    public interface OnPreferencesChangedListener{
+        void onChanged(String key, String value);
+    }
 }

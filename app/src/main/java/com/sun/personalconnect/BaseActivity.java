@@ -59,7 +59,14 @@ public class BaseActivity extends AppCompatActivity {
         if(WaitForCallback.size() > 0 ) {
             Iterator<Permission> iterator = WaitForCallback.iterator();
             while (iterator.hasNext()) {
+
                 Permission p = iterator.next();
+                if(PermissionUtils.selfPermissionGranted(this,p.getName())){
+                    p.setSuccess(true);
+                    p.getRunnable().run(p);
+                    iterator.remove();
+                    continue;
+                }
                 if(p.getRequest() == requestCode) {
                     if(grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                         p.setSuccess(true);

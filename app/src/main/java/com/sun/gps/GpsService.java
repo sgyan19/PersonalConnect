@@ -4,6 +4,7 @@ import android.app.Service;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.location.Location;
 import android.os.Binder;
 import android.os.IBinder;
 import android.os.RemoteException;
@@ -119,7 +120,13 @@ public class GpsService extends Service {
                     mReceiveListener.onError(requestJson.getRequestId(), "local service not bind");
                 }
             }
+        }
 
+        public Location getLastLocation(){
+            if(mGpsCore != null){
+                return mGpsCore.getLastKnownLocation();
+            }
+            return null;
         }
     }
 

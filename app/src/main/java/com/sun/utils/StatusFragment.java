@@ -28,10 +28,12 @@ import android.widget.ListView;
 import com.sun.personalconnect.R;
 
 import java.text.DateFormat;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
 
 public class StatusFragment extends ListFragment {
@@ -70,6 +72,12 @@ public class StatusFragment extends ListFragment {
         notifyAdapters();
     }
 
+    public List<String> getMessages(){
+        ArrayList<String> list = new ArrayList<>();
+        list.addAll(messages);
+        return list;
+    }
+
     private ArrayAdapter<String> adapter;
 
     @Override
@@ -89,6 +97,7 @@ public class StatusFragment extends ListFragment {
         adapter = new ArrayAdapter<String>(getActivity(), android.R.layout.simple_list_item_1, android.R.id.text1, messages);
         setListAdapter(adapter);
         adapters.add(adapter);
+        getListView().setOnItemClickListener(listener);
     }
 
     @Override
@@ -112,8 +121,8 @@ public class StatusFragment extends ListFragment {
         return super.onOptionsItemSelected(item);
     }
 
+    ListView.OnItemClickListener listener;
     public void setOnItemclickListener(ListView.OnItemClickListener l){
-        getListView().setOnItemClickListener(l);
+        listener = l;
     }
-
 }

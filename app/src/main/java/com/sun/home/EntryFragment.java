@@ -11,6 +11,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.Toast;
 
 import com.google.gson.Gson;
@@ -19,6 +20,8 @@ import com.sun.connect.AppLifeNetworkService;
 import com.sun.connect.EventNetwork;
 import com.sun.device.AnswerNote;
 import com.sun.device.AskNote;
+import com.sun.device.DeviceDumper;
+import com.sun.device.DeviceInfo;
 import com.sun.device.UsersFragment;
 import com.sun.gps.GaoDeMapActivity;
 import com.sun.gps.GpsActivity;
@@ -46,6 +49,7 @@ public class EntryFragment extends Fragment implements OnClickListener{
 
     private StatusFragment mUserCountFragment;
     private HashSet<String> mRequestKeys;
+    private List<AnswerNote> mAnswerNotes;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -68,6 +72,20 @@ public class EntryFragment extends Fragment implements OnClickListener{
         view.findViewById(R.id.btn_entry_users).setOnClickListener(this);
         view.findViewById(R.id.btn_entry_gps).setOnClickListener(this);
         view.findViewById(R.id.btn_logout).setOnClickListener(this);
+
+        mUserCountFragment.setOnItemclickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                if(mAnswerNotes == null){
+                    return;
+                }
+                AnswerNote note = mAnswerNotes.get(position);
+                if(note == null) return;
+                String key = IdUtils.make();
+                mRequestKeys.add(key);
+                AppLifeNetworkService.getInstance().request(key, GsonUtils.mGson.toJson(FormatUtils.makeAskRequest(new AskNote(AskNote.TYPE_DETAIL, note.getDeviceId()))));
+            }
+        });
     }
 
     @Override
@@ -97,6 +115,11 @@ public class EntryFragment extends Fragment implements OnClickListener{
         EventBus.getDefault().unregister(this);
     }
 
+    public String addRequest(String rid){
+        mRequestKeys.add(rid);
+        return rid;
+    }
+
     public void onEvent(EventNetwork eventNetwork){
         if(mRequestKeys.contains(eventNetwork.getKey())){
             mRequestKeys.remove(eventNetwork.getKey());
@@ -113,18 +136,32 @@ public class EntryFragment extends Fragment implements OnClickListener{
                 ToastUtils.show("请求用户数error:" + eventNetwork.getError() , Toast.LENGTH_SHORT);
             }else{
                 InfoKeeper.getInstance().putAnswer((AnswerNote) eventNetwork.getObject());
+                mAnswerNotes = new ArrayList<>();
+                mAnswerNotes.addAll(InfoKeeper.getInstance().getAnswers());
+
                 List<String> info = new ArrayList<>();
-                for(AnswerNote item :InfoKeeper.getInstance().getAnswers()){
+                for(AnswerNote item :mAnswerNotes){
                     info.add(item.toString());
                 }
                 mUserCountFragment.setMessages(info);
             }
         }else if(eventNetwork.getObject() instanceof AskNote){
 //            if(eventNetwork.getKey() != ){
-//
 //            }
+            String id = IdUtils.make();
             if(TextUtils.isEmpty(eventNetwork.getError())){
-                AppLifeNetworkService.getInstance().request(IdUtils.make(), GsonUtils.mGson.toJson(FormatUtils.makeAnswerRequest(null)));
+                AskNote note = ((AskNote) eventNetwork.getObject());
+                if(TextUtils.isEmpty(note.getDeviceId()) || note.getDeviceId().equals(Application.App.getDeviceId())) {
+                    if (note.getType() == AskNote.TYPE_EASY ) {
+                        AppLifeNetworkService.getInstance().request(addRequest(id), GsonUtils.mGson.toJson(FormatUtils.makeAnswerRequest(null)));
+                    } else if (note.getType() == AskNote.TYPE_DETAIL){
+                        AppLifeNetworkService.getInstance().request(addRequest(id), GsonUtils.mGson.toJson(FormatUtils.makeRequest(DeviceDumper.dump())));
+                    }
+                }
+            }
+        }else if(eventNetwork.getObject() instanceof DeviceInfo){
+            if(TextUtils.isEmpty(eventNetwork.getError())){
+                ToastUtils.show( eventNetwork.getObject().toString(),Toast.LENGTH_LONG);
             }
         }
     }

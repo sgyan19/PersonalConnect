@@ -145,8 +145,18 @@ public class FormatUtils {
         requestJson.setDeviceId(Application.App.getDeviceId());
         requestJson.setRequestId(IdUtils.make());
         requestJson.setCode(RequestDataHelper.MobileTerminalJson);
-        requestJson.addArg(AnswerNote.class.getName());
+        requestJson.addArg(note.getClass().getName());
         requestJson.addArg(GsonUtils.mGson.toJson(note));
+        return requestJson;
+    }
+
+    public static RequestJson makeRequest(Object object){
+        RequestJson requestJson = new RequestJson();
+        requestJson.setDeviceId(Application.App.getDeviceId());
+        requestJson.setRequestId(IdUtils.make());
+        requestJson.setCode(RequestDataHelper.MobileTerminalJson);
+        requestJson.addArg(object.getClass().getName());
+        requestJson.addArg(GsonUtils.mGson.toJson(object));
         return requestJson;
     }
 

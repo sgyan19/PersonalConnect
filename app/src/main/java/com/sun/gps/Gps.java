@@ -28,6 +28,8 @@ import java.util.Iterator;
 public class Gps {
     private LocationManager lm;
     private static final String TAG = "Gps";
+
+    public static Location LastLocation;
     private Context mContext;
 
     private GpsResponse mErrPermissionNote;
@@ -327,8 +329,8 @@ public class Gps {
             if(mGpsListenerReference != null && (l = mGpsListenerReference.get()) != null){
                 l.onGpsUpdate(note);
             }
-        } else {
         }
+        LastLocation = location;
     }
 
     public Location getLastKnownLocation() throws SecurityException{

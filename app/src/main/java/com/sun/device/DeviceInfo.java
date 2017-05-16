@@ -12,7 +12,7 @@ public class DeviceInfo {
     public String buildBootloader; //系统启动程序版本
     public String buildBrand; //系统定制商
     public String buildCpuAbi; //cpu指令集
-    public String buildCputAbi2; //cpu指令集2
+    public String buildCpuAbi2; //cpu指令集2
     public String buildDevice; //设置参数
     public String buildDisplay;    //显示屏参数
     public String buildManufacturer;   //硬件制造商
@@ -52,4 +52,9 @@ public class DeviceInfo {
 
     public Battery battery; // 电量
     public Location location; // 位置信息
+
+    @Override
+    public String toString(){
+        return String.format("%s,%s,%s,%s,%s,%s,%s",buildCpuAbi, osName,osArch,osVersion, battery, buildProduct,buildModel );
+    }
 }

@@ -57,4 +57,9 @@ public class Battery {
     public void setTemperature(int temperature) {
         this.temperature = temperature;
     }
+
+    @Override
+    public String toString(){
+        return String.format("%s,%d",charge, level);
+    }
 }

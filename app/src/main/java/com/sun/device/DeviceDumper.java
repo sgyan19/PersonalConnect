@@ -4,24 +4,20 @@ import android.os.Build;
 
 import com.sun.common.ArgsRunnable;
 import com.sun.gps.Gps;
-import com.sun.gps.GpsGear;
-import com.sun.gps.GpsListener;
-import com.sun.gps.GpsResponse;
 
 /**
  * Created by guoyao on 2017/4/18.
  */
 public class DeviceDumper {
 
-    DeviceInfo info = new DeviceInfo();
+    static DeviceInfo info = new DeviceInfo();
 
-    public void dump(ArgsRunnable runnable){
-
+    public static DeviceInfo dump(){
         info.buildBoard = Build.BOARD;
         info.buildBootloader = Build.BOOTLOADER;
         info.buildBrand = Build.BRAND;
         info.buildCpuAbi = Build.CPU_ABI;
-        info.buildCputAbi2 = Build.CPU_ABI2;
+        info.buildCpuAbi2 = Build.CPU_ABI2;
         info.buildDevice = Build.DEVICE;
         info.buildDisplay = Build.DISPLAY;
         info.buildFingerprint = Build.FINGERPRINT;
@@ -60,12 +56,8 @@ public class DeviceDumper {
         info.javaVersion = System.getProperty("java.version");
 
         info.battery = BatteryReceiver.getBattery();
-        Gps gps = new Gps();
-        gps.setGpsListener(new GpsListener() {
-            @Override
-            public void onGpsUpdate(GpsResponse gpsResponse) {
-                info.location = gpsResponse.getLocation();
-            }
-        });
+        info.location = Gps.LastLocation;
+
+        return info;
     }
 }
