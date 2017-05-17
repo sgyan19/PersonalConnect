@@ -81,7 +81,7 @@ public class EntryFragment extends Fragment implements OnClickListener{
                 }
                 AnswerNote note = mAnswerNotes.get(position);
                 if(note == null) return;
-                String key = AppLifeNetworkService.getInstance().request(FormatUtils.makeAskRequest(null, new AskNote(AskNote.TYPE_DETAIL)));
+                String key = AppLifeNetworkService.getInstance().request(FormatUtils.makeAskRequest(null, new AskNote(AskNote.TYPE_DETAIL, note.getDeviceId())));
                 mRequestKeys.add(key);
                 mAskKeys.add(key);
             }

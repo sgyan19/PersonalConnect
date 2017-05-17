@@ -138,7 +138,7 @@ public class FormatUtils {
         if(TextUtils.isEmpty(key)){
             key = IdUtils.make();
         }
-        note.setDeviceId(Application.App.getDeviceId());
+//        note.setDeviceId(Application.App.getDeviceId());
         RequestJson requestJson = new RequestJson();
         requestJson.setDeviceId(Application.App.getDeviceId());
         requestJson.setRequestId(key);

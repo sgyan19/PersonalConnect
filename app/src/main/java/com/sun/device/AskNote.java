@@ -10,11 +10,12 @@ public class AskNote extends BaseNote{
     private int type;
 
     public AskNote(){
-        this(TYPE_EASY);
+        this(TYPE_EASY,null);
     }
 
-    public AskNote(int type){
+    public AskNote(int type,String deviceId){
         this.type = type;
+        this.setDeviceId(deviceId);
     }
 
     public int getType() {
