@@ -7,6 +7,7 @@ import android.content.ServiceConnection;
 import android.os.IBinder;
 import android.os.RemoteException;
 import com.sun.personalconnect.Application;
+import com.sun.utils.GsonUtils;
 
 import java.io.File;
 import java.util.HashMap;
@@ -56,18 +57,18 @@ public class AppLifeNetworkService {
     }
 
     private SocketReceiver.SocketReceiveListener mReceiveListener = new SocketReceiver.SocketReceiveListener() {
-        EventNetwork mEventNetwork = new EventNetwork();
+        EventNetwork mEventNetwork;
 
         @Override
         public boolean onReconnected(boolean connected) {
-            mEventNetwork.reset();
+            mEventNetwork = new EventNetwork();
             EventBus.getDefault().post(mEventNetwork);
             return false;
         }
 
         @Override
         public boolean onError(String key, String error) {
-            mEventNetwork.reset();
+            mEventNetwork = new EventNetwork();
             mEventNetwork.setError(error);
             mEventNetwork.setKey(key);
             mEventNetwork.setStep(1);
@@ -77,7 +78,7 @@ public class AppLifeNetworkService {
 
         @Override
         public boolean onParserResponse(String key, ResponseJson json, String info) {
-            mEventNetwork.reset();
+            mEventNetwork = new EventNetwork();
             mEventNetwork.setError(info);
             mEventNetwork.setKey(key);
             mEventNetwork.setResponse(json);
@@ -88,7 +89,7 @@ public class AppLifeNetworkService {
 
         @Override
         public boolean onReceiveFile(String key, File file, String info) {
-            mEventNetwork.reset();
+            mEventNetwork = new EventNetwork();
             mEventNetwork.setError(info);
             mEventNetwork.setKey(key);
             mEventNetwork.setObject(file);
@@ -99,7 +100,7 @@ public class AppLifeNetworkService {
 
         @Override
         public boolean onParserData(String key, ResponseJson json, Object data, String info) {
-            mEventNetwork.reset();
+            mEventNetwork = new EventNetwork();
             mEventNetwork.setError(info);
             mEventNetwork.setKey(key);
             mEventNetwork.setObject(data);
@@ -124,6 +125,13 @@ public class AppLifeNetworkService {
         }else{
             mWaitSend.put(key,request);
         }
+    }
+
+    public String request(RequestJson json){
+        String key = json.getRequestId();
+        String request = GsonUtils.mGson.toJson(json);
+        request(key,request);
+        return key;
     }
 
     public boolean isServiceAlive(){

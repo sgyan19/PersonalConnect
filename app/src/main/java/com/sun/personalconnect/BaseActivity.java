@@ -68,7 +68,7 @@ public class BaseActivity extends AppCompatActivity {
                     continue;
                 }
                 if(p.getRequest() == requestCode) {
-                    if(grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    if(grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                         p.setSuccess(true);
                         p.getRunnable().run(p);
                     }else{

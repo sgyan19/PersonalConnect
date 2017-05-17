@@ -1,6 +1,7 @@
 package com.sun.utils;
 
 import android.content.Context;
+import android.text.TextUtils;
 
 import com.sun.account.Account;
 import com.sun.connect.RequestJson;
@@ -42,11 +43,13 @@ public class FormatUtils {
         return result;
     }
 
-    public static Object[] makeCvsRequest(String input, List<String> format){
-        Object[] result = new Object[2];
+    public static RequestJson makeCvsRequest(String key, BoxObject box, String input, List<String> format){
+        if(TextUtils.isEmpty(key)){
+            key = IdUtils.make();
+        }
         RequestJson requestJson = new RequestJson();
         requestJson.setDeviceId(Application.App.getDeviceId());
-        requestJson.setRequestId(IdUtils.make());
+        requestJson.setRequestId(key);
         requestJson.setCode(RequestDataHelper.MobileTerminalJson);
 
         CvsNote note = new CvsNote();
@@ -78,16 +81,19 @@ public class FormatUtils {
             requestJson.addArg(CvsNote.class.getName());
             requestJson.addArg(GsonUtils.mGson.toJson(note));
         }
-        result[0] = requestJson;
-        result[1] = note;
-        return result;
+        if(box != null){
+            box.data = note;
+        }
+        return requestJson;
     }
 
-    public static Object[] makeCvsRequest(File file){
-        Object[] result = new Object[2];
+    public static RequestJson makeCvsRequest(String key, BoxObject box,File file){
+        if(TextUtils.isEmpty(key)){
+            key = IdUtils.make();
+        }
         RequestJson requestJson = new RequestJson();
         requestJson.setDeviceId(Application.App.getDeviceId());
-        requestJson.setRequestId(IdUtils.make());
+        requestJson.setRequestId(key);
 
         CvsNote note = new CvsNote();
         Account account = Application.App.getAccount();
@@ -106,61 +112,79 @@ public class FormatUtils {
         requestJson.addArg(CvsNote.class.getName());
         requestJson.addArg(GsonUtils.mGson.toJson(note));
         requestJson.setRequestId(IdUtils.make());
-        result[0] = requestJson;
-        result[1] = note;
-        return result;
+        if(box != null){
+            box.data = note;
+        }
+        return requestJson;
     }
 
-    public static RequestJson makeCvsRequest(CvsNote note){
+    public static RequestJson makeCvsRequest(String key, CvsNote note){
+        if(TextUtils.isEmpty(key)){
+            key = IdUtils.make();
+        }
         RequestJson requestJson = new RequestJson();
         requestJson.setDeviceId(Application.App.getDeviceId());
-        requestJson.setRequestId(IdUtils.make());
+        requestJson.setRequestId(key);
         requestJson.setCode(RequestDataHelper.MobileTerminalJson);
         requestJson.addArg(CvsNote.class.getName());
         requestJson.addArg(GsonUtils.mGson.toJson(note));
         return requestJson;
     }
 
-    public static RequestJson makeAskRequest(AskNote note){
+    public static RequestJson makeAskRequest(String key,AskNote note){
         if(note == null) {
             note = new AskNote();
         }
+        if(TextUtils.isEmpty(key)){
+            key = IdUtils.make();
+        }
+        note.setDeviceId(Application.App.getDeviceId());
         RequestJson requestJson = new RequestJson();
         requestJson.setDeviceId(Application.App.getDeviceId());
-        requestJson.setRequestId(IdUtils.make());
+        requestJson.setRequestId(key);
         requestJson.setCode(RequestDataHelper.MobileTerminalJson);
         requestJson.addArg(AskNote.class.getName());
+        note.setAskId(key);
         requestJson.addArg(GsonUtils.mGson.toJson(note));
         return requestJson;
     }
 
-    public static RequestJson makeAnswerRequest(AnswerNote note){
+    public static RequestJson makeAnswerRequest(String key, AnswerNote note){
         if(note == null) {
             note = new AnswerNote();
-            note.setDeviceId(Application.App.getDeviceId());
-            note.setUserId(Application.App.getAccount().getLoginId());
-            note.setUserName(Application.App.getAccount().getLoginName());
+        }
+        note.setDeviceId(Application.App.getDeviceId());
+        note.setUserId(Application.App.getAccount().getLoginId());
+        note.setUserName(Application.App.getAccount().getLoginName());
+        if(TextUtils.isEmpty(key)){
+            key = IdUtils.make();
         }
         RequestJson requestJson = new RequestJson();
         requestJson.setDeviceId(Application.App.getDeviceId());
-        requestJson.setRequestId(IdUtils.make());
+        requestJson.setRequestId(key);
         requestJson.setCode(RequestDataHelper.MobileTerminalJson);
         requestJson.addArg(note.getClass().getName());
         requestJson.addArg(GsonUtils.mGson.toJson(note));
         return requestJson;
     }
 
-    public static RequestJson makeRequest(Object object){
+    public static RequestJson makeRequest(String key, Object object){
+        if(TextUtils.isEmpty(key)){
+            key = IdUtils.make();
+        }
         RequestJson requestJson = new RequestJson();
         requestJson.setDeviceId(Application.App.getDeviceId());
-        requestJson.setRequestId(IdUtils.make());
+        requestJson.setRequestId(key);
         requestJson.setCode(RequestDataHelper.MobileTerminalJson);
         requestJson.addArg(object.getClass().getName());
         requestJson.addArg(GsonUtils.mGson.toJson(object));
         return requestJson;
     }
 
-    public static Object[] makeGpsRequest(GpsGear gpsGear){
+    public static RequestJson makeGpsRequest(String key,BoxObject box, GpsGear gpsGear){
+        if(TextUtils.isEmpty(key)){
+            key = IdUtils.make();
+        }
         Object[] result = new Object[2];
         Account account = Application.App.getAccount();
         GpsRequest gpsRequest = new GpsRequest();
@@ -171,39 +195,49 @@ public class FormatUtils {
 
         RequestJson requestJson = new RequestJson();
         requestJson.setDeviceId(Application.App.getDeviceId());
-        requestJson.setRequestId(IdUtils.make());
+        requestJson.setRequestId(key);
         requestJson.setCode(RequestDataHelper.MobileTerminalJson);
         requestJson.addArg(GpsRequest.class.getName());
         requestJson.addArg(GsonUtils.mGson.toJson(gpsRequest));
-        result[0] = requestJson;
-        result[1] = gpsRequest;
-        return result;
+        if(box != null){
+            box.data = gpsRequest;
+        }
+        return requestJson;
     }
 
-    public static RequestJson makeGpsReponseRequest(GpsResponse gpsResponse){
+    public static RequestJson makeGpsResponseRequest(String key, GpsResponse gpsResponse){
+        if(TextUtils.isEmpty(key)){
+            key = IdUtils.make();
+        }
         RequestJson requestJson = new RequestJson();
         requestJson.setDeviceId(Application.App.getDeviceId());
-        requestJson.setRequestId(IdUtils.make());
+        requestJson.setRequestId(key);
         requestJson.setCode(RequestDataHelper.MobileTerminalJson);
         requestJson.addArg(GpsResponse.class.getName());
         requestJson.addArg(GsonUtils.mGson.toJson(gpsResponse));
         return requestJson;
     }
 
-    public static RequestJson makeGpsRequest(GpsResponse gpsResponse){
+    public static RequestJson makeGpsRequest(String key, GpsResponse gpsResponse){
+        if(TextUtils.isEmpty(key)){
+            key = IdUtils.make();
+        }
         RequestJson requestJson = new RequestJson();
         requestJson.setDeviceId(Application.App.getDeviceId());
-        requestJson.setRequestId(IdUtils.make());
+        requestJson.setRequestId(key);
         requestJson.setCode(RequestDataHelper.MobileTerminalJson);
         requestJson.addArg(GpsResponse.class.getName());
         requestJson.addArg(GsonUtils.mGson.toJson(gpsResponse));
         return requestJson;
     }
 
-    public static RequestJson makeDownloadRequest(String name){
+    public static RequestJson makeDownloadRequest(String key, String name){
+        if(TextUtils.isEmpty(key)){
+            key = IdUtils.make();
+        }
         RequestJson requestJson = new RequestJson();
         requestJson.setDeviceId(Application.App.getDeviceId());
-        requestJson.setRequestId(IdUtils.make());
+        requestJson.setRequestId(key);
         requestJson.setCode(RequestDataHelper.MoboleTerminalRaw);
         requestJson.addArg(name);
         return requestJson;

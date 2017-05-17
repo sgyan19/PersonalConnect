@@ -12,7 +12,7 @@ public class DeviceDumper {
 
     static DeviceInfo info = new DeviceInfo();
 
-    public static DeviceInfo dump(){
+    public static DeviceInfo dump(String key){
         info.buildBoard = Build.BOARD;
         info.buildBootloader = Build.BOOTLOADER;
         info.buildBrand = Build.BRAND;
@@ -58,6 +58,7 @@ public class DeviceDumper {
         info.battery = BatteryReceiver.getBattery();
         info.location = Gps.LastLocation;
 
+        info.setAskId(key);
         return info;
     }
 }

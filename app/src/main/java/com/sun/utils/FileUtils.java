@@ -1,5 +1,7 @@
 package com.sun.utils;
 
+import android.util.Log;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -74,6 +76,7 @@ public class FileUtils {
         });
         int shouldDelete = files.length - count;
         for(int i = 0; i < shouldDelete ; i++){
+            Log.d("socket", "delete file:" + files[i].getName());
             files[i].delete();
         }
         return shouldDelete;

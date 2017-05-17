@@ -3,19 +3,18 @@ package com.sun.device;
 /**
  * Created by guoyao on 2017/4/21.
  */
-public class AskNote {
+public class AskNote extends BaseNote{
     public static final int TYPE_EASY = 0;
     public static final int TYPE_DETAIL = 1;
 
     private int type;
-    private String deviceId;
+
     public AskNote(){
-        this(TYPE_EASY,null);
+        this(TYPE_EASY);
     }
 
-    public AskNote(int type,String deviceId){
+    public AskNote(int type){
         this.type = type;
-        this.deviceId = deviceId;
     }
 
     public int getType() {
@@ -24,13 +23,5 @@ public class AskNote {
 
     public void setType(int type) {
         this.type = type;
-    }
-
-    public String getDeviceId() {
-        return deviceId;
-    }
-
-    public void setDeviceId(String deviceId) {
-        this.deviceId = deviceId;
     }
 }

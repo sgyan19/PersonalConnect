@@ -17,12 +17,11 @@ import com.sun.connect.ResponseJson;
 import com.sun.connect.SocketMessage;
 import com.sun.connect.SocketReceiver;
 import com.sun.connect.SocketService;
-import com.sun.connect.SocketTask;
 import com.sun.level.LevelCenter;
 import com.sun.personalconnect.BaseActivity;
+import com.sun.utils.BoxObject;
 import com.sun.utils.FormatUtils;
 import com.sun.utils.GsonUtils;
-import com.sun.utils.StatusFragment;
 
 import java.io.File;
 import java.util.LinkedHashMap;
@@ -46,7 +45,7 @@ public class GpsService extends Service {
     private GpsListener mInGpsListener = new GpsListener() {
         @Override
         public void onGpsUpdate(GpsResponse gpsResponse) {
-            RequestJson requestJson = FormatUtils.makeGpsReponseRequest(gpsResponse);
+            RequestJson requestJson = FormatUtils.makeGpsResponseRequest(null, gpsResponse);
             mRequestHistory.put(requestJson.getRequestId(),gpsResponse);
             if(mSocketBinder != null){
                 try {
@@ -82,9 +81,9 @@ public class GpsService extends Service {
                         mGpsCore.requestUpdate(activity, gpsGear);
                 }
             }else if(who == WHO_USER){
-                Object[] objects = FormatUtils.makeGpsRequest(gpsGear);
-                RequestJson requestJson = (RequestJson)objects[0];
-                GpsRequest note = (GpsRequest)objects[1];
+                BoxObject box = new BoxObject();
+                RequestJson requestJson = FormatUtils.makeGpsRequest(null, box, gpsGear);
+                GpsRequest note = (GpsRequest)box.data;
                 if(note != null)
                     mRequestHistory.put(requestJson.getRequestId(), note);
                 if(mSocketBinder != null){
@@ -105,9 +104,9 @@ public class GpsService extends Service {
                     mGpsCore.stopUpdate();
                 }
             }else if(who == WHO_USER){
-                Object[] objects = FormatUtils.makeGpsRequest(GpsGear.None);
-                RequestJson requestJson = (RequestJson)objects[0];
-                GpsRequest note = (GpsRequest)objects[1];
+                BoxObject box = new BoxObject();
+                RequestJson requestJson = FormatUtils.makeGpsRequest(null, box, GpsGear.None);
+                GpsRequest note = (GpsRequest)box.data;
                 if(note != null)
                     mRequestHistory.put(requestJson.getRequestId(), note);
                 if(mSocketBinder != null){
@@ -139,9 +138,9 @@ public class GpsService extends Service {
 
         @Override
         public boolean onError(String key, String error) {
-            if(mRequestHistory.containsKey(key)){
-                GpsNote note = mRequestHistory.get(key);
-                mRequestHistory.remove(key);
+            if(mRequestHistory.remove(key) != null){
+//                GpsNote note = mRequestHistory.get(key);
+//                mRequestHistory.remove(key);
 //                StatusFragment.addMessage(String.format("gps request error,id:%d,gear:%s", note.getId(), note.getGpsGear()));
                 return true;
             }else {

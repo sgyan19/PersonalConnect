@@ -26,7 +26,9 @@ import com.sun.connect.SocketReceiver;
 import com.sun.connect.SocketService;
 import com.sun.connect.SocketTask;
 import com.sun.personalconnect.Application;
+import com.sun.personalconnect.HomeActivity;
 import com.sun.personalconnect.R;
+import com.sun.utils.BoxObject;
 import com.sun.utils.FormatUtils;
 import com.sun.utils.GsonUtils;
 import com.sun.utils.IdUtils;
@@ -74,11 +76,11 @@ public class CvsService extends Service {
 
         @Override
         public boolean onError(String key, String error) {
-            if(mRequestHistory.containsKey(key)){
+            if(mRequestHistory.remove(key) != null){
                 CvsNote note = mRequestHistory.get(key);
                 note.setSendStatus(CvsNote.STATUS_FAL);
                 Application.App.getCvsHistoryManager().updateCache(note.getId());
-                mRequestHistory.remove(key);
+//                mRequestHistory.remove(key);
                 CvsListener listener;
                 if(( listener = getOnCvsListener()) != null){
                     listener.onSendFailed(key, note, error);
@@ -131,9 +133,10 @@ public class CvsService extends Service {
                 handleNote(note);
                 key = json.getRequestId();
                 note.setSendStatus(CvsNote.STATUS_SUC);
-                if (mRequestHistory.containsKey(key)) {
-                    mRequestHistory.get(key).setSendStatus(CvsNote.STATUS_SUC);
-                    CvsNote localNote = mRequestHistory.remove(key);
+                CvsNote localNote;
+                if ((localNote = mRequestHistory.remove(key)) != null) {
+                    localNote.setSendStatus(CvsNote.STATUS_SUC);
+//                    CvsNote localNote = mRequestHistory.remove(key);
                     Application.App.getCvsHistoryManager().updateCache(localNote.getId());
                     if ((listener = getOnCvsListener()) != null) {
                         listener.onSendSuccess(localNote);
@@ -162,10 +165,9 @@ public class CvsService extends Service {
             if(mSocketBinder == null){
                 return null;
             }
-            Object[] objects = FormatUtils.makeCvsRequest(file);
-            if(objects == null) return null;
-            CvsNote note = (CvsNote)objects[1];
-            RequestJson requestJson = (RequestJson)objects[0];
+            BoxObject objects = new BoxObject();
+            RequestJson requestJson = FormatUtils.makeCvsRequest(null, new BoxObject(),file);
+            CvsNote note = (CvsNote)objects.data;
             if(note != null)
                 mRequestHistory.put(requestJson.getRequestId(), note);
             try {
@@ -178,10 +180,9 @@ public class CvsService extends Service {
         }
 
         public CvsNote request(String content, List<String> cmds){
-            Object[] objects = FormatUtils.makeCvsRequest(content, cmds);
-            if(objects == null) return null;
-            CvsNote note = (CvsNote)objects[1];
-            RequestJson requestJson = (RequestJson)objects[0];
+            BoxObject box = new BoxObject();
+            RequestJson requestJson = FormatUtils.makeCvsRequest(null, box,content, cmds);
+            CvsNote note = (CvsNote) box.data;
             if(note != null) {
                 mRequestHistory.put(requestJson.getRequestId(), note);
             }
@@ -198,7 +199,7 @@ public class CvsService extends Service {
         }
 
         public CvsNote request(CvsNote note){
-            RequestJson requestJson = FormatUtils.makeCvsRequest(note);
+            RequestJson requestJson = FormatUtils.makeCvsRequest(null, note);
             mRequestHistory.put(requestJson.getRequestId(), note);
             try {
                 mSocketBinder.request(requestJson.getRequestId(), SocketMessage.SOCKET_TYPE_JSON, GsonUtils.mGson.toJson(requestJson));
@@ -212,7 +213,7 @@ public class CvsService extends Service {
             if(mSocketBinder == null){
                 return;
             }
-            RequestJson requestJson = FormatUtils.makeDownloadRequest(name);
+            RequestJson requestJson = FormatUtils.makeDownloadRequest(null, name);
             try {
                 mSocketBinder.request(requestJson.getRequestId(), SocketMessage.SOCKET_TYPE_JSON, GsonUtils.mGson.toJson(requestJson));
             } catch (RemoteException e) {
@@ -294,7 +295,7 @@ public class CvsService extends Service {
         builder.setContentText(text);
         builder.setAutoCancel(true);
         Intent intent = new Intent();
-        intent.setClass(context, CvsActivity.class);
+        intent.setClass(context, HomeActivity.class);
         PendingIntent intentLive = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
 
         builder.setContentIntent(intentLive)

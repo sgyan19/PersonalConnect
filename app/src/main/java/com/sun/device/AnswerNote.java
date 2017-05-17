@@ -3,18 +3,10 @@ package com.sun.device;
 /**
  * Created by guoyao on 2017/4/21.
  */
-public class AnswerNote {
-    private String deviceId;
+public class AnswerNote extends BaseNote{
     private int userId;
     private String userName;
-
-    public String getDeviceId() {
-        return deviceId;
-    }
-
-    public void setDeviceId(String deviceId) {
-        this.deviceId = deviceId;
-    }
+    private String time;
 
     public int getUserId() {
         return userId;
@@ -32,8 +24,16 @@ public class AnswerNote {
         this.userName = userName;
     }
 
+    public String getTime() {
+        return time;
+    }
+
+    public void setTime(String time) {
+        this.time = time;
+    }
+
     @Override
     public String toString() {
-        return String.format("Did:%s, uid:%d, name:%s",deviceId,userId,userName);
+        return String.format("Did:%s, uid:%d, name:%s time:%s",getDeviceId(),userId,userName,time);
     }
 }

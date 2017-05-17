@@ -6,7 +6,7 @@ import android.os.Build;
 /**
  * Created by guoyao on 2017/4/18.
  */
-public class DeviceInfo {
+public class DeviceInfo extends BaseNote{
 
     public String buildBoard; //主板
     public String buildBootloader; //系统启动程序版本

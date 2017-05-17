@@ -27,6 +27,7 @@ import com.sun.level.Ring;
 import com.sun.utils.DirectoryManager;
 import com.sun.utils.FileUtils;
 import com.sun.utils.SharedPreferencesUtil;
+import com.tencent.bugly.crashreport.CrashReport;
 
 import java.io.File;
 
@@ -86,6 +87,7 @@ public class Application extends android.app.Application {
     }
 
     private void init() {
+        CrashReport.initCrashReport(getApplicationContext(), "0e5b8e8cca", true);
         account = new Account();
         daoSessionManager = new DaoSessionManager();
         cvsHistoryManager = new CvsHistoryManager();

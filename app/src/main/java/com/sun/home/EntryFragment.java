@@ -1,7 +1,6 @@
 package com.sun.home;
 
 import android.content.Intent;
-import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
@@ -14,17 +13,16 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.Toast;
 
-import com.google.gson.Gson;
 import com.sun.account.AccountActivity;
 import com.sun.connect.AppLifeNetworkService;
 import com.sun.connect.EventNetwork;
+import com.sun.connect.RequestJson;
 import com.sun.device.AnswerNote;
 import com.sun.device.AskNote;
 import com.sun.device.DeviceDumper;
 import com.sun.device.DeviceInfo;
-import com.sun.device.UsersFragment;
+import com.sun.device.NoteHelper;
 import com.sun.gps.GaoDeMapActivity;
-import com.sun.gps.GpsActivity;
 import com.sun.personalconnect.Application;
 import com.sun.personalconnect.InfoKeeper;
 import com.sun.personalconnect.R;
@@ -49,6 +47,7 @@ public class EntryFragment extends Fragment implements OnClickListener{
 
     private StatusFragment mUserCountFragment;
     private HashSet<String> mRequestKeys;
+    private HashSet<String> mAskKeys;
     private List<AnswerNote> mAnswerNotes;
 
     @Override
@@ -57,6 +56,7 @@ public class EntryFragment extends Fragment implements OnClickListener{
         EventBus.getDefault().register(this);
         mUserCountFragment = new StatusFragment();
         mRequestKeys = new HashSet<>();
+        mAskKeys = new HashSet<>();
     }
 
     @Nullable
@@ -81,9 +81,9 @@ public class EntryFragment extends Fragment implements OnClickListener{
                 }
                 AnswerNote note = mAnswerNotes.get(position);
                 if(note == null) return;
-                String key = IdUtils.make();
+                String key = AppLifeNetworkService.getInstance().request(FormatUtils.makeAskRequest(null, new AskNote(AskNote.TYPE_DETAIL)));
                 mRequestKeys.add(key);
-                AppLifeNetworkService.getInstance().request(key, GsonUtils.mGson.toJson(FormatUtils.makeAskRequest(new AskNote(AskNote.TYPE_DETAIL, note.getDeviceId()))));
+                mAskKeys.add(key);
             }
         });
     }
@@ -93,9 +93,8 @@ public class EntryFragment extends Fragment implements OnClickListener{
         int id = v.getId();
         switch (id){
             case R.id.btn_entry_users:
-                String key = IdUtils.make();
+                String key = AppLifeNetworkService.getInstance().request(FormatUtils.makeAskRequest(null,null));
                 mRequestKeys.add(key);
-                AppLifeNetworkService.getInstance().request(key, GsonUtils.mGson.toJson(FormatUtils.makeAskRequest(null)));
                 PageFragmentActivity.fastJump(getActivity(), mUserCountFragment);
                 break;
             case R.id.btn_entry_gps:
@@ -121,9 +120,8 @@ public class EntryFragment extends Fragment implements OnClickListener{
     }
 
     public void onEvent(EventNetwork eventNetwork){
-        if(mRequestKeys.contains(eventNetwork.getKey())){
-            mRequestKeys.remove(eventNetwork.getKey());
-            if(TextUtils.isEmpty(eventNetwork.getError())){
+        if(mRequestKeys.remove(eventNetwork.getKey())){
+            if(!TextUtils.isEmpty(eventNetwork.getError())){
                 ToastUtils.show("请求错误 error:" + eventNetwork.getError() , Toast.LENGTH_SHORT);
                 Log.d(TAG, String.format("请求错误 error:%s,step:%d",eventNetwork.getError(),eventNetwork.getStep()));
             }else{
@@ -146,21 +144,18 @@ public class EntryFragment extends Fragment implements OnClickListener{
                 mUserCountFragment.setMessages(info);
             }
         }else if(eventNetwork.getObject() instanceof AskNote){
-//            if(eventNetwork.getKey() != ){
-//            }
-            String id = IdUtils.make();
             if(TextUtils.isEmpty(eventNetwork.getError())){
                 AskNote note = ((AskNote) eventNetwork.getObject());
                 if(TextUtils.isEmpty(note.getDeviceId()) || note.getDeviceId().equals(Application.App.getDeviceId())) {
                     if (note.getType() == AskNote.TYPE_EASY ) {
-                        AppLifeNetworkService.getInstance().request(addRequest(id), GsonUtils.mGson.toJson(FormatUtils.makeAnswerRequest(null)));
+                        AppLifeNetworkService.getInstance().request(FormatUtils.makeAnswerRequest(null, NoteHelper.fillAnswerTime(new AnswerNote())));
                     } else if (note.getType() == AskNote.TYPE_DETAIL){
-                        AppLifeNetworkService.getInstance().request(addRequest(id), GsonUtils.mGson.toJson(FormatUtils.makeRequest(DeviceDumper.dump())));
+                        AppLifeNetworkService.getInstance().request(FormatUtils.makeRequest(null, DeviceDumper.dump(note.getAskId())));
                     }
                 }
             }
         }else if(eventNetwork.getObject() instanceof DeviceInfo){
-            if(TextUtils.isEmpty(eventNetwork.getError())){
+            if(TextUtils.isEmpty(eventNetwork.getError()) && mAskKeys.remove(((DeviceInfo) eventNetwork.getObject()).getAskId())){
                 ToastUtils.show( eventNetwork.getObject().toString(),Toast.LENGTH_LONG);
             }
         }
