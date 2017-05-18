@@ -227,6 +227,7 @@ public class CvsFragment extends Fragment implements View.OnClickListener,CvsSer
             case R.id.btn_cvs_last:
                 if(!TextUtils.isEmpty(mLastSubmit)){
                     mEditContent.setText(mLastSubmit);
+                    mEditContent.setSelection(mEditContent.getText() == null ?0:mEditContent.getText().toString().length());
                 }
                 break;
             case R.id.btn_cvs_img:

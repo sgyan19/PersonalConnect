@@ -1,4 +1,4 @@
-package com.sun.personalconnect;
+package com.sun.home;
 
 import android.os.Bundle;
 import android.os.PersistableBundle;
@@ -7,11 +7,13 @@ import android.support.v4.app.FragmentTransaction;
 
 import com.sun.conversation.CvsFragment;
 import com.sun.home.EntryFragment;
+import com.sun.personalconnect.BaseActivity;
+import com.sun.personalconnect.R;
 
 /**
  * Created by guoyao on 2017/4/14.
  */
-public class HomeActivity extends BaseActivity{
+public class HomeActivity extends BaseActivity {
 
     private CvsFragment mCvsFragment;
     private EntryFragment mEntryFragment;

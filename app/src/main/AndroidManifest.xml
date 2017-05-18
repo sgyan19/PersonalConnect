@@ -63,7 +63,7 @@
             </intent-filter>
         </activity>
 
-        <activity android:name="com.sun.personalconnect.HomeActivity"
+        <activity android:name="com.sun.home.HomeActivity"
             android:windowSoftInputMode="adjustResize"
             android:launchMode="singleTask">
         </activity>

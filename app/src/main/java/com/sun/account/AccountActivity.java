@@ -11,7 +11,7 @@ import android.widget.Toast;
 
 import com.sun.personalconnect.Application;
 import com.sun.personalconnect.BaseActivity;
-import com.sun.personalconnect.HomeActivity;
+import com.sun.home.HomeActivity;
 import com.sun.personalconnect.R;
 import com.sun.settings.Config;
 import com.sun.utils.ToastUtils;
@@ -65,6 +65,7 @@ public class AccountActivity extends BaseActivity implements View.OnClickListene
                 break;
             case R.id.btn_password_show:
                 mEditPassword.setInputType(mCkbPassword.isChecked() ?  InputType.TYPE_CLASS_TEXT |InputType.TYPE_TEXT_VARIATION_PASSWORD :InputType.TYPE_CLASS_TEXT |InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
+                mEditPassword.setSelection(mEditPassword.getText() == null ? 0 : mEditPassword.getText().toString().length());
                 break;
         }
     }
