@@ -199,7 +199,7 @@ public class CvsService extends Service {
         }
 
         public CvsNote request(CvsNote note){
-            RequestJson requestJson = FormatUtils.makeCvsRequest(null, note);
+            RequestJson requestJson = FormatUtils.makeRequest(null, note);
             mRequestHistory.put(requestJson.getRequestId(), note);
             try {
                 mSocketBinder.request(requestJson.getRequestId(), SocketMessage.SOCKET_TYPE_JSON, GsonUtils.mGson.toJson(requestJson));

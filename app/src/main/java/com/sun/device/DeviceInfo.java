@@ -1,13 +1,15 @@
 package com.sun.device;
 
 import android.location.Location;
-import android.os.Build;
+
+import com.sun.common.SessionNote;
 
 /**
  * Created by guoyao on 2017/4/18.
  */
-public class DeviceInfo extends BaseNote{
+public class DeviceInfo extends SessionNote {
 
+    public String deviceId;
     public String buildBoard; //主板
     public String buildBootloader; //系统启动程序版本
     public String buildBrand; //系统定制商

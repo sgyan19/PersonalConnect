@@ -4,6 +4,7 @@ import android.os.Build;
 
 import com.sun.common.ArgsRunnable;
 import com.sun.gps.Gps;
+import com.sun.personalconnect.Application;
 
 /**
  * Created by guoyao on 2017/4/18.
@@ -12,7 +13,7 @@ public class DeviceDumper {
 
     static DeviceInfo info = new DeviceInfo();
 
-    public static DeviceInfo dump(String key){
+    public static DeviceInfo dump(){
         info.buildBoard = Build.BOARD;
         info.buildBootloader = Build.BOOTLOADER;
         info.buildBrand = Build.BRAND;
@@ -57,8 +58,7 @@ public class DeviceDumper {
 
         info.battery = BatteryReceiver.getBattery();
         info.location = Gps.LastLocation;
-
-        info.setAskId(key);
+        info.deviceId = Application.App.getDeviceId();
         return info;
     }
 }

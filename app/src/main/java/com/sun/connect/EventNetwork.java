@@ -9,6 +9,7 @@ public class EventNetwork {
     private String error;
     private int step;
     private Object object;
+    private boolean isMine;
 
     public void reset(){
         object = null;
@@ -16,6 +17,7 @@ public class EventNetwork {
         key = "";
         response = null;
         error = "";
+        isMine = false;
     }
 
     public String getKey() {
@@ -56,5 +58,13 @@ public class EventNetwork {
 
     public void setObject(Object object) {
         this.object = object;
+    }
+
+    public boolean isMine() {
+        return isMine;
+    }
+
+    public void setMine(boolean mine) {
+        isMine = mine;
     }
 }

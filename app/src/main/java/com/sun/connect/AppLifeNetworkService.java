@@ -6,11 +6,14 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.IBinder;
 import android.os.RemoteException;
+import android.text.TextUtils;
+
 import com.sun.personalconnect.Application;
 import com.sun.utils.GsonUtils;
 
 import java.io.File;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 
 import de.greenrobot.event.EventBus;
@@ -22,6 +25,7 @@ public class AppLifeNetworkService {
     private ServiceConnection mSocketConn;
     private ISocketServiceBinder mSocketBinder;
     private HashMap<String,String> mWaitSend;
+    private HashSet<String> mRequestHistory;
 
     public static AppLifeNetworkService getInstance(){
         return Application.App.getNetworkService();
@@ -29,6 +33,7 @@ public class AppLifeNetworkService {
 
     public AppLifeNetworkService(){
         mWaitSend = new HashMap<>();
+        mRequestHistory = new HashSet<>();
         mSocketConn = new ServiceConnection() {
             @Override
             public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
@@ -57,18 +62,21 @@ public class AppLifeNetworkService {
     }
 
     private SocketReceiver.SocketReceiveListener mReceiveListener = new SocketReceiver.SocketReceiveListener() {
-        EventNetwork mEventNetwork;
+        EventNetwork mEventNetwork = new EventNetwork();
 
         @Override
         public boolean onReconnected(boolean connected) {
-            mEventNetwork = new EventNetwork();
+            mEventNetwork.reset();
             EventBus.getDefault().post(mEventNetwork);
             return false;
         }
 
         @Override
         public boolean onError(String key, String error) {
-            mEventNetwork = new EventNetwork();
+            mEventNetwork.reset();
+            if(mRequestHistory.remove(key)){
+                mEventNetwork.setMine(true);
+            }
             mEventNetwork.setError(error);
             mEventNetwork.setKey(key);
             mEventNetwork.setStep(1);
@@ -78,18 +86,26 @@ public class AppLifeNetworkService {
 
         @Override
         public boolean onParserResponse(String key, ResponseJson json, String info) {
-            mEventNetwork = new EventNetwork();
-            mEventNetwork.setError(info);
-            mEventNetwork.setKey(key);
-            mEventNetwork.setResponse(json);
-            mEventNetwork.setStep(2);
-            EventBus.getDefault().post(mEventNetwork);
+            mEventNetwork.reset();
+            if(mRequestHistory.remove(key)){
+                mEventNetwork.setMine(true);
+                if(!TextUtils.isEmpty(info)) {
+                    mEventNetwork.setError(info);
+                    mEventNetwork.setKey(key);
+                    mEventNetwork.setResponse(json);
+                    mEventNetwork.setStep(2);
+                    EventBus.getDefault().post(mEventNetwork);
+                    return true;
+                }
+            }
             return false;
         }
 
         @Override
         public boolean onReceiveFile(String key, File file, String info) {
-            mEventNetwork = new EventNetwork();
+            if(mRequestHistory.remove(key)){
+                mEventNetwork.setMine(true);
+            }
             mEventNetwork.setError(info);
             mEventNetwork.setKey(key);
             mEventNetwork.setObject(file);
@@ -100,7 +116,9 @@ public class AppLifeNetworkService {
 
         @Override
         public boolean onParserData(String key, ResponseJson json, Object data, String info) {
-            mEventNetwork = new EventNetwork();
+            if(mRequestHistory.remove(key)){
+                mEventNetwork.setMine(true);
+            }
             mEventNetwork.setError(info);
             mEventNetwork.setKey(key);
             mEventNetwork.setObject(data);
@@ -122,6 +140,7 @@ public class AppLifeNetworkService {
         }
         if(send){
             mWaitSend.remove(key);
+            mRequestHistory.add(key);
         }else{
             mWaitSend.put(key,request);
         }

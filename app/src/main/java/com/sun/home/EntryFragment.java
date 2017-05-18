@@ -14,12 +14,11 @@ import android.widget.AdapterView;
 import android.widget.Toast;
 
 import com.sun.account.AccountActivity;
+import com.sun.common.SessionNote;
 import com.sun.connect.AppLifeNetworkService;
 import com.sun.connect.EventNetwork;
-import com.sun.connect.RequestJson;
 import com.sun.device.AnswerNote;
 import com.sun.device.AskNote;
-import com.sun.device.DeviceDumper;
 import com.sun.device.DeviceInfo;
 import com.sun.device.NoteHelper;
 import com.sun.gps.GaoDeMapActivity;
@@ -27,14 +26,11 @@ import com.sun.personalconnect.Application;
 import com.sun.personalconnect.InfoKeeper;
 import com.sun.personalconnect.R;
 import com.sun.utils.FormatUtils;
-import com.sun.utils.GsonUtils;
-import com.sun.utils.IdUtils;
 import com.sun.utils.PageFragmentActivity;
 import com.sun.utils.StatusFragment;
 import com.sun.utils.ToastUtils;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 
 import de.greenrobot.event.EventBus;
@@ -46,8 +42,6 @@ public class EntryFragment extends Fragment implements OnClickListener{
     private static final String TAG = "EntryFragment";
 
     private StatusFragment mUserCountFragment;
-    private HashSet<String> mRequestKeys;
-    private HashSet<String> mAskKeys;
     private List<AnswerNote> mAnswerNotes;
 
     @Override
@@ -55,8 +49,6 @@ public class EntryFragment extends Fragment implements OnClickListener{
         super.onCreate(savedInstanceState);
         EventBus.getDefault().register(this);
         mUserCountFragment = new StatusFragment();
-        mRequestKeys = new HashSet<>();
-        mAskKeys = new HashSet<>();
     }
 
     @Nullable
@@ -81,9 +73,17 @@ public class EntryFragment extends Fragment implements OnClickListener{
                 }
                 AnswerNote note = mAnswerNotes.get(position);
                 if(note == null) return;
-                String key = AppLifeNetworkService.getInstance().request(FormatUtils.makeAskRequest(null, new AskNote(AskNote.TYPE_DETAIL, note.getDeviceId())));
-                mRequestKeys.add(key);
-                mAskKeys.add(key);
+                AskNote askNote = new AskNote(AskNote.TYPE_DETAIL);
+                askNote.setSessionType(SessionNote.TYPE_DEVICE);
+                askNote.addSessionCondition(note.getDeviceId());
+                askNote.addSessionCondition(Application.App.getDeviceId());
+                if(note.getDeviceId().equals(Application.App.getDeviceId())){
+                    // 如果请求自己就不去访问网络了
+                    NoteHelper.makeAnswer(askNote);
+                    showDeviceInfo((DeviceInfo) NoteHelper.makeAnswer(askNote));
+                }else{
+                    AppLifeNetworkService.getInstance().request(FormatUtils.makeRequest(null, askNote));
+                }
             }
         });
     }
@@ -93,8 +93,9 @@ public class EntryFragment extends Fragment implements OnClickListener{
         int id = v.getId();
         switch (id){
             case R.id.btn_entry_users:
-                String key = AppLifeNetworkService.getInstance().request(FormatUtils.makeAskRequest(null,null));
-                mRequestKeys.add(key);
+                AskNote ask = new AskNote();
+                AppLifeNetworkService.getInstance().request(FormatUtils.makeRequest(null,ask));
+                InfoKeeper.getInstance().putAnswer((AnswerNote) NoteHelper.makeAnswer(ask));
                 PageFragmentActivity.fastJump(getActivity(), mUserCountFragment);
                 break;
             case R.id.btn_entry_gps:
@@ -114,13 +115,8 @@ public class EntryFragment extends Fragment implements OnClickListener{
         EventBus.getDefault().unregister(this);
     }
 
-    public String addRequest(String rid){
-        mRequestKeys.add(rid);
-        return rid;
-    }
-
     public void onEvent(EventNetwork eventNetwork){
-        if(mRequestKeys.remove(eventNetwork.getKey())){
+        if(eventNetwork.isMine()){
             if(!TextUtils.isEmpty(eventNetwork.getError())){
                 ToastUtils.show("请求错误 error:" + eventNetwork.getError() , Toast.LENGTH_SHORT);
                 Log.d(TAG, String.format("请求错误 error:%s,step:%d",eventNetwork.getError(),eventNetwork.getStep()));
@@ -146,18 +142,16 @@ public class EntryFragment extends Fragment implements OnClickListener{
         }else if(eventNetwork.getObject() instanceof AskNote){
             if(TextUtils.isEmpty(eventNetwork.getError())){
                 AskNote note = ((AskNote) eventNetwork.getObject());
-                if(TextUtils.isEmpty(note.getDeviceId()) || note.getDeviceId().equals(Application.App.getDeviceId())) {
-                    if (note.getType() == AskNote.TYPE_EASY ) {
-                        AppLifeNetworkService.getInstance().request(FormatUtils.makeAnswerRequest(null, NoteHelper.fillAnswerTime(new AnswerNote())));
-                    } else if (note.getType() == AskNote.TYPE_DETAIL){
-                        AppLifeNetworkService.getInstance().request(FormatUtils.makeRequest(null, DeviceDumper.dump(note.getAskId())));
-                    }
-                }
+                AppLifeNetworkService.getInstance().request(FormatUtils.makeRequest(null, NoteHelper.makeAnswer(note)));
             }
         }else if(eventNetwork.getObject() instanceof DeviceInfo){
-            if(TextUtils.isEmpty(eventNetwork.getError()) && mAskKeys.remove(((DeviceInfo) eventNetwork.getObject()).getAskId())){
-                ToastUtils.show( eventNetwork.getObject().toString(),Toast.LENGTH_LONG);
+            if(TextUtils.isEmpty(eventNetwork.getError())){
+                showDeviceInfo((DeviceInfo)eventNetwork.getObject());
             }
         }
+    }
+
+    private void showDeviceInfo(DeviceInfo info){
+        ToastUtils.show( info.toString(),Toast.LENGTH_LONG);
     }
 }

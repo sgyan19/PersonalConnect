@@ -6,6 +6,8 @@ import android.content.IntentFilter;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.sun.account.Account;
+import com.sun.common.SessionNote;
 import com.sun.personalconnect.Application;
 import com.sun.personalconnect.BaseReceiver;
 import com.sun.utils.FormatUtils;
@@ -117,6 +119,9 @@ public class SocketReceiver extends BaseReceiver<SocketReceiver.SocketReceiveLis
                 e.printStackTrace();
                 info = e.toString();
             }
+            if(handleData(responseObj, obj)){
+                return;
+            }
             for (Map.Entry<Context, SocketReceiveListener> entry : getListeners().entrySet()) {
                 if (entry.getValue().onParserData(key, responseObj, obj, info)) {
                     return;
@@ -142,5 +147,30 @@ public class SocketReceiver extends BaseReceiver<SocketReceiver.SocketReceiveLis
         }
 
         return response.getData().length > 0 && "success".equals(response.getData()[0]);
+    }
+
+    private boolean handleData(ResponseJson response, Object data){
+        if(data == null)
+            return false;
+        boolean intercept = false;
+        if(data instanceof SessionNote){
+            switch (((SessionNote) data).getSessionType()){
+                case SessionNote.TYPE_ALL:
+                    break;
+                case SessionNote.TYPE_DEVICE:
+                    String did = Application.App.getDeviceId();
+                    intercept = did == null || !((SessionNote) data).getSessionCondition().contains(did);
+                    break;
+                case SessionNote.TYPE_USER_NAME:
+                    String name = Application.App.getAccount().getLoginName();
+                    intercept = name == null || !((SessionNote) data).getSessionCondition().contains(name);
+                    break;
+                case SessionNote.TYPE_LEVEL:
+                    int id = Application.App.getAccount().getLoginId();
+                    intercept = id == Account.NONE || !((SessionNote) data).getSessionCondition().contains(String.valueOf(id));
+                    break;
+            }
+        }
+        return intercept;
     }
 }

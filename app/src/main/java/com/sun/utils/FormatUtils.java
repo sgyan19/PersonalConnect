@@ -118,56 +118,6 @@ public class FormatUtils {
         return requestJson;
     }
 
-    public static RequestJson makeCvsRequest(String key, CvsNote note){
-        if(TextUtils.isEmpty(key)){
-            key = IdUtils.make();
-        }
-        RequestJson requestJson = new RequestJson();
-        requestJson.setDeviceId(Application.App.getDeviceId());
-        requestJson.setRequestId(key);
-        requestJson.setCode(RequestDataHelper.MobileTerminalJson);
-        requestJson.addArg(CvsNote.class.getName());
-        requestJson.addArg(GsonUtils.mGson.toJson(note));
-        return requestJson;
-    }
-
-    public static RequestJson makeAskRequest(String key,AskNote note){
-        if(note == null) {
-            note = new AskNote();
-        }
-        if(TextUtils.isEmpty(key)){
-            key = IdUtils.make();
-        }
-//        note.setDeviceId(Application.App.getDeviceId());
-        RequestJson requestJson = new RequestJson();
-        requestJson.setDeviceId(Application.App.getDeviceId());
-        requestJson.setRequestId(key);
-        requestJson.setCode(RequestDataHelper.MobileTerminalJson);
-        requestJson.addArg(AskNote.class.getName());
-        note.setAskId(key);
-        requestJson.addArg(GsonUtils.mGson.toJson(note));
-        return requestJson;
-    }
-
-    public static RequestJson makeAnswerRequest(String key, AnswerNote note){
-        if(note == null) {
-            note = new AnswerNote();
-        }
-        note.setDeviceId(Application.App.getDeviceId());
-        note.setUserId(Application.App.getAccount().getLoginId());
-        note.setUserName(Application.App.getAccount().getLoginName());
-        if(TextUtils.isEmpty(key)){
-            key = IdUtils.make();
-        }
-        RequestJson requestJson = new RequestJson();
-        requestJson.setDeviceId(Application.App.getDeviceId());
-        requestJson.setRequestId(key);
-        requestJson.setCode(RequestDataHelper.MobileTerminalJson);
-        requestJson.addArg(note.getClass().getName());
-        requestJson.addArg(GsonUtils.mGson.toJson(note));
-        return requestJson;
-    }
-
     public static RequestJson makeRequest(String key, Object object){
         if(TextUtils.isEmpty(key)){
             key = IdUtils.make();
@@ -185,7 +135,6 @@ public class FormatUtils {
         if(TextUtils.isEmpty(key)){
             key = IdUtils.make();
         }
-        Object[] result = new Object[2];
         Account account = Application.App.getAccount();
         GpsRequest gpsRequest = new GpsRequest();
         gpsRequest.setId(System.currentTimeMillis());
@@ -252,6 +201,12 @@ public class FormatUtils {
             note.setErrInfo("");
         }
         return note;
+    }
+
+    public static RequestJson setSession(RequestJson json,String... devices){
+        json.addArg(Application.App.getDeviceId());
+        json.addArgs(devices);
+        return json;
     }
 
     public static Object getFormatData(Context context , ResponseJson responseJson) throws Exception{

@@ -29,6 +29,16 @@ public class RequestJson {
         args.add(arg);
     }
 
+    public void addArgs(String... args){
+        for(String arg : args) {
+            this.args.add(arg);
+        }
+    }
+
+    public void setArg(int index, String arg){
+        args.set(index,arg);
+    }
+
     public List<String> getArgs(){
         return args;
     }
