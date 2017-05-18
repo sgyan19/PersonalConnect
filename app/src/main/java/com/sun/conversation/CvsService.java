@@ -215,7 +215,7 @@ public class CvsService extends Service {
             }
             RequestJson requestJson = FormatUtils.makeDownloadRequest(null, name);
             try {
-                mSocketBinder.request(requestJson.getRequestId(), SocketMessage.SOCKET_TYPE_JSON, GsonUtils.mGson.toJson(requestJson));
+                mSocketBinder.request(requestJson.getRequestId(), SocketMessage.SOCKET_TYPE_JSON_DOWNLOAD_RAW, GsonUtils.mGson.toJson(requestJson));
             } catch (RemoteException e) {
                 e.printStackTrace();
             }

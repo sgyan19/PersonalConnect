@@ -9,7 +9,8 @@ public class SocketMessage {
 
     public static final int SOCKET_TYPE_NONE = -1;
     public static final int SOCKET_TYPE_JSON = 100;
-    public static final int SOCKET_TYPE_RAW = 101;
+    public static final int SOCKET_TYPE_JSON_DOWNLOAD_RAW = 101;
+    public static final int SOCKET_TYPE_RAW = 102;
 
     public int type = SOCKET_TYPE_NONE;
     public String data;

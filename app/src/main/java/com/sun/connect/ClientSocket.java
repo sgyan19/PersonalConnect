@@ -125,6 +125,29 @@ public class ClientSocket {
         return response;
     }
 
+    public SocketMessage requestRaw(String name){
+        SocketMessage response = null;
+        synchronized (lock) {
+            try {
+                OutputStream outputStream = mSocket.getOutputStream();
+                outputStream.write(HEADER_RAW);
+                sendTextFrame(outputStream, name);
+                Log.d(TAG, "requestRaw name suc");
+                sendRawFrame(outputStream, name);
+                Log.d(TAG, "requestRaw file suc");
+                response = receive();
+            } catch (IOException e) {
+                Log.d(TAG, "requestRawWithoutBack exception:" + e.toString());
+                mLastException = e;
+                if (e instanceof SocketException) {
+                    mRemoteClosed = true;
+                }
+                e.printStackTrace();
+            }
+        }
+        return response;
+    }
+
     public void requestJsonWithoutBack(String request){
         synchronized (lock) {
             try {
@@ -143,17 +166,17 @@ public class ClientSocket {
         }
     }
 
-    public void requestImageWithoutBack(String name){
+    public void requestRawWithoutBack(String name){
         synchronized (lock) {
             try {
                 OutputStream outputStream = mSocket.getOutputStream();
                 outputStream.write(HEADER_RAW);
                 sendTextFrame(outputStream, name);
-                Log.d(TAG, "requestImageWithoutBack name suc");
+                Log.d(TAG, "requestRawWithoutBack name suc");
                 sendRawFrame(outputStream, name);
-                Log.d(TAG, "requestImageWithoutBack file suc");
+                Log.d(TAG, "requestRawWithoutBack file suc");
             } catch (IOException e) {
-                Log.d(TAG, "requestImageWithoutBack exception:" + e.toString());
+                Log.d(TAG, "requestRawWithoutBack exception:" + e.toString());
                 mLastException = e;
                 if (e instanceof SocketException) {
                     mRemoteClosed = true;
@@ -216,7 +239,7 @@ public class ClientSocket {
             while((len = fileStream.read(sendBuffer, 0, size > sendBuffer.length ? sendBuffer.length: size)) > 0){
                 total += len;
                 stream.write(sendBuffer, 0, len);
-                Log.d(TAG, String.format("send receiveRawFrame size:%d total:%d", len,total));
+                Log.d(TAG, String.format("send RawFrame size:%d total:%d", len,total));
             }
         }finally {
             if(fileStream != null){

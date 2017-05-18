@@ -29,10 +29,15 @@ public class SocketService extends Service {
 
     private ServiceBinder mBinder;
 
-    private SocketTask socketTask;
+    private SocketTask jsonSocketTask;
+    private SocketTask rawSocketTask;
 
-    public SocketTask getSocketTask(){
-        return socketTask;
+    public SocketTask getMainSocketTask(){
+        return jsonSocketTask;
+    }
+
+    public SocketTask getRawSocketTask(){
+        return rawSocketTask;
     }
 
     private FileObserver mRawDirObserver;
@@ -64,7 +69,7 @@ public class SocketService extends Service {
             intent.putExtra(KEY_BOOLEAN_CONNECTED, true);
             SocketService.this.sendBroadcast(intent);
 //            SocketService.this.getSocketTask().sendMessage(SocketTask.MSG_REQUEST, SocketTask.REQUEST_KEY_NOBODY, SocketMessage.SOCKET_TYPE_JSON,String.format(RequestDataHelper.CvsConnectRequest, Application.App.getDeviceId()), null);
-            SocketService.this.getSocketTask().sendMessage(SocketTask.MSG_CONNECT_CHECK, SocketTask.REQUEST_KEY_NOBODY, null, null);
+            SocketService.this.getMainSocketTask().sendMessage(SocketTask.MSG_CONNECT_CHECK, SocketTask.REQUEST_KEY_NOBODY, null, null);
         }
     };
     public class ServiceBinder extends Binder {
@@ -73,27 +78,35 @@ public class SocketService extends Service {
         }
 
         public void request(String key, int type, String request){
-            SocketService.this.getSocketTask().sendMessage(SocketTask.MSG_REQUEST, key, type, request, null);
+            if(type == SocketMessage.SOCKET_TYPE_JSON) {
+                SocketService.this.getMainSocketTask().sendMessage(SocketTask.MSG_REQUEST, key, type, request, null);
+            }else if(type == SocketMessage.SOCKET_TYPE_RAW || type == SocketMessage.SOCKET_TYPE_JSON_DOWNLOAD_RAW){
+                SocketService.this.getRawSocketTask().sendMessage(SocketTask.MSG_REQUEST, key, type, request, mReceiveCallback);
+            }
         }
 
         public void stopReceive(){
-            SocketService.this.getSocketTask().stopReceive();
+            SocketService.this.getMainSocketTask().stopReceive();
         }
     }
 
     public ISocketServiceBinder.Stub stub = new ISocketServiceBinder.Stub() {
         @Override
         public void request(String key, int type, String request) throws RemoteException {
-            SocketService.this.getSocketTask().sendMessage(SocketTask.MSG_REQUEST, key, type,request, null);
+            if(type == SocketMessage.SOCKET_TYPE_JSON) {
+                SocketService.this.getMainSocketTask().sendMessage(SocketTask.MSG_REQUEST, key, type, request, null);
+            }else if(type == SocketMessage.SOCKET_TYPE_RAW || type == SocketMessage.SOCKET_TYPE_JSON_DOWNLOAD_RAW){
+                SocketService.this.getRawSocketTask().sendMessage(SocketTask.MSG_REQUEST, key, type, request, mReceiveCallback);
+            }
         }
 
         @Override
         public boolean isConnected(){
-            return SocketService.this.getSocketTask().isConnected();
+            return SocketService.this.getMainSocketTask().isConnected();
         }
 
         public void stopReceive(){
-            SocketService.this.getSocketTask().stopReceive();
+            SocketService.this.getMainSocketTask().stopReceive();
         }
     };
 
@@ -137,9 +150,15 @@ public class SocketService extends Service {
     public void onCreate() {
         super.onCreate();
         mBinder = new ServiceBinder();
-        socketTask = new SocketTask();
-        socketTask.startWithReceive(mReceiveCallback);
-        socketTask.setRawFolder(Application.App.getSocketRawFolder());
+        jsonSocketTask = new SocketTask();
+        jsonSocketTask.startWithReceive(mReceiveCallback);
+        Log.d(TAG,"启动json socketTask:" +   jsonSocketTask.hashCode());
+        jsonSocketTask.setRawFolder(Application.App.getSocketRawFolder());
+        rawSocketTask = new SocketTask();
+        rawSocketTask.start();
+        rawSocketTask.setRawFolder(Application.App.getSocketRawFolder());
+        Log.d(TAG,"启动raw socketTask:" +   rawSocketTask.hashCode());
+
         mRawDirObserver = new RawFolderObserver(Application.App.getSocketRawFolder(), FileObserver.CREATE );
         mRawDirObserver.startWatching();
     }
@@ -158,7 +177,7 @@ public class SocketService extends Service {
 
     @Override
     public void onDestroy() {
-        socketTask.quitThreadLooper();
+        jsonSocketTask.quitThreadLooper();
         mRawDirObserver.stopWatching();
         super.onDestroy();
     }

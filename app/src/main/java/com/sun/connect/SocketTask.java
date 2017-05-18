@@ -16,7 +16,8 @@ import java.util.concurrent.Executors;
  * Created by guoyao on 2016/12/13.
  */
 public class SocketTask implements Runnable {
-    public static final String TAG = "SocketTask";
+    public static final String STAG = "SocketTask";
+    public String TAG = STAG + ":" + hashCode();
     public static final int MSG_CONNECT = 0;
     public static final int MSG_REQUEST = 1;
     public static final int MSG_RECEIVE = 2;
@@ -230,15 +231,23 @@ public class SocketTask implements Runnable {
     }
 
     private void request(String id, MessageData messageData){
-        Log.d(TAG, "requestJson data " + messageData.requestData.data);
         if(mReceiving) {
-            if(messageData.requestData.type == SocketMessage.SOCKET_TYPE_JSON) {
+            if(messageData.requestData.type == SocketMessage.SOCKET_TYPE_JSON || messageData.requestData.type == SocketMessage.SOCKET_TYPE_JSON_DOWNLOAD_RAW) {
+                Log.d(TAG, "requestJson data " + messageData.requestData.data);
                 mCoreSocket.requestJsonWithoutBack(messageData.requestData.data);
             }else if(messageData.requestData.type == SocketMessage.SOCKET_TYPE_RAW){
-                mCoreSocket.requestImageWithoutBack(messageData.requestData.data);
+                Log.d(TAG, "requestRaw data " + messageData.requestData.data);
+                mCoreSocket.requestRawWithoutBack(messageData.requestData.data);
             }
         }else {
-            SocketMessage response = mCoreSocket.requestJson(messageData.requestData.data);
+            SocketMessage response = null;
+            if(messageData.requestData.type == SocketMessage.SOCKET_TYPE_JSON|| messageData.requestData.type == SocketMessage.SOCKET_TYPE_JSON_DOWNLOAD_RAW) {
+                Log.d(TAG, "requestJson data " + messageData.requestData.data);
+                response  = mCoreSocket.requestJson(messageData.requestData.data);
+            }else if(messageData.requestData.type == SocketMessage.SOCKET_TYPE_RAW){
+                Log.d(TAG, "requestRaw data " + messageData.requestData.data);
+                response = mCoreSocket.requestRaw(messageData.requestData.data);
+            }
             if (messageData.callback != null) {
                 if (response == null) {
                     messageData.callback.onError(id, mCoreSocket.getLastException());
