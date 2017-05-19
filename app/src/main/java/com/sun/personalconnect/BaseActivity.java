@@ -83,6 +83,7 @@ public class BaseActivity extends AppCompatActivity {
     }
 
     public void requestPermission(Permission permission){
+        if(WaitForCallback.contains(permission)) return;
         boolean isPermission = PermissionUtils.selfPermissionGranted(this, permission.getName());
         if (!isPermission) {
             try {

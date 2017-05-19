@@ -30,7 +30,7 @@ public class HomeActivity extends BaseActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
         mCvsFragment = new CvsFragment();
-        mEntryFragment = new EntryFragment();
+        mEntryFragment = new EntryFragment_();
 
 
         FragmentManager fragmentManager = getSupportFragmentManager();

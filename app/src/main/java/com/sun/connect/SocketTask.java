@@ -139,6 +139,11 @@ public class SocketTask implements Runnable {
                 case MSG_DISCONNECT:
                     st.stopReceive();
                     st.mCoreSocket.Close();
+                    try {
+                        Looper.myLooper().quitSafely();
+                    }catch (Exception e){
+                        e.printStackTrace();
+                    }
                     break;
             }
         }

@@ -11,9 +11,11 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
+import android.widget.Button;
 import android.widget.Toast;
 
 import com.sun.account.AccountActivity;
+import com.sun.camera.CameraActivity;
 import com.sun.common.SessionNote;
 import com.sun.connect.AppLifeNetworkService;
 import com.sun.connect.EventNetwork;
@@ -30,6 +32,11 @@ import com.sun.utils.PageFragmentActivity;
 import com.sun.utils.StatusFragment;
 import com.sun.utils.ToastUtils;
 
+import org.androidannotations.annotations.Click;
+import org.androidannotations.annotations.EActivity;
+import org.androidannotations.annotations.EFragment;
+import org.androidannotations.annotations.ViewById;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,12 +45,16 @@ import de.greenrobot.event.EventBus;
 /**
  * Created by guoyao on 2017/4/18.
  */
+
+@EFragment(R.layout.fragment_entry)
 public class EntryFragment extends Fragment implements OnClickListener{
     private static final String TAG = "EntryFragment";
 
     private StatusFragment mUserCountFragment;
     private List<AnswerNote> mAnswerNotes;
 
+    @ViewById(R.id.btn_entry_camera)
+    protected Button mCameraBtn;
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -54,8 +65,8 @@ public class EntryFragment extends Fragment implements OnClickListener{
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_entry, container, false);
-//        return super.onCreateView(inflater, container, savedInstanceState);
+//        return inflater.inflate(R.layout.fragment_entry, container, false);
+        return super.onCreateView(inflater, container, savedInstanceState);
     }
 
     @Override
@@ -105,6 +116,14 @@ public class EntryFragment extends Fragment implements OnClickListener{
                 Application.App.getAccount().logout();
                 startActivity(new Intent(getActivity(), AccountActivity.class));
                 getActivity().finish();
+                break;
+        }
+    }
+    @Click({R.id.btn_entry_camera})
+    public void click(View view){
+        switch(view.getId()){
+            case R.id.btn_entry_camera:  //
+                startActivity(new Intent(getActivity(), CameraActivity.class));
                 break;
         }
     }

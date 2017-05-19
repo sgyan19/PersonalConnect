@@ -15,6 +15,8 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <!-- gps -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <!-- 相机 -->
+    <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
@@ -79,6 +81,8 @@
             android:launchMode="singleTask">
         </activity>
 
+        <activity android:name="com.sun.camera.CameraActivity" android:windowSoftInputMode="adjustPan"/>
+
         <activity android:name="com.sun.utils.PageFragmentActivity" android:windowSoftInputMode="adjustPan"/>
 
         <service
@@ -91,6 +95,12 @@
             android:name="com.sun.connect.SocketService"
             android:process=":remote">
         </service>
+
+        <fragment
+            android:id="@+id/myFragment"
+            android:name="com.sun.home.EntryFragment_"
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent" />
     </application>
 
 </manifest>
