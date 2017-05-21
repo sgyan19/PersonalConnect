@@ -17,13 +17,14 @@ import android.widget.Toast;
 import com.sun.account.AccountActivity;
 import com.sun.camera.CameraActivity;
 import com.sun.common.SessionNote;
-import com.sun.connect.AppLifeNetworkService;
+import com.sun.connect.NetworkChannel;
 import com.sun.connect.EventNetwork;
 import com.sun.device.AnswerNote;
 import com.sun.device.AskNote;
 import com.sun.device.DeviceInfo;
 import com.sun.device.NoteHelper;
 import com.sun.gps.GaoDeMapActivity;
+import com.sun.level.UpdateOrderNote;
 import com.sun.personalconnect.Application;
 import com.sun.personalconnect.InfoKeeper;
 import com.sun.personalconnect.R;
@@ -33,10 +34,10 @@ import com.sun.utils.StatusFragment;
 import com.sun.utils.ToastUtils;
 
 import org.androidannotations.annotations.Click;
-import org.androidannotations.annotations.EActivity;
 import org.androidannotations.annotations.EFragment;
 import org.androidannotations.annotations.ViewById;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -52,6 +53,11 @@ public class EntryFragment extends Fragment implements OnClickListener{
 
     private StatusFragment mUserCountFragment;
     private List<AnswerNote> mAnswerNotes;
+    private enum AskStatus{
+        Info,Update,Upgrade,Gps
+    }
+    private AskStatus mAskStatus = AskStatus.Info;
+    private UpdateOrderNote mUpdateOrderNote;
 
     @ViewById(R.id.btn_entry_camera)
     protected Button mCameraBtn;
@@ -84,16 +90,19 @@ public class EntryFragment extends Fragment implements OnClickListener{
                 }
                 AnswerNote note = mAnswerNotes.get(position);
                 if(note == null) return;
-                AskNote askNote = new AskNote(AskNote.TYPE_DETAIL);
-                askNote.setSessionType(SessionNote.TYPE_DEVICE);
-                askNote.addSessionCondition(note.getDeviceId());
-                askNote.addSessionCondition(Application.App.getDeviceId());
-                if(note.getDeviceId().equals(Application.App.getDeviceId())){
-                    // 如果请求自己就不去访问网络了
-                    NoteHelper.makeAnswer(askNote);
-                    showDeviceInfo((DeviceInfo) NoteHelper.makeAnswer(askNote));
-                }else{
-                    AppLifeNetworkService.getInstance().request(FormatUtils.makeRequest(null, askNote));
+                switch (mAskStatus){
+                    case Info:
+                        askDeviceInfo(note);
+                        break;
+                    case Update:
+                        askNewAnswerNote(note);
+                        break;
+                    case Upgrade:
+                        File file = new File(Application.App.getPackageResourcePath());
+                        NetworkChannel.getInstance().upload(file);
+                        mUpdateOrderNote = NoteHelper.makeUpdateOrderNote(note);
+                        mUpdateOrderNote.setApkName(file.getName());
+                        break;
                 }
             }
         });
@@ -104,9 +113,11 @@ public class EntryFragment extends Fragment implements OnClickListener{
         int id = v.getId();
         switch (id){
             case R.id.btn_entry_users:
+                mAskStatus = AskStatus.Info;
                 AskNote ask = new AskNote();
-                AppLifeNetworkService.getInstance().request(FormatUtils.makeRequest(null,ask));
+                NetworkChannel.getInstance().request(FormatUtils.makeRequest(null,ask));
                 InfoKeeper.getInstance().putAnswer((AnswerNote) NoteHelper.makeAnswer(ask));
+                updateAnswerNoteList();
                 PageFragmentActivity.fastJump(getActivity(), mUserCountFragment);
                 break;
             case R.id.btn_entry_gps:
@@ -119,11 +130,19 @@ public class EntryFragment extends Fragment implements OnClickListener{
                 break;
         }
     }
-    @Click({R.id.btn_entry_camera})
+    @Click({R.id.btn_entry_camera,R.id.btn_entry_upgrade})
     public void click(View view){
         switch(view.getId()){
             case R.id.btn_entry_camera:  //
                 startActivity(new Intent(getActivity(), CameraActivity.class));
+                break;
+            case R.id.btn_entry_upgrade:
+                mAskStatus = AskStatus.Upgrade;
+                AskNote ask = new AskNote();
+                NetworkChannel.getInstance().request(FormatUtils.makeRequest(null,ask));
+                InfoKeeper.getInstance().putAnswer((AnswerNote) NoteHelper.makeAnswer(ask));
+                updateAnswerNoteList();
+                PageFragmentActivity.fastJump(getActivity(), mUserCountFragment);
                 break;
         }
     }
@@ -141,6 +160,14 @@ public class EntryFragment extends Fragment implements OnClickListener{
                 Log.d(TAG, String.format("请求错误 error:%s,step:%d",eventNetwork.getError(),eventNetwork.getStep()));
             }else{
                 Log.d(TAG, "请求设备信息成功");
+                if(mUpdateOrderNote != null) {
+                    if (eventNetwork.getObject() instanceof String && eventNetwork.getObject().equals(mUpdateOrderNote.getApkName())) {
+                        ToastUtils.show("上传apk成功:" + mUpdateOrderNote.getApkName() , Toast.LENGTH_SHORT);
+                        NetworkChannel.getInstance().request(FormatUtils.makeRequest(null, mUpdateOrderNote));
+                    }else if(eventNetwork.getObject() instanceof UpdateOrderNote){
+                        mUpdateOrderNote = null;
+                    }
+                }
             }
             return;
         }
@@ -149,19 +176,7 @@ public class EntryFragment extends Fragment implements OnClickListener{
                 ToastUtils.show("请求用户数error:" + eventNetwork.getError() , Toast.LENGTH_SHORT);
             }else{
                 InfoKeeper.getInstance().putAnswer((AnswerNote) eventNetwork.getObject());
-                mAnswerNotes = new ArrayList<>();
-                mAnswerNotes.addAll(InfoKeeper.getInstance().getAnswers());
-
-                List<String> info = new ArrayList<>();
-                for(AnswerNote item :mAnswerNotes){
-                    info.add(item.toString());
-                }
-                mUserCountFragment.setMessages(info);
-            }
-        }else if(eventNetwork.getObject() instanceof AskNote){
-            if(TextUtils.isEmpty(eventNetwork.getError())){
-                AskNote note = ((AskNote) eventNetwork.getObject());
-                AppLifeNetworkService.getInstance().request(FormatUtils.makeRequest(null, NoteHelper.makeAnswer(note)));
+                updateAnswerNoteList();
             }
         }else if(eventNetwork.getObject() instanceof DeviceInfo){
             if(TextUtils.isEmpty(eventNetwork.getError())){
@@ -170,7 +185,53 @@ public class EntryFragment extends Fragment implements OnClickListener{
         }
     }
 
+    private void askNewAnswerNote(AnswerNote note){
+        AskNote askNote = new AskNote(AskNote.TYPE_EASY);
+        askNote.setSessionType(SessionNote.TYPE_DEVICE);
+        askNote.addSessionCondition(note.getDeviceId());
+        askNote.addSessionCondition(Application.App.getDeviceId());
+        if(note.getDeviceId().equals(Application.App.getDeviceId())){
+            // 如果请求自己就不去访问网络了
+            NoteHelper.makeAnswer(askNote);
+            showDeviceInfo((DeviceInfo) NoteHelper.makeAnswer(askNote));
+        }else{
+            NetworkChannel.getInstance().request(FormatUtils.makeRequest(null, askNote));
+        }
+    }
+
+    private void askDeviceInfo(AnswerNote note){
+        AskNote askNote = new AskNote(AskNote.TYPE_DETAIL);
+        askNote.setSessionType(SessionNote.TYPE_DEVICE);
+        askNote.addSessionCondition(note.getDeviceId());
+        askNote.addSessionCondition(Application.App.getDeviceId());
+        if(note.getDeviceId().equals(Application.App.getDeviceId())){
+            // 如果请求自己就不去访问网络了
+            NoteHelper.makeAnswer(askNote);
+            showDeviceInfo((DeviceInfo) NoteHelper.makeAnswer(askNote));
+        }else{
+            NetworkChannel.getInstance().request(FormatUtils.makeRequest(null, askNote));
+        }
+    }
+
+    private void orderUpgrade(AnswerNote note){
+
+    }
+
     private void showDeviceInfo(DeviceInfo info){
         ToastUtils.show( info.toString(),Toast.LENGTH_LONG);
+    }
+
+    private void updateAnswerNoteList(){
+        if(mAnswerNotes == null) {
+            mAnswerNotes = new ArrayList<>();
+        }
+        mAnswerNotes.clear();
+        mAnswerNotes.addAll(InfoKeeper.getInstance().getAnswers());
+
+        List<String> info = new ArrayList<>();
+        for(AnswerNote item :mAnswerNotes){
+            info.add(item.toString());
+        }
+        mUserCountFragment.setMessages(info);
     }
 }

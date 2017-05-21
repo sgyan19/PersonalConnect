@@ -215,7 +215,7 @@ public class FormatUtils {
         }
         ClassLoader loader = context.getClassLoader();
         if(responseJson.getData() == null || responseJson.getData().length < 2){
-            return null;
+            return responseJson.getData()[0];
         }
         String format = responseJson.getData()[0];
         Class clazz = loader.loadClass(format);

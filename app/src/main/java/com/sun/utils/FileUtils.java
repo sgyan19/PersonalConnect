@@ -71,7 +71,7 @@ public class FileUtils {
         Arrays.sort(files, new Comparator<File>() {
             @Override
             public int compare(File file, File t1) {
-                return (int) (file.lastModified() - t1.lastModified());
+                return file.lastModified() - t1.lastModified() > 0 ? 1 : -1;
             }
         });
         int shouldDelete = files.length - count;

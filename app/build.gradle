@@ -10,7 +10,7 @@ android {
         applicationId "com.sun.personalconnect"
         minSdkVersion 21
         targetSdkVersion 25
-        versionCode 1
+        versionCode new Long(Long.valueOf(releaseTimeMin()) - 201705202100).intValue()
         versionName "1.0"
     }
     signingConfigs {
@@ -51,7 +51,9 @@ dependencies {
     compile files('libs/Amap_2DMap_V4.2.0_20170209.jar')
     compile files('libs/bugly_crash_release.jar')
 }
-
+def releaseTimeMin() {
+        return new Date().format("yyyyMMddHHmm")
+}
 apt {
     arguments {
         androidManifestFile variant.outputs[0]?.processResources?.manifestFile

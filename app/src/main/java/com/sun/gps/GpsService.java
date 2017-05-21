@@ -141,7 +141,7 @@ public class GpsService extends Service {
             if(mRequestHistory.remove(key) != null){
 //                GpsNote note = mRequestHistory.get(key);
 //                mRequestHistory.remove(key);
-//                StatusFragment.addMessage(String.format("gps request error,id:%d,gear:%s", note.getId(), note.getGpsGear()));
+//                StatusFragment.addMessage(String.format("gps upload error,id:%d,gear:%s", note.getId(), note.getGpsGear()));
                 return true;
             }else {
                 return false;
@@ -162,9 +162,9 @@ public class GpsService extends Service {
         public boolean onParserData(String key, ResponseJson json, Object data, String info) {
             if(mRequestHistory.containsKey(key)){
                 GpsNote note = mRequestHistory.get(key);
-                Log.d(TAG, String.format("request back key:%s,note:%d", key, note.getId()));
+                Log.d(TAG, String.format("upload back key:%s,note:%d", key, note.getId()));
                 mRequestHistory.remove(key);
-//                StatusFragment.addMessage(String.format("gps request success,id:%d", note.getId()));
+//                StatusFragment.addMessage(String.format("gps upload success,id:%d", note.getId()));
                 return true;
             }
 
@@ -173,7 +173,7 @@ public class GpsService extends Service {
                     if (data instanceof GpsRequest) {
                         GpsRequest gpsRequest = (GpsRequest) data;
                         if(LevelCenter.serverCheck(gpsRequest.getUserId())){
-                            Log.d(TAG, "server gps request");
+                            Log.d(TAG, "server gps upload");
                             mOutGpsListener = mInGpsListener;
                             mBinder.requestGps(BaseActivity.getAnyInstance(), WHO_MINE, gpsRequest.getGpsGear());
                         }
@@ -188,6 +188,11 @@ public class GpsService extends Service {
                 }
             }
             return false;
+        }
+
+        @Override
+        public void onOver(String key) {
+
         }
     };
 

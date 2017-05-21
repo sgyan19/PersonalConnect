@@ -75,8 +75,8 @@ public class CvsService extends Service {
 
         @Override
         public boolean onError(String key, String error) {
-            if(mRequestHistory.remove(key) != null){
-                CvsNote note = mRequestHistory.get(key);
+            CvsNote note;
+            if((note = mRequestHistory.remove(key)) != null){
                 note.setSendStatus(CvsNote.STATUS_FAL);
                 Application.App.getCvsHistoryManager().updateCache(note.getId());
 //                mRequestHistory.remove(key);
@@ -111,7 +111,7 @@ public class CvsService extends Service {
                     listener.onNewFile(file);
                 }
             }
-            return true;
+            return false;
         }
 
         @Override
@@ -152,6 +152,11 @@ public class CvsService extends Service {
                 return true;
             }
             return false;
+        }
+
+        @Override
+        public void onOver(String key) {
+
         }
     };
 

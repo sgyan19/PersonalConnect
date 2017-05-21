@@ -2,6 +2,8 @@ package com.sun.device;
 
 import com.sun.common.SessionNote;
 
+import java.util.Locale;
+
 /**
  * Created by guoyao on 2017/4/21.
  */
@@ -10,6 +12,7 @@ public class AnswerNote extends SessionNote {
     private String userName;
     private String time;
     private String deviceId;
+    private int versionCode;
 
     public int getUserId() {
         return userId;
@@ -43,8 +46,16 @@ public class AnswerNote extends SessionNote {
         this.deviceId = deviceId;
     }
 
+    public int getVersionCode() {
+        return versionCode;
+    }
+
+    public void setVersionCode(int versionCode) {
+        this.versionCode = versionCode;
+    }
+
     @Override
     public String toString() {
-        return String.format("Did:%s, uid:%d, name:%s time:%s", deviceId ,userId,userName,time);
+        return String.format(Locale.CHINA,"Did:%s, uid:%d, name:%s versionCode:%d time:%s", deviceId ,userId,userName, versionCode,time);
     }
 }

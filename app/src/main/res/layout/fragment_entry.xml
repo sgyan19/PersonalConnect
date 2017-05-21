@@ -17,6 +17,11 @@
         android:layout_width="match_parent"
         android:layout_height="60dp"
         android:text="摄像头"/>
+    <Button
+        android:id="@+id/btn_entry_upgrade"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:text="升级app"/>
     <View
         android:layout_width="1dp"
         android:layout_height="0dp"

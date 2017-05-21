@@ -34,6 +34,7 @@ public class SocketReceiver extends BaseReceiver<SocketReceiver.SocketReceiveLis
         boolean onParserResponse(String key, ResponseJson json, String info);
         boolean onReceiveFile(String key, File file, String info);
         boolean onParserData(String key, ResponseJson json, Object data, String info);
+        void onOver(String key);
     }
 
     public static void register(Context context, SocketReceiveListener listener){
@@ -60,6 +61,7 @@ public class SocketReceiver extends BaseReceiver<SocketReceiver.SocketReceiveLis
         if(connected) {
             for (Map.Entry<Context, SocketReceiveListener> entry : getListeners().entrySet()) {
                 if (entry.getValue().onReconnected(true)) {
+                    overParser(key);
                     return;
                 }
             }
@@ -67,6 +69,7 @@ public class SocketReceiver extends BaseReceiver<SocketReceiver.SocketReceiveLis
         if(!TextUtils.isEmpty(error)) {
             for (Map.Entry<Context, SocketReceiveListener> entry : getListeners().entrySet()) {
                 if (entry.getValue().onError(key, error)) {
+                    overParser(key);
                     return;
                 }
             }
@@ -86,14 +89,20 @@ public class SocketReceiver extends BaseReceiver<SocketReceiver.SocketReceiveLis
                     e.printStackTrace();
                     info = e.toString();
                 }
-                if(handleResponse(responseObj, response)){
-                    return;
-                }
                 if(responseObj != null){
-                    key = responseObj.getRequestId();
+                    if(TextUtils.isEmpty(key)){
+                        key = responseObj.getRequestId();
+                    }else if(TextUtils.isEmpty(responseObj.getRequestId())) {
+                        responseObj.setRequestId(key);
+                    }
+                }
+                if(handleResponse(responseObj, response)){
+                    overParser(key);
+                    return;
                 }
                 for (Map.Entry<Context, SocketReceiveListener> entry : getListeners().entrySet()) {
                     if (entry.getValue().onParserResponse(key, responseObj, info)) {
+                        overParser(key);
                         return;
                     }
                 }
@@ -103,11 +112,15 @@ public class SocketReceiver extends BaseReceiver<SocketReceiver.SocketReceiveLis
                 Log.d(TAG, "BroadcastReceiver raw path:" + file.getPath());
                 for (Map.Entry<Context, SocketReceiveListener> entry : getListeners().entrySet()) {
                     if (entry.getValue().onReceiveFile(key, file, null)) {
+                        overParser(key);
                         return;
                     }
                 }
+                overParser(key);
+                return;
             }
             if(responseObj == null){
+                overParser(key);
                 return;
             }
             key = responseObj.getRequestId();
@@ -120,13 +133,21 @@ public class SocketReceiver extends BaseReceiver<SocketReceiver.SocketReceiveLis
                 info = e.toString();
             }
             if(handleData(responseObj, obj)){
+                overParser(key);
                 return;
             }
             for (Map.Entry<Context, SocketReceiveListener> entry : getListeners().entrySet()) {
                 if (entry.getValue().onParserData(key, responseObj, obj, info)) {
+                    overParser(key);
                     return;
                 }
             }
+        }
+    }
+
+    private void overParser(String key){
+        for (Map.Entry<Context, SocketReceiveListener> entry : getListeners().entrySet()) {
+            entry.getValue().onOver(key);
         }
     }
 

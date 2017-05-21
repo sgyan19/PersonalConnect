@@ -4,10 +4,9 @@ import android.Manifest;
 import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.os.Build;
-import android.os.FileObserver;
-import android.provider.CalendarContract;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.util.Log;
@@ -16,7 +15,7 @@ import com.nostra13.universalimageloader.core.ImageLoader;
 import com.nostra13.universalimageloader.core.ImageLoaderConfiguration;
 import com.nostra13.universalimageloader.core.assist.QueueProcessingType;
 import com.sun.account.Account;
-import com.sun.connect.AppLifeNetworkService;
+import com.sun.connect.NetworkChannel;
 import com.sun.connect.ResponseHistoryManager;
 import com.sun.conversation.CvsHistoryManager;
 import com.sun.connect.SocketService;
@@ -24,12 +23,10 @@ import com.sun.conversation.CvsService;
 import com.sun.gps.GpsService;
 import com.sun.level.LevelCenter;
 import com.sun.level.Ring;
+import com.sun.service.AnswerService;
 import com.sun.utils.DirectoryManager;
-import com.sun.utils.FileUtils;
 import com.sun.utils.SharedPreferencesUtil;
 import com.tencent.bugly.crashreport.CrashReport;
-
-import java.io.File;
 
 /**
  * Created by guoyao on 2016/12/13.
@@ -59,8 +56,10 @@ public class Application extends android.app.Application {
     private LevelCenter mLevelCenter;
     private Ring mRing;
 
-    private AppLifeNetworkService mAppLifeNetworkService;
+    private NetworkChannel mNetworkChannel;
     private InfoKeeper mInfoKeeper;
+    public String VersionName;
+    public int VersionCode;
 
     @Override
     public void onCreate() {
@@ -88,6 +87,7 @@ public class Application extends android.app.Application {
 
     private void init() {
         CrashReport.initCrashReport(getApplicationContext(), "0e5b8e8cca", true);
+        initVersionInfo();
         account = new Account();
         daoSessionManager = new DaoSessionManager();
         cvsHistoryManager = new CvsHistoryManager();
@@ -95,7 +95,7 @@ public class Application extends android.app.Application {
         responseHistoryManager.init(daoSessionManager.getDaoSession(this));
         cvsHistoryManager.init(daoSessionManager.getDaoSession(this));
 
-        mAppLifeNetworkService = new AppLifeNetworkService();
+        mNetworkChannel = new NetworkChannel();
         ImageLoaderConfiguration config = new ImageLoaderConfiguration.Builder(getContext())
                 .threadPriority(Thread.NORM_PRIORITY - 1).threadPoolSize(4)
                 .denyCacheImageMultipleSizesInMemory().tasksProcessingOrder(QueueProcessingType.LIFO)
@@ -105,7 +105,8 @@ public class Application extends android.app.Application {
         startService(new Intent(this, SocketService.class));
         startService(new Intent(this, CvsService.class));
         startService(new Intent(this, GpsService.class));
-        mAppLifeNetworkService.init();
+        startService(new Intent(this, AnswerService.class));
+        mNetworkChannel.init(this);
         mRing = new Ring();
         mLevelCenter = new LevelCenter();
 
@@ -170,7 +171,7 @@ public class Application extends android.app.Application {
     public void onTerminate() {
         if (mUiApp) {
             daoSessionManager.release();
-            mAppLifeNetworkService.release();
+            mNetworkChannel.release();
         }
         super.onTerminate();
     }
@@ -225,11 +226,28 @@ public class Application extends android.app.Application {
         SharedPreferencesUtil.putString(KEY_STRING_DEVICEID, mDeviceId);
     }
 
-    public AppLifeNetworkService getNetworkService() {
-        return mAppLifeNetworkService;
+    public NetworkChannel getNetworkService() {
+        return mNetworkChannel;
     }
 
     public InfoKeeper getInfoKeeper() {
         return mInfoKeeper;
+    }
+
+    /**
+     * get App versionCode
+     * @return
+     */
+    public void initVersionInfo(){
+        PackageManager packageManager=getPackageManager();
+        PackageInfo packageInfo;
+        try {
+            packageInfo=packageManager.getPackageInfo(getPackageName(),0);
+            VersionCode = packageInfo.versionCode;
+            VersionName = packageInfo.versionName;
+        } catch (PackageManager.NameNotFoundException e) {
+            e.printStackTrace();
+        }
+        Log.d(TAG,String.format("VERSION_CODE:%d,VERSION_NAME:%s", VersionCode, VersionName));
     }
 }

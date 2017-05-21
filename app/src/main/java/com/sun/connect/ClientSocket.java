@@ -132,9 +132,9 @@ public class ClientSocket {
                 OutputStream outputStream = mSocket.getOutputStream();
                 outputStream.write(HEADER_RAW);
                 sendTextFrame(outputStream, name);
-                Log.d(TAG, "requestRaw name suc");
+                Log.d(TAG, "uploadRaw name suc");
                 sendRawFrame(outputStream, name);
-                Log.d(TAG, "requestRaw file suc");
+                Log.d(TAG, "uploadRaw file suc");
                 response = receive();
             } catch (IOException e) {
                 Log.d(TAG, "requestRawWithoutBack exception:" + e.toString());
@@ -194,6 +194,7 @@ public class ClientSocket {
         if(len >= 1){
             if(recBuffer[0] == HeartBeatANS) {
                 Log.d(TAG, "HeartBeatANS");
+//                response.type = SocketMessage.SOCKET_TYPE_HEART;
             }else if(recBuffer[0] == HEADER_RAW){
                 response.type = SocketMessage.SOCKET_TYPE_RAW;
                 Log.d(TAG, "HEADER_RAW");
@@ -227,6 +228,9 @@ public class ClientSocket {
 
     private void sendRawFrame(OutputStream stream, String fileName) throws IOException{
         File file = new File(mRawDir, fileName);
+        if(!file.exists()){
+            return;
+        }
         int size = (int)file.length();
         intToBytes(size, sendBuffer, 0);
         stream.write(sendBuffer, 0, 4);
