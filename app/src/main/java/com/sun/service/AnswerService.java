@@ -33,7 +33,7 @@ public class AnswerService extends Service implements NetworkChannel.INetworkLis
     private ServiceBinder mBinder;
     private NetworkChannel mNetworkChannel;
     public static final String TAG = "AnswerService";
-
+    private int mDownloadCode = 0;
     @Override
     public void onEventNetwork(EventNetwork eventNetwork) {
         if(eventNetwork.isMine()){
@@ -42,7 +42,7 @@ public class AnswerService extends Service implements NetworkChannel.INetworkLis
                 Log.e(TAG, String.format("请求错误 error:%s,step:%d",eventNetwork.getError(),eventNetwork.getStep()));
             }else{
                 if(eventNetwork.getObject() instanceof File){
-                    checkInstallApk(Application.App.VersionCode, (File)eventNetwork.getObject(),false);
+                    checkInstallApk(mDownloadCode, (File)eventNetwork.getObject(),false);
                 }
                 Log.d(TAG, "请求设备信息成功");
             }
@@ -86,6 +86,7 @@ public class AnswerService extends Service implements NetworkChannel.INetworkLis
         if(pkgInfo == null){
             if(retryDownload) {
                 mNetworkChannel.download(FormatUtils.makeDownloadRequest(null,apkFile.getName()));
+                mDownloadCode = code;
             }
         }else{
             install(apkFile);

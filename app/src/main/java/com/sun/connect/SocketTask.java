@@ -241,7 +241,7 @@ public class SocketTask implements Runnable {
                 Log.d(TAG, "requestJson data " + messageData.requestData.data);
                 mCoreSocket.requestJsonWithoutBack(messageData.requestData.data);
             }else if(messageData.requestData.type == SocketMessage.SOCKET_TYPE_RAW){
-                Log.d(TAG, "uploadRaw data " + messageData.requestData.data);
+                Log.d(TAG, "requestRaw data " + messageData.requestData.data);
                 mCoreSocket.requestRawWithoutBack(messageData.requestData.data);
             }
         }else {
@@ -250,7 +250,7 @@ public class SocketTask implements Runnable {
                 Log.d(TAG, "requestJson data " + messageData.requestData.data);
                 response  = mCoreSocket.requestJson(messageData.requestData.data);
             }else if(messageData.requestData.type == SocketMessage.SOCKET_TYPE_RAW){
-                Log.d(TAG, "uploadRaw data " + messageData.requestData.data);
+                Log.d(TAG, "requestRaw data " + messageData.requestData.data);
                 response = mCoreSocket.requestRaw(messageData.requestData.data);
             }
             if (messageData.callback != null) {

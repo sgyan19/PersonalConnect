@@ -132,9 +132,9 @@ public class ClientSocket {
                 OutputStream outputStream = mSocket.getOutputStream();
                 outputStream.write(HEADER_RAW);
                 sendTextFrame(outputStream, name);
-                Log.d(TAG, "uploadRaw name suc");
+                Log.d(TAG, "requestRaw name suc");
                 sendRawFrame(outputStream, name);
-                Log.d(TAG, "uploadRaw file suc");
+                Log.d(TAG, "requestRaw file suc");
                 response = receive();
             } catch (IOException e) {
                 Log.d(TAG, "requestRawWithoutBack exception:" + e.toString());
@@ -187,6 +187,7 @@ public class ClientSocket {
     }
 
     public SocketMessage receive() throws IOException{
+        Log.d(TAG, "start receive()");
         mSocket.setSoTimeout(0);
         SocketMessage response = new SocketMessage();
         InputStream stream = mSocket.getInputStream();
@@ -194,20 +195,23 @@ public class ClientSocket {
         if(len >= 1){
             if(recBuffer[0] == HeartBeatANS) {
                 Log.d(TAG, "HeartBeatANS");
-//                response.type = SocketMessage.SOCKET_TYPE_HEART;
             }else if(recBuffer[0] == HEADER_RAW){
                 response.type = SocketMessage.SOCKET_TYPE_RAW;
                 Log.d(TAG, "HEADER_RAW");
                 response.data = receiveTextFrame(stream);
+                Log.d(TAG, "receiveTextFrame suc:" + response.data);
                 receiveRawFrame(stream, response.data);
             }else if(recBuffer[0] == HEADER_JSON){
+                Log.d(TAG, "HEADER_JSON");
                 response.type = SocketMessage.SOCKET_TYPE_JSON;
                 response.data = receiveTextFrame(stream);
+                Log.d(TAG, "receiveTextFrame suc:" + response.data);
             }else{
                 Log.d(TAG, "unknown code:" + recBuffer[0]);
                 receiveTrash(stream);
             }
         }else{
+            Log.d(TAG, "len < -1" );
             mRemoteClosed = true;
         }
         return response;
@@ -228,9 +232,6 @@ public class ClientSocket {
 
     private void sendRawFrame(OutputStream stream, String fileName) throws IOException{
         File file = new File(mRawDir, fileName);
-        if(!file.exists()){
-            return;
-        }
         int size = (int)file.length();
         intToBytes(size, sendBuffer, 0);
         stream.write(sendBuffer, 0, 4);
@@ -282,6 +283,7 @@ public class ClientSocket {
     }
 
     private void receiveRawFrame(InputStream stream, String name) throws IOException{
+        Log.d(TAG, "receiveRawFrame into");
         stream.read(recBuffer, 0, 4);
         int size = bytesToInt(recBuffer, 0);
         Log.d(TAG, String.format("read receiveRawFrame size:%d", size));
