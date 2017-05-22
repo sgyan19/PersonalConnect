@@ -16,7 +16,6 @@ import com.sun.connect.EventNetwork;
 import com.sun.connect.NetworkChannel;
 import com.sun.device.AskNote;
 import com.sun.device.NoteHelper;
-import com.sun.gps.Gps;
 import com.sun.gps.GpsListener;
 import com.sun.gps.GpsRequest;
 import com.sun.gps.GpsResponse;
@@ -25,7 +24,6 @@ import com.sun.level.UpdateOrderNote;
 import com.sun.personalconnect.Application;
 import com.sun.utils.FormatUtils;
 import com.sun.utils.ToastUtils;
-import com.sun.utils.Utils;
 
 import java.io.File;
 

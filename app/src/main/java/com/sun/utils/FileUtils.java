@@ -8,6 +8,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Array;
 import java.nio.channels.FileChannel;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Comparator;
 
@@ -53,6 +55,45 @@ public class FileUtils {
                 e.printStackTrace();
             }
         }
+    }
+
+
+    public static byte[] copyFileWidthMd5(File src, File dst){
+        MessageDigest md5;
+        FileInputStream fi = null;
+        FileOutputStream fo = null;
+        try {
+            md5 = MessageDigest.getInstance("MD5");
+            fi = new FileInputStream(src);
+            fo = new FileOutputStream(dst);
+            byte[] buffer = new byte[1024];
+            int i;
+            while ((i = fi.read(buffer, 0 , 1024)) > 0) {
+                md5.update(buffer,0, i);
+                fo.write(buffer, 0, i);
+            }
+            return md5.digest();
+        }catch (NoSuchAlgorithmException e){
+
+        }catch (IOException e){
+            e.printStackTrace();
+        }finally {
+            try{
+                if(fi != null) {
+                    fi.close();
+                }
+            }catch (IOException e){
+                e.printStackTrace();
+            }
+            try{
+                if(fo != null) {
+                    fo.close();
+                }
+            }catch (IOException e){
+                e.printStackTrace();
+            }
+        }
+        return null;
     }
 
     /**

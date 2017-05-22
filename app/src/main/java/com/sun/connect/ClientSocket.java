@@ -2,6 +2,8 @@ package com.sun.connect;
 
 import android.util.Log;
 
+import com.sun.utils.Utils;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -28,6 +30,9 @@ public class ClientSocket {
     public static final byte HeartBeatASK = 0x19;
     public static final byte HeartBeatANS = (byte)0x91;
     public static final byte HEADER_RAW = (byte)0x2B;
+    public static final byte HEADER_CKRAW = (byte)0x3B;
+    public static final byte HEADER_CK_SUC_RAW = (byte)0x3C;
+    public static final byte HEADER_CK_FAIL_RAW = (byte)0x3D;
     public static final byte HEADER_JSON = (byte)0x7B;
 
     public final Object lock = new Object();
@@ -111,8 +116,8 @@ public class ClientSocket {
                 OutputStream outputStream = mSocket.getOutputStream();
                 outputStream.write(HEADER_JSON);
                 sendTextFrame(outputStream, request);
-                response = receive();
                 Log.d(TAG, "requestJson suc");
+                response = receive();
             } catch (IOException e) {
                 Log.d(TAG, "requestJson exception:" + e.toString());
                 mLastException = e;
@@ -136,6 +141,49 @@ public class ClientSocket {
                 sendRawFrame(outputStream, name);
                 Log.d(TAG, "requestRaw file suc");
                 response = receive();
+            } catch (IOException e) {
+                Log.d(TAG, "requestRawWithoutBack exception:" + e.toString());
+                mLastException = e;
+                if (e instanceof SocketException) {
+                    mRemoteClosed = true;
+                }
+                e.printStackTrace();
+            }
+        }
+        return response;
+    }
+
+    public SocketMessage requestCheckRaw(String name){
+        SocketMessage response = null;
+        synchronized (lock) {
+            try {
+                OutputStream outputStream = mSocket.getOutputStream();
+                outputStream.write(HEADER_CKRAW);
+                sendTextFrame(outputStream, name);
+                Log.d(TAG, "requestRaw name suc");
+
+                File file = new File(mRawDir, name);
+                byte[] md5 = Utils.md5Hex(file);
+                sendRawFrame(outputStream, md5);
+                Log.d(TAG, "requestRaw md5 suc");
+
+                InputStream inputStream = mSocket.getInputStream();
+                int len  = inputStream.read(recBuffer,0,1);
+                if(len > 0 ){
+                    if(recBuffer[0] == HEADER_CK_SUC_RAW) {
+                        Log.d(TAG, "receive md5 check suc");
+                        response = receive();
+                    }else if(recBuffer[0] == HEADER_CK_FAIL_RAW){
+                        Log.d(TAG, "receive md5 check suc");
+                        sendRawFrame(outputStream, name);
+                        Log.d(TAG, "requestRaw file suc");
+                        response = receive();
+                    }else {
+                        Log.d(TAG, "receive md5 check unknown code:" + recBuffer[0]);
+                    }
+                }else {
+                    Log.d(TAG, "receive md5 check fail len =" + len);
+                }
             } catch (IOException e) {
                 Log.d(TAG, "requestRawWithoutBack exception:" + e.toString());
                 mLastException = e;
@@ -256,6 +304,14 @@ public class ClientSocket {
                 }
             }
         }
+        stream.flush();
+    }
+
+    private void sendRawFrame(OutputStream stream, byte[] data) throws IOException{
+        int size = data.length;
+        intToBytes(size, sendBuffer, 0);
+        stream.write(sendBuffer, 0, 4);
+        stream.write(data);
         stream.flush();
     }
 

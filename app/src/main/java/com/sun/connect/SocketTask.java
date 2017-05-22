@@ -258,15 +258,13 @@ public class SocketTask implements Runnable {
             SocketMessage response = null;
             do {
                 Log.d(TAG, String.format("request %d time",time));
-                while (mRetryTimes >= 0 && response == null) {
                     if (messageData.requestData.type == SocketMessage.SOCKET_TYPE_JSON || messageData.requestData.type == SocketMessage.SOCKET_TYPE_JSON_DOWNLOAD_RAW) {
                         Log.d(TAG, "requestJson data " + messageData.requestData.data);
                         response = mCoreSocket.requestJson(messageData.requestData.data);
                     } else if (messageData.requestData.type == SocketMessage.SOCKET_TYPE_RAW) {
                         Log.d(TAG, "requestRaw data " + messageData.requestData.data);
-                        response = mCoreSocket.requestRaw(messageData.requestData.data);
+                        response = mCoreSocket.requestCheckRaw(messageData.requestData.data);
                     }
-                }
             }while (response == null && time++ < mRetryTimes);
             if (messageData.callback != null) {
                 if (response == null) {
