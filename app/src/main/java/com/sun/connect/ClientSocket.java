@@ -332,13 +332,45 @@ public class ClientSocket {
         mSocket.setSoTimeout(old);
     }
 
-    public boolean heartbeat(){
+    public boolean heartbeatAsync(){
+        Log.d(TAG, "heartbeatAsync");
         synchronized (lock) {
             try {
                 OutputStream outputStream = mSocket.getOutputStream();
                 outputStream.write(mHeartBeatData);
                 outputStream.flush();
                 Log.d(TAG, "heartbeatASK");
+                mRemoteClosed = false;
+            } catch (IOException e) {
+                Log.d(TAG, "heartbeatAsync exception:" + e.toString());
+                mLastException = e;
+                if (e instanceof SocketException) {
+                    mRemoteClosed = true;
+                }
+                e.printStackTrace();
+            }
+        }
+        return !mRemoteClosed;
+    }
+
+    public boolean heartbeat(){
+        Log.d(TAG, "heartbeat test");
+        synchronized (lock) {
+            try {
+                mSocket.setSoTimeout(0);
+
+                OutputStream outputStream = mSocket.getOutputStream();
+                outputStream.write(mHeartBeatData);
+                outputStream.flush();
+                InputStream stream = mSocket.getInputStream();
+                int len  = stream.read(recBuffer,0,1);
+                if(len >= 1){
+                    if(recBuffer[0] != HeartBeatANS){
+                        Log.d(TAG, "not HeartBeatANS" + recBuffer[0]);
+                        receiveTrash(stream);
+                    }
+                }
+                Log.d(TAG, "heartbeat over");
                 mRemoteClosed = false;
             } catch (IOException e) {
                 Log.d(TAG, "heartbeat exception:" + e.toString());

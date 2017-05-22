@@ -30,6 +30,8 @@ public class SocketTask implements Runnable {
 
     public static final int TIME_HEARTBEAT = 2 * 60 * 1000; // 2分钟一次
 
+    private int mRetryTimes = 1;
+
     private ClientSocket mCoreSocket = new ClientSocket();
     private Thread mCoreThread;
     private SocketHandler mHandler;
@@ -207,22 +209,29 @@ public class SocketTask implements Runnable {
     }
 
     public boolean makeSureConnected(String id, SocketCallback sucBack, SocketCallback errBack,SocketCallback onConnectCallback){
-        boolean connected ;
-        if(mCoreSocket.isConnecting()){
-            connected = true;
-        }else{
-            connected = mCoreSocket.connect();
-            if(connected) {
-                if (onConnectCallback != null) {
-                    onConnectCallback.onConnected(id);
-                }
-                if (mReceiving) {
-                    synchronized (ReceiveLock) {
-                        ReceiveLock.notifyAll();
+        boolean connected;
+        int time = 0;
+        do{
+            Log.d(TAG, String.format("makeSureConnected %d time", time));
+            if (mCoreSocket.isConnecting()) {
+                connected = true;
+            } else {
+                connected = mCoreSocket.connect();
+                if (connected) {
+                    if (onConnectCallback != null) {
+                        onConnectCallback.onConnected(id);
+                    }
+                    if (mReceiving) {
+                        synchronized (ReceiveLock) {
+                            ReceiveLock.notifyAll();
+                        }
                     }
                 }
             }
-        }
+            if(!mReceiving) {
+                connected = mCoreSocket.heartbeat();
+            }
+        }while(!connected && time++ < mRetryTimes);
         if(connected){
             if(sucBack != null) {
                 sucBack.onComplete(id, null);
@@ -245,14 +254,20 @@ public class SocketTask implements Runnable {
                 mCoreSocket.requestRawWithoutBack(messageData.requestData.data);
             }
         }else {
+            int time = 0;
             SocketMessage response = null;
-            if(messageData.requestData.type == SocketMessage.SOCKET_TYPE_JSON|| messageData.requestData.type == SocketMessage.SOCKET_TYPE_JSON_DOWNLOAD_RAW) {
-                Log.d(TAG, "requestJson data " + messageData.requestData.data);
-                response  = mCoreSocket.requestJson(messageData.requestData.data);
-            }else if(messageData.requestData.type == SocketMessage.SOCKET_TYPE_RAW){
-                Log.d(TAG, "requestRaw data " + messageData.requestData.data);
-                response = mCoreSocket.requestRaw(messageData.requestData.data);
-            }
+            do {
+                Log.d(TAG, String.format("request %d time",time));
+                while (mRetryTimes >= 0 && response == null) {
+                    if (messageData.requestData.type == SocketMessage.SOCKET_TYPE_JSON || messageData.requestData.type == SocketMessage.SOCKET_TYPE_JSON_DOWNLOAD_RAW) {
+                        Log.d(TAG, "requestJson data " + messageData.requestData.data);
+                        response = mCoreSocket.requestJson(messageData.requestData.data);
+                    } else if (messageData.requestData.type == SocketMessage.SOCKET_TYPE_RAW) {
+                        Log.d(TAG, "requestRaw data " + messageData.requestData.data);
+                        response = mCoreSocket.requestRaw(messageData.requestData.data);
+                    }
+                }
+            }while (response == null && time++ < mRetryTimes);
             if (messageData.callback != null) {
                 if (response == null) {
                     messageData.callback.onError(id, mCoreSocket.getLastException());
@@ -264,7 +279,7 @@ public class SocketTask implements Runnable {
     }
 
     public void SocketCheck(){
-        boolean bol = mCoreSocket.heartbeat();
+        boolean bol = mCoreSocket.heartbeatAsync();
         mHandler.removeMessages(MSG_CONNECT_CHECK);
         if(bol){
             mHandler.sendMessageDelayed(Message.obtain(mHandler, MSG_CONNECT_CHECK), TIME_HEARTBEAT);
@@ -295,5 +310,13 @@ public class SocketTask implements Runnable {
 
     public boolean isConnected(){
         return mCoreSocket.isConnecting();
+    }
+
+    public int getRetryTimes() {
+        return mRetryTimes;
+    }
+
+    public void setRetryTimes(int mRetryTimes) {
+        this.mRetryTimes = mRetryTimes;
     }
 }

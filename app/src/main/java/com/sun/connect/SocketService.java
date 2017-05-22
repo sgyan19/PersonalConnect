@@ -156,8 +156,9 @@ public class SocketService extends Service {
         Log.d(TAG,"启动json socketTask:" +   jsonSocketTask.hashCode());
         jsonSocketTask.setRawFolder(Application.App.getSocketRawFolder());
         rawSocketTask = new SocketTask();
-        rawSocketTask.start();
         rawSocketTask.setRawFolder(Application.App.getSocketRawFolder());
+        rawSocketTask.setRetryTimes(5);
+        rawSocketTask.start();
         Log.d(TAG,"启动raw socketTask:" +   rawSocketTask.hashCode());
 
         mRawDirObserver = new RawFolderObserver(Application.App.getSocketRawFolder(), FileObserver.CREATE );
