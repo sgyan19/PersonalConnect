@@ -89,9 +89,6 @@
             android:name="com.sun.conversation.CvsService">
         </service>
         <service
-            android:name="com.sun.gps.GpsService">
-        </service>
-        <service
             android:name="com.sun.service.AnswerService">
         </service>
         <service

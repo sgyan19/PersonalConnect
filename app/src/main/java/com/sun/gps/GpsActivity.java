@@ -1,18 +1,14 @@
 package com.sun.gps;
 
-import android.content.ComponentName;
-import android.content.Intent;
-import android.content.ServiceConnection;
 import android.location.Location;
 import android.os.Bundle;
-import android.os.IBinder;
 import android.view.View;
 import android.widget.TextView;
-import android.widget.Toast;
 
+import com.sun.personalconnect.Application;
 import com.sun.personalconnect.BaseActivity;
 import com.sun.personalconnect.R;
-import com.sun.utils.ToastUtils;
+import com.sun.utils.FormatUtils;
 import com.sun.utils.Utils;
 
 /**
@@ -32,9 +28,6 @@ public class GpsActivity extends BaseActivity implements GpsListener{
     private TextView mTxtErr;
     private TextView mTxtSource;
 
-    private GpsService.ServiceBinder mGpsServiceBinder;
-    private ServiceConnection mGpsServiceConn;
-
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -49,44 +42,24 @@ public class GpsActivity extends BaseActivity implements GpsListener{
         mTxtDevice = (TextView) findViewById(R.id.txt_gps_device);
         mTxtErr = (TextView) findViewById(R.id.txt_gps_err);
         mTxtSource = (TextView)findViewById(R.id.txt_gps_source);
+        Application.App.getModelManager().addGpsWeakListener(this);
 
         findViewById(R.id.btn_gps_get_local).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(mGpsServiceBinder != null){
-                    mGpsServiceBinder.requestGps(GpsActivity.this, GpsService.WHO_MINE, GpsGear.Normal);
-                }
+                    Application.App.getModelManager().setGpsStatus(GpsGear.Once);
             }
         });findViewById(R.id.btn_gps_get_remote).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(mGpsServiceBinder != null){
-                    mGpsServiceBinder.requestGps(GpsActivity.this, GpsService.WHO_USER, GpsGear.Once);
-                }
+                Application.App.getNetworkService().request(FormatUtils.makeGpsRequest(null,null,GpsGear.Once));
             }
         });
-
-        mGpsServiceConn = new ServiceConnection() {
-            @Override
-            public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
-                mGpsServiceBinder = (GpsService.ServiceBinder) iBinder;
-                mGpsServiceBinder.setGpsListener(GpsActivity.this);
-            }
-
-            @Override
-            public void onServiceDisconnected(ComponentName componentName) {
-                mGpsServiceBinder = null;
-            }
-        };
-        bindService(new Intent(GpsActivity.this, GpsService.class), mGpsServiceConn, BIND_AUTO_CREATE);
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if(mGpsServiceConn != null) {
-            unbindService(mGpsServiceConn);
-        }
     }
 
     @Override

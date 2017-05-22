@@ -176,7 +176,7 @@ public class SocketTask implements Runnable {
                     try {
                         Log.d(TAG, "Receive 已连接 开始receive");
                         SocketMessage response = mCoreSocket.receive();
-                        Log.d(TAG, "Receive response:" + response.data);
+//                        Log.d(TAG, "Receive response:" + response.data);
                         if (response.data != null) {
                             if (mDupLexCallback != null) {
                                 mDupLexCallback.onComplete(REQUEST_KEY_ANYBODY, response);

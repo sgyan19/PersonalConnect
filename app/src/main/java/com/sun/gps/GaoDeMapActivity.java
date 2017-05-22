@@ -21,20 +21,22 @@ import com.amap.api.maps2d.model.LatLng;
 import com.amap.api.maps2d.model.Marker;
 import com.amap.api.maps2d.model.MarkerOptions;
 import com.amap.api.maps2d.model.MyLocationStyle;
+import com.sun.connect.EventNetwork;
 import com.sun.personalconnect.Application;
 import com.sun.personalconnect.BaseActivity;
 import com.sun.personalconnect.R;
+import com.sun.utils.FormatUtils;
 import com.sun.utils.StatusFragment;
 import com.sun.utils.Utils;
 
 import java.util.HashMap;
 
+import de.greenrobot.event.EventBus;
+
 /**
  * Created by guoyao on 2017/4/13.
  */
 public class GaoDeMapActivity extends BaseActivity implements GpsListener,LocationSource {
-    private GpsService.ServiceBinder mGpsServiceBinder;
-    private ServiceConnection mGpsServiceConn;
     private MapView mMapView;
     private AMap aMap;
     private boolean MoveIt = true;
@@ -67,22 +69,6 @@ public class GaoDeMapActivity extends BaseActivity implements GpsListener,Locati
         aMap = mMapView.getMap();
         aMap.setTrafficEnabled(false);
         aMap.setLocationSource(this);
-        mGpsServiceConn = new ServiceConnection() {
-            @Override
-            public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
-                mGpsServiceBinder = (GpsService.ServiceBinder) iBinder;
-                mGpsServiceBinder.setGpsListener(GaoDeMapActivity.this);
-
-                mGpsServiceBinder.requestGps(GaoDeMapActivity.this, GpsService.WHO_USER, GpsGear.Low);
-                mGpsServiceBinder.requestGps(GaoDeMapActivity.this, GpsService.WHO_MINE, GpsGear.Low);
-            }
-
-            @Override
-            public void onServiceDisconnected(ComponentName componentName) {
-                mGpsServiceBinder = null;
-            }
-        };
-        bindService(new Intent(GaoDeMapActivity.this, GpsService.class), mGpsServiceConn, BIND_AUTO_CREATE);
 
         findViewById(R.id.view_gps_hide).setOnClickListener(new View.OnClickListener() {
             @Override
@@ -106,20 +92,18 @@ public class GaoDeMapActivity extends BaseActivity implements GpsListener,Locati
         mTxtDevice = (TextView) findViewById(R.id.txt_gps_device);
         mTxtErr = (TextView) findViewById(R.id.txt_gps_err);
         mTxtSource = (TextView)findViewById(R.id.txt_gps_source);
+        Application.App.getModelManager().addGpsWeakListener(this);
 
         findViewById(R.id.btn_gps_get_local).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(mGpsServiceBinder != null){
-                    mGpsServiceBinder.requestGps(GaoDeMapActivity.this, GpsService.WHO_MINE, GpsGear.Once);
-                }
+                Application.App.getModelManager().setGpsStatus(GpsGear.Once);
             }
-        });findViewById(R.id.btn_gps_get_remote).setOnClickListener(new View.OnClickListener() {
+        });
+        findViewById(R.id.btn_gps_get_remote).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(mGpsServiceBinder != null){
-                    mGpsServiceBinder.requestGps(GaoDeMapActivity.this, GpsService.WHO_USER, GpsGear.Once);
-                }
+            Application.App.getNetworkService().request(FormatUtils.makeGpsRequest(null,null,GpsGear.Once));
             }
         });
 
@@ -144,6 +128,11 @@ public class GaoDeMapActivity extends BaseActivity implements GpsListener,Locati
         CameraUpdate mCameraUpdate = CameraUpdateFactory.newCameraPosition(
                 newPosition);
         aMap.moveCamera(mCameraUpdate);
+
+        Application.App.getModelManager().setGpsStatus(GpsGear.Low);
+        Application.App.getNetworkService().request(FormatUtils.makeGpsRequest(null,null,GpsGear.Low));
+
+        EventBus.getDefault().register(this);
     }
     @Override
     protected void onSaveInstanceState(Bundle outState) {
@@ -166,14 +155,8 @@ public class GaoDeMapActivity extends BaseActivity implements GpsListener,Locati
 
     @Override
     protected void onDestroy() {
+        EventBus.getDefault().unregister(this);
         super.onDestroy();
-        if(mGpsServiceConn != null) {
-            unbindService(mGpsServiceConn);
-        }
-        if(mGpsServiceBinder != null){
-            mGpsServiceBinder.stopGpsUpdate( GpsService.WHO_MINE);
-            mGpsServiceBinder.stopGpsUpdate(GpsService.WHO_USER);
-        }
         mMapView.onDestroy();
     }
 
@@ -223,6 +206,13 @@ public class GaoDeMapActivity extends BaseActivity implements GpsListener,Locati
                 marker.setSnippet(
                         String.format("%s\n%s", gpsResponse.getDevice(), Utils.getFormatTime(l.getTime())));
             }
+        }
+    }
+
+    public void onEvent(EventNetwork eventNetwork){
+        Object obj = eventNetwork.getObject();
+        if(obj != null && obj instanceof GpsResponse){
+            onGpsUpdate((GpsResponse)obj);
         }
     }
 

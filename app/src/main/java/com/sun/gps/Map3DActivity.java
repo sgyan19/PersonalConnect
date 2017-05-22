@@ -1,27 +1,20 @@
 package com.sun.gps;
 
-import android.content.ComponentName;
-import android.content.Intent;
-import android.content.ServiceConnection;
 import android.location.Location;
 import android.os.Bundle;
-import android.os.IBinder;
 import android.view.View;
 import android.widget.TextView;
 
 import com.amap.api.maps.AMap;
-import com.amap.api.maps.CameraUpdate;
-import com.amap.api.maps.CameraUpdateFactory;
 import com.amap.api.maps.LocationSource;
 import com.amap.api.maps.MapView;
-import com.amap.api.maps.model.CameraPosition;
 import com.amap.api.maps.model.LatLng;
 import com.amap.api.maps.model.Marker;
 import com.amap.api.maps.model.MarkerOptions;
-import com.sun.account.Account;
 import com.sun.personalconnect.Application;
 import com.sun.personalconnect.BaseActivity;
 import com.sun.personalconnect.R;
+import com.sun.utils.FormatUtils;
 import com.sun.utils.Utils;
 
 import java.util.HashMap;
@@ -30,8 +23,6 @@ import java.util.HashMap;
  * Created by guoyao on 2017/4/13.
  */
 public class Map3DActivity extends BaseActivity implements GpsListener,LocationSource {
-    private GpsService.ServiceBinder mGpsServiceBinder;
-    private ServiceConnection mGpsServiceConn;
     private MapView mMapView;
     private AMap aMap;
     private boolean MoveIt = true;
@@ -59,19 +50,6 @@ public class Map3DActivity extends BaseActivity implements GpsListener,LocationS
         aMap = mMapView.getMap();
         aMap.setTrafficEnabled(true);
         aMap.setLocationSource(this);
-        mGpsServiceConn = new ServiceConnection() {
-            @Override
-            public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
-                mGpsServiceBinder = (GpsService.ServiceBinder) iBinder;
-                mGpsServiceBinder.setGpsListener(Map3DActivity.this);
-            }
-
-            @Override
-            public void onServiceDisconnected(ComponentName componentName) {
-                mGpsServiceBinder = null;
-            }
-        };
-        bindService(new Intent(Map3DActivity.this, GpsService.class), mGpsServiceConn, BIND_AUTO_CREATE);
 //
 
         mTxtIndex = (TextView) findViewById(R.id.txt_gps_index);
@@ -83,20 +61,18 @@ public class Map3DActivity extends BaseActivity implements GpsListener,LocationS
         mTxtDevice = (TextView) findViewById(R.id.txt_gps_device);
         mTxtErr = (TextView) findViewById(R.id.txt_gps_err);
         mTxtSource = (TextView)findViewById(R.id.txt_gps_source);
+        Application.App.getModelManager().addGpsWeakListener(this);
 
         findViewById(R.id.btn_gps_get_local).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(mGpsServiceBinder != null){
-                    mGpsServiceBinder.requestGps(Map3DActivity.this, GpsService.WHO_MINE, GpsGear.Normal);
-                }
+                Application.App.getModelManager().setGpsStatus(GpsGear.Once);
             }
-        });findViewById(R.id.btn_gps_get_remote).setOnClickListener(new View.OnClickListener() {
+        });
+        findViewById(R.id.btn_gps_get_remote).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(mGpsServiceBinder != null){
-                    mGpsServiceBinder.requestGps(Map3DActivity.this, GpsService.WHO_USER, GpsGear.Low);
-                }
+                Application.App.getNetworkService().request(FormatUtils.makeGpsRequest(null,null,GpsGear.Once));
             }
         });
     }
@@ -122,9 +98,6 @@ public class Map3DActivity extends BaseActivity implements GpsListener,LocationS
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if(mGpsServiceConn != null) {
-            unbindService(mGpsServiceConn);
-        }
         mMapView.onDestroy();
     }
 

@@ -20,7 +20,6 @@ import com.sun.connect.ResponseHistoryManager;
 import com.sun.conversation.CvsHistoryManager;
 import com.sun.connect.SocketService;
 import com.sun.conversation.CvsService;
-import com.sun.gps.GpsService;
 import com.sun.level.LevelCenter;
 import com.sun.level.Ring;
 import com.sun.service.AnswerService;
@@ -46,6 +45,7 @@ public class Application extends android.app.Application {
     private ResponseHistoryManager responseHistoryManager;
     private DaoSessionManager daoSessionManager;
     private Account account;
+    private ModelManager modelManager;
 
     private boolean mUiApp;
 
@@ -94,6 +94,7 @@ public class Application extends android.app.Application {
         responseHistoryManager = new ResponseHistoryManager();
         responseHistoryManager.init(daoSessionManager.getDaoSession(this));
         cvsHistoryManager.init(daoSessionManager.getDaoSession(this));
+        modelManager = new ModelManager();
 
         mNetworkChannel = new NetworkChannel();
         ImageLoaderConfiguration config = new ImageLoaderConfiguration.Builder(getContext())
@@ -104,7 +105,6 @@ public class Application extends android.app.Application {
         ImageLoader.getInstance().init(config);
         startService(new Intent(this, SocketService.class));
         startService(new Intent(this, CvsService.class));
-        startService(new Intent(this, GpsService.class));
         startService(new Intent(this, AnswerService.class));
         mNetworkChannel.init(this);
         mRing = new Ring();
@@ -149,6 +149,10 @@ public class Application extends android.app.Application {
 
     public DaoSessionManager getDaoSessionManager() {
         return daoSessionManager;
+    }
+
+    public ModelManager getModelManager(){
+        return modelManager;
     }
 
     public Account getAccount() {

@@ -16,6 +16,10 @@ import com.sun.connect.EventNetwork;
 import com.sun.connect.NetworkChannel;
 import com.sun.device.AskNote;
 import com.sun.device.NoteHelper;
+import com.sun.gps.Gps;
+import com.sun.gps.GpsListener;
+import com.sun.gps.GpsRequest;
+import com.sun.gps.GpsResponse;
 import com.sun.level.OrderNote;
 import com.sun.level.UpdateOrderNote;
 import com.sun.personalconnect.Application;
@@ -29,11 +33,13 @@ import java.io.File;
  * Created by sun on 2017/5/21.
  */
 
-public class AnswerService extends Service implements NetworkChannel.INetworkListener{
+public class AnswerService extends Service implements NetworkChannel.INetworkListener, GpsListener{
     private ServiceBinder mBinder;
     private NetworkChannel mNetworkChannel;
     public static final String TAG = "AnswerService";
     private int mDownloadCode = 0;
+    private GpsRequest mLastGpsRequest;
+
     @Override
     public void onEventNetwork(EventNetwork eventNetwork) {
         if(eventNetwork.isMine()){
@@ -65,6 +71,11 @@ public class AnswerService extends Service implements NetworkChannel.INetworkLis
                     checkInstallApk(((UpdateOrderNote) obj).getVersionCode(), apkFile,true);
                 }
             }
+        }if (obj instanceof GpsRequest) {
+            mLastGpsRequest = (GpsRequest) obj;
+//            if(LevelCenter.serverCheck(gpsRequest.getUserId())){
+            Application.App.getModelManager().addGpsHardListener(this);
+            Application.App.getModelManager().setGpsStatus(mLastGpsRequest.getGpsGear());
         }
     }
 
@@ -99,6 +110,12 @@ public class AnswerService extends Service implements NetworkChannel.INetworkLis
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         intent.setDataAndType(Uri.fromFile(apkFile), "application/vnd.android.package-archive");
         startActivity(intent);
+    }
+
+    @Override
+    public void onGpsUpdate(GpsResponse gpsResponse) {
+        gpsResponse.setSession(mLastGpsRequest);
+        mNetworkChannel.request(FormatUtils.makeRequest(null, gpsResponse));
     }
 
     public class ServiceBinder extends Binder {

@@ -20,7 +20,12 @@ import com.sun.utils.FormatUtils;
 import com.sun.utils.PermissionUtils;
 
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * Created by guoyao on 2017/2/14.
@@ -30,15 +35,14 @@ public class Gps {
     private static final String TAG = "Gps";
 
     public static Location LastLocation;
-    private Context mContext;
 
     private GpsResponse mErrPermissionNote;
     private GpsResponse mErrDeviceNote;
 
-    private WeakReference<GpsListener> mGpsListenerReference;
+    private LinkedList<WeakReference<GpsListener>> mListenerReferences;
+    private HashSet<GpsListener> mHardListeners;
+    private HashSet<GpsListener> mListeners;
     private GpsGear mGpsGear = GpsGear.None;
-
-    private BaseActivity mListenBatteryContext;
 
     private MyLocationListener mGpsListener = new MyLocationListener();
     private MyLocationListener mNetworkListener = new MyLocationListener();
@@ -48,7 +52,7 @@ public class Gps {
         public void onHighPower() {
             if(mGpsGear != GpsGear.High) {
                 mGpsGear = GpsGear.High;
-                mListenBatteryContext.requestPermission(new Permission(Manifest.permission.ACCESS_FINE_LOCATION, mRequestGpsUpdate));
+//                mListenBatteryContext.requestPermission(new Permission(Manifest.permission.ACCESS_FINE_LOCATION, mRequestGpsUpdate));
             }
         }
 
@@ -56,25 +60,16 @@ public class Gps {
         public void onLowPower() {
             if(mGpsGear != GpsGear.Low) {
                 mGpsGear = GpsGear.Low;
-                mListenBatteryContext.requestPermission(new Permission(Manifest.permission.ACCESS_FINE_LOCATION, mRequestGpsUpdate));
+//                mListenBatteryContext.requestPermission(new Permission(Manifest.permission.ACCESS_FINE_LOCATION, mRequestGpsUpdate));
             }
         }
     };
 
-    public void setGpsListener(GpsListener gpsListener) {
-        mGpsListenerReference = new WeakReference<>(gpsListener);
-    }
-
-    public void clearListener(GpsListener gpsListener) {
-        if (mGpsListenerReference != null && mGpsListenerReference.get() == gpsListener) {
-            mGpsListenerReference.clear();
-            mGpsListenerReference = null;
-        }
-    }
-
     public Gps() {
-        mContext = Application.App.getApplicationContext();
-        lm = (LocationManager) mContext.getSystemService(Context.LOCATION_SERVICE);
+        mListenerReferences = new LinkedList<>();
+        mListeners = new HashSet<>();
+        mHardListeners = new HashSet<>();
+        lm = (LocationManager) Application.App.getApplicationContext().getSystemService(Context.LOCATION_SERVICE);
         mErrPermissionNote = new GpsResponse();
         mErrPermissionNote.setErrInfo("");
         mErrPermissionNote.setErrType(GpsResponse.ERR_TYPE_PERMISSION);
@@ -83,55 +78,41 @@ public class Gps {
         mErrDeviceNote.setErrType(GpsResponse.ERR_TYPE_DEVICE);
     }
 
-    public void requestUpdate(BaseActivity activity,GpsGear gpsGear){
-        if(gpsGear == null){
-            return;
+    public boolean changeGpsGear(GpsGear gpsGear){
+        if(gpsGear != GpsGear.Once){
+            if(gpsGear == mGpsGear){
+                return false;
+            }else{
+                stopUpdate();
+                mGpsGear = gpsGear;
+            }
         }
-        if(gpsGear == GpsGear.None ){
-            stopUpdate();
-            return;
-        }
+
+        BaseActivity activity = BaseActivity.getAnyInstance();
         if(activity == null){
             boolean isPermission = PermissionUtils.selfPermissionGranted(Application.App, Manifest.permission.ACCESS_FINE_LOCATION);
-            if(gpsGear == GpsGear.Once) {
+            if(mGpsGear == GpsGear.Once) {
                 mRequestOnce.run(isPermission);
-            }else{
+            }else if(mGpsGear != GpsGear.None){
                 mRequestGpsUpdate.run(isPermission);
             }
         }else {
-            if (gpsGear == GpsGear.Once) {
+            if (mGpsGear == GpsGear.Once) {
                 activity.requestPermission(new Permission(Manifest.permission.ACCESS_FINE_LOCATION, mRequestOnce));
-            } else {
-                mGpsGear = gpsGear;
-                if (mListenBatteryContext != null) {
-                    BatteryReceiver.unregister(mListenBatteryContext);
-                    mListenBatteryContext = null;
-                }
+            } else if(mGpsGear != GpsGear.None){
                 activity.requestPermission(new Permission(Manifest.permission.ACCESS_FINE_LOCATION, mRequestGpsUpdate));
             }
         }
+        return true;
     }
 
-    public void requestAutoUpdate(BaseActivity activity){
-        if(mListenBatteryContext!= null && mListenBatteryContext != activity){
-            BatteryReceiver.unregister(mListenBatteryContext);
-        }
-        mListenBatteryContext = activity;
-        BatteryReceiver.register(activity, mBatteryListener);
-    }
-
-    public void stopUpdate(){
+    private void stopUpdate(){
         // TODO Auto-generated method stub
         try {
             lm.removeUpdates(mGpsListener);
             lm.removeUpdates(mNetworkListener);
         }catch (SecurityException e){
             e.printStackTrace();
-        }
-
-        if(mListenBatteryContext != null){
-            BatteryReceiver.unregister(mListenBatteryContext);
-            mListenBatteryContext = null;
         }
     }
     private interface PermissionCallback extends Permission.Runnable{
@@ -141,13 +122,10 @@ public class Gps {
 
     private PermissionCallback mRequestOnce = new PermissionCallback() {
         public void run(boolean permission){
-            GpsListener listener ;
-            if(mGpsListenerReference !=null && (listener =  mGpsListenerReference.get()) != null) {
                 if (permission) {
                     boolean start = false;
                     if (lm.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
                         try {
-//                            String bestProvider = lm.getBestProvider(getCriteria(), true);
                             lm.requestSingleUpdate(LocationManager.GPS_PROVIDER, mGpsListener, null);
                             start = true;
                             updateLocation(getLastKnownLocation(), "getLastKnownLocation");
@@ -165,14 +143,17 @@ public class Gps {
                     }
 
                     if(!start) {
-                        FormatUtils.fillCommonArgs(mErrPermissionNote);
-                        listener.onGpsUpdate(mErrPermissionNote);
+                        FormatUtils.fillCommonArgs(mErrDeviceNote);
+                        for(GpsListener listener : getListeners()) {
+                            listener.onGpsUpdate(mErrDeviceNote);
+                        }
                     }
                 } else {
-                    FormatUtils.fillCommonArgs(mErrDeviceNote);
-                    listener.onGpsUpdate(mErrDeviceNote);
+                    FormatUtils.fillCommonArgs(mErrPermissionNote);
+                    for(GpsListener listener : getListeners()) {
+                        listener.onGpsUpdate(mErrPermissionNote);
+                    }
                 }
-            }
         }
 
         @Override
@@ -183,8 +164,6 @@ public class Gps {
 
     private PermissionCallback mRequestGpsUpdate = new PermissionCallback() {
         public void run(boolean permission){
-            GpsListener listener ;
-            if(mGpsListenerReference !=null && (listener =  mGpsListenerReference.get()) != null){
                 if (permission){
                     updateLocation(getLastKnownLocation(), "getLastKnownLocation");
                     boolean start = false;
@@ -207,14 +186,17 @@ public class Gps {
                         }
                     }
                     if(!start){
-                        FormatUtils.fillCommonArgs(mErrPermissionNote);
-                        listener.onGpsUpdate(mErrPermissionNote);
+                        FormatUtils.fillCommonArgs(mErrDeviceNote);
+                        for(GpsListener listener : getListeners()) {
+                            listener.onGpsUpdate(mErrDeviceNote);
+                        }
                     }
                 }else{
-                    FormatUtils.fillCommonArgs(mErrDeviceNote);
-                    listener.onGpsUpdate(mErrDeviceNote);
+                    FormatUtils.fillCommonArgs(mErrPermissionNote);
+                    for(GpsListener listener : getListeners()) {
+                        listener.onGpsUpdate(mErrPermissionNote);
+                    }
                 }
-            }
         }
 
         @Override
@@ -222,6 +204,16 @@ public class Gps {
             run(permission.isSuccess());
         }
     };
+
+    public void addWeakListener(GpsListener listener){
+        synchronized (mListenerReferences) {
+            mListenerReferences.add(new WeakReference<>(listener));
+        }
+    }
+
+    public void addHardListener(GpsListener listener){
+        mHardListeners.add(listener);
+    }
 
     private class MyLocationListener implements LocationListener{
         /**
@@ -267,17 +259,16 @@ public class Gps {
          * GPS禁用时触发
          */
         public void onProviderDisabled(String provider) {
-            GpsListener listener ;
-            if(mGpsListenerReference !=null && (listener =  mGpsListenerReference.get()) != null){
                 FormatUtils.fillCommonArgs(mErrDeviceNote);
                 mErrDeviceNote.setErrInfo("gps设备被主动关闭");
+            for(GpsListener listener : getListeners()) {
                 listener.onGpsUpdate(mErrDeviceNote);
             }
         }
     }
 
     // 状态监听
-    GpsStatus.Listener listener = new GpsStatus.Listener() {
+    GpsStatus.Listener gpsStatusListener = new GpsStatus.Listener() {
         public void onGpsStatusChanged(int event) {
             switch (event) {
                 // 第一次定位
@@ -325,12 +316,11 @@ public class Gps {
             note.setGpsGear(mGpsGear);
             note.setDebugMsg(debugMsg);
             note.setLocation(location);
-            GpsListener l;
-            if(mGpsListenerReference != null && (l = mGpsListenerReference.get()) != null){
-                l.onGpsUpdate(note);
+            for(GpsListener listener : getListeners()) {
+                listener.onGpsUpdate(note);
             }
+            LastLocation = location;
         }
-        LastLocation = location;
     }
 
     public Location getLastKnownLocation() throws SecurityException{
@@ -345,6 +335,24 @@ public class Gps {
             location = lm.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
         }
         return location;
+    }
+
+    private Collection<GpsListener> getListeners(){
+        mListeners.clear();
+        mListeners.addAll(mHardListeners);
+        synchronized (mListenerReferences) {
+            Iterator<WeakReference<GpsListener>> iterator = mListenerReferences.iterator();
+            while (iterator.hasNext()) {
+                WeakReference<GpsListener> weakReference = iterator.next();
+                GpsListener listener;
+                if (weakReference != null && (listener = weakReference.get()) != null) {
+                    mListeners.add(listener);
+                } else {
+                    iterator.remove();
+                }
+            }
+        }
+        return mListeners;
     }
 
     /**

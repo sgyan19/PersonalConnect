@@ -154,32 +154,6 @@ public class FormatUtils {
         return requestJson;
     }
 
-    public static RequestJson makeGpsResponseRequest(String key, GpsResponse gpsResponse){
-        if(TextUtils.isEmpty(key)){
-            key = IdUtils.make();
-        }
-        RequestJson requestJson = new RequestJson();
-        requestJson.setDeviceId(Application.App.getDeviceId());
-        requestJson.setRequestId(key);
-        requestJson.setCode(RequestDataHelper.MobileTerminalJson);
-        requestJson.addArg(GpsResponse.class.getName());
-        requestJson.addArg(GsonUtils.mGson.toJson(gpsResponse));
-        return requestJson;
-    }
-
-    public static RequestJson makeGpsRequest(String key, GpsResponse gpsResponse){
-        if(TextUtils.isEmpty(key)){
-            key = IdUtils.make();
-        }
-        RequestJson requestJson = new RequestJson();
-        requestJson.setDeviceId(Application.App.getDeviceId());
-        requestJson.setRequestId(key);
-        requestJson.setCode(RequestDataHelper.MobileTerminalJson);
-        requestJson.addArg(GpsResponse.class.getName());
-        requestJson.addArg(GsonUtils.mGson.toJson(gpsResponse));
-        return requestJson;
-    }
-
     public static RequestJson makeDownloadRequest(String key, String name){
         if(TextUtils.isEmpty(key)){
             key = IdUtils.make();

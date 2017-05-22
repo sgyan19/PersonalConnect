@@ -2,10 +2,12 @@ package com.sun.gps;
 
 import android.location.Location;
 
+import com.sun.common.SessionNote;
+
 /**
  * Created by guoyao on 2017/2/16.
  */
-public class GpsResponse extends GpsNote{
+public class GpsResponse extends SessionNote{
     public static final int ERR_TYPE_NONE = 0;
     public static final int ERR_TYPE_PERMISSION = 1;
     public static final int ERR_TYPE_DEVICE = 2;
@@ -22,6 +24,10 @@ public class GpsResponse extends GpsNote{
     private String device;
     private String provider;
     private String debugMsg;
+
+    public GpsResponse(){
+        mGpsNote = new GpsNote();
+    }
 
     public long getTime() {
         return time;
@@ -150,5 +156,39 @@ public class GpsResponse extends GpsNote{
         l.setTime(time);
         l.setElapsedRealtimeNanos(elapsedRealtimeNanos);
         return l;
+    }
+
+    GpsNote mGpsNote;
+
+    public long getId() {
+        return mGpsNote.getId();
+    }
+
+    public void setId(long id) {
+        mGpsNote.setId(id);
+    }
+
+    public String getUserName() {
+        return mGpsNote.getUserName();
+    }
+
+    public void setUserName(String userName) {
+        mGpsNote.setUserName(userName);
+    }
+
+    public int getUserId() {
+        return mGpsNote.getUserId();
+    }
+
+    public void setUserId(int userId) {
+        mGpsNote.setUserId( userId );
+    }
+
+    public GpsGear getGpsGear() {
+        return mGpsNote.getGpsGear();
+    }
+
+    public void setGpsGear(GpsGear gpsGear) {
+        mGpsNote.setGpsGear(gpsGear);
     }
 }
