@@ -92,6 +92,9 @@ public class Utils {
     }
 
     public static String md5(File file) {
+        if(!file.exists()){
+            return "";
+        }
         InputStream fis = null;
         byte[] buffer = new byte[1024];
         int numRead = 0;

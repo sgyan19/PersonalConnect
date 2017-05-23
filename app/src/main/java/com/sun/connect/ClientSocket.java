@@ -117,7 +117,7 @@ public class ClientSocket {
                 outputStream.write(HEADER_JSON);
                 sendTextFrame(outputStream, request);
                 Log.d(TAG, "requestJson suc");
-                response = receive();
+                response = receive(20000);
             } catch (IOException e) {
                 Log.d(TAG, "requestJson exception:" + e.toString());
                 mLastException = e;
@@ -140,7 +140,7 @@ public class ClientSocket {
                 Log.d(TAG, "requestRaw name suc");
                 sendRawFrame(outputStream, name);
                 Log.d(TAG, "requestRaw file suc");
-                response = receive();
+                response = receive(20000);
             } catch (IOException e) {
                 Log.d(TAG, "requestRaw exception:" + e.toString());
                 mLastException = e;
@@ -163,21 +163,22 @@ public class ClientSocket {
                 Log.d(TAG, "requestRaw name suc");
 
                 File file = new File(mRawDir, name);
-                byte[] md5 = Utils.md5Hex(file);
-                sendRawFrame(outputStream, md5);
+                String md5 = Utils.md5(file);
+                sendTextFrame(outputStream, md5);
                 Log.d(TAG, "requestRaw md5 suc");
 
                 InputStream inputStream = mSocket.getInputStream();
+                mSocket.setSoTimeout(20000);
                 int len  = inputStream.read(recBuffer,0,1);
                 if(len > 0 ){
                     if(recBuffer[0] == HEADER_CK_SUC_RAW) {
                         Log.d(TAG, "receive md5 check suc");
-                        response = receive();
+                        response = receive(10000);
                     }else if(recBuffer[0] == HEADER_CK_FAIL_RAW){
                         Log.d(TAG, "receive md5 check fail");
                         sendRawFrame(outputStream, name);
                         Log.d(TAG, "requestRaw file suc");
-                        response = receive();
+                        response = receive(10000);
                     }else {
                         Log.d(TAG, "receive md5 check unknown code:" + recBuffer[0]);
                     }
@@ -191,6 +192,12 @@ public class ClientSocket {
                     mRemoteClosed = true;
                 }
                 e.printStackTrace();
+            }finally {
+                try {
+                    mSocket.setSoTimeout(0);
+                } catch (SocketException e) {
+                    e.printStackTrace();
+                }
             }
         }
         return response;
@@ -234,9 +241,10 @@ public class ClientSocket {
         }
     }
 
-    public SocketMessage receive() throws IOException{
+    public SocketMessage receive(int timeOut) throws IOException{
         Log.d(TAG, "start receive()");
-        mSocket.setSoTimeout(0);
+        int oldTimeOut = mSocket.getSoTimeout();
+        mSocket.setSoTimeout(timeOut);
         SocketMessage response = new SocketMessage();
         InputStream stream = mSocket.getInputStream();
         int len  = stream.read(recBuffer,0,1);
@@ -257,11 +265,13 @@ public class ClientSocket {
             }else{
                 Log.d(TAG, "unknown code:" + recBuffer[0]);
                 receiveTrash(stream);
+                response = null;
             }
         }else{
             Log.d(TAG, "len < -1" );
             mRemoteClosed = true;
         }
+        mSocket.setSoTimeout(oldTimeOut);
         return response;
     }
 
@@ -292,7 +302,7 @@ public class ClientSocket {
             while((len = fileStream.read(sendBuffer, 0, size > sendBuffer.length ? sendBuffer.length: size)) > 0){
                 total += len;
                 stream.write(sendBuffer, 0, len);
-                Log.d(TAG, String.format("send RawFrame size:%d total:%d", len,total));
+                Log.d(TAG, String.format("send RawFrame len:%d total:%d size:%d", len,total, size));
             }
         }finally {
             if(fileStream != null){
@@ -316,6 +326,8 @@ public class ClientSocket {
     }
 
     private String receiveTextFrame(InputStream stream) throws IOException{
+        mSocket.setSoTimeout(10000);
+        int old = mSocket.getSoTimeout();
         stream.read(recBuffer, 0, 4);
         int size = bytesToInt(recBuffer, 0);
         Log.d(TAG, String.format("read receiveTextFrame size:%d", size));
@@ -323,8 +335,7 @@ public class ClientSocket {
             throw new SocketException("TextFrame size overstep the boundary || size < 0");
         }
         int offset = 0;
-        int old = mSocket.getSoTimeout();
-        mSocket.setSoTimeout(5000);
+        mSocket.setSoTimeout(2000);
         int len;
         try {
             while ((len = stream.read(recBuffer, offset, size)) != 0) {
@@ -340,12 +351,13 @@ public class ClientSocket {
 
     private void receiveRawFrame(InputStream stream, String name) throws IOException{
         Log.d(TAG, "receiveRawFrame into");
+        int old = mSocket.getSoTimeout();
+        mSocket.setSoTimeout(10000);
         stream.read(recBuffer, 0, 4);
         int size = bytesToInt(recBuffer, 0);
         Log.d(TAG, String.format("read receiveRawFrame size:%d", size));
-        int old = mSocket.getSoTimeout();
         int len;
-        mSocket.setSoTimeout(20000);
+        mSocket.setSoTimeout(2000);
         try {
             File file = new File(mRawDir, name);
             if(file.exists()){

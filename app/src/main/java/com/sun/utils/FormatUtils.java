@@ -176,6 +176,10 @@ public class FormatUtils {
         requestJson.setRequestId(key);
         requestJson.setCode(RequestDataHelper.MoboleTerminalRaw);
         requestJson.addArg(name);
+        File file = new File(Application.App.getSocketRawFolder(), name);
+        if(file.exists()){
+            requestJson.addArg(Utils.md5(file));
+        }
         return requestJson;
     }
 

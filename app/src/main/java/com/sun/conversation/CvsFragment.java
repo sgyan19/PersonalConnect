@@ -249,7 +249,12 @@ public class CvsFragment extends Fragment implements View.OnClickListener,CvsSer
                 break;
             case EventNote.ACTION_NEED_SEND:
                 if(checkService()) {
-                    mCvsServiceBinder.request(note);
+                    if(note.getType() == CvsNote.TYPE_TEXT) {
+                        mCvsServiceBinder.request(note);
+                    }else if(note.getType() == CvsNote.TYPE_IMAGE){
+                        File newFile = new File(Application.App.getSocketRawFolder(), note.getContent());
+                        mCvsServiceBinder.request(newFile);
+                    }
                 }
                 break;
             case EventNote.ACTION_IMG_DETAIL:
