@@ -1,14 +1,8 @@
 package com.sun.gps;
-
-import android.content.ComponentName;
-import android.content.Intent;
-import android.content.ServiceConnection;
 import android.location.Location;
 import android.os.Bundle;
-import android.os.IBinder;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
 import android.widget.TextView;
 
 import com.amap.api.maps2d.AMap;
@@ -57,7 +51,7 @@ public class GaoDeMapActivity extends BaseActivity implements GpsListener,Locati
     private ViewGroup mDebugView2;
 
     private HashMap<String,Marker> markers = new HashMap<>();
-    private HashMap<String, LocationTrajectory> mUserTrajectory = new HashMap<>();
+    private HashMap<String, LocationTrajectory> mDeviceTrajectory = new HashMap<>();
 
     private StatusFragment mStatusFragment;
     @Override
@@ -165,10 +159,10 @@ public class GaoDeMapActivity extends BaseActivity implements GpsListener,Locati
         if(gpsResponse == null) return;
         Location l = gpsResponse.getLocation();
 
-        LocationTrajectory trajectory = mUserTrajectory.get(gpsResponse.getUserName());
+        LocationTrajectory trajectory = mDeviceTrajectory.get(gpsResponse.getDevice());
         if(trajectory == null){
             trajectory = new LocationTrajectory();
-            mUserTrajectory.put(gpsResponse.getUserName(), trajectory);
+            mDeviceTrajectory.put(gpsResponse.getDevice(), trajectory);
         }
 
         if(!trajectory.update(l)){
@@ -189,7 +183,7 @@ public class GaoDeMapActivity extends BaseActivity implements GpsListener,Locati
 
         Location gaoDeLocation = GPSUtil.gps84_To_Gcj02(l);
 
-        if(gpsResponse.getUserId() == Application.App.getAccount().getLoginId() && mListener != null){
+        if(gpsResponse.getDevice().equals( Application.App.getDeviceId()) && mListener != null){
             mListener.onLocationChanged(l);
         }else{
             Marker marker = markers.get(gpsResponse.getDevice());

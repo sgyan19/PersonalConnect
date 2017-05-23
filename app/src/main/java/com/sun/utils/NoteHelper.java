@@ -1,6 +1,11 @@
-package com.sun.device;
+package com.sun.utils;
 
+import com.sun.account.Account;
 import com.sun.common.SessionNote;
+import com.sun.conversation.CvsNote;
+import com.sun.device.AnswerNote;
+import com.sun.device.AskNote;
+import com.sun.device.DeviceDumper;
 import com.sun.level.OrderNote;
 import com.sun.level.UpdateOrderNote;
 import com.sun.personalconnect.Application;
@@ -42,6 +47,22 @@ public class NoteHelper {
         for(AnswerNote item : notes){
             note.addSessionCondition(item.getDeviceId());
         }
+        return note;
+    }
+
+    public static CvsNote makeImageCvsNote(File file){
+        CvsNote note = new CvsNote();
+        Account account = Application.App.getAccount();
+        note.setId((int) System.currentTimeMillis());
+        note.setUserName(account.getLoginName());
+        note.setUserId(account.getLoginId());
+        long time = System.currentTimeMillis();
+        note.setTimeStamp(time);
+        note.setTimeFormat(Utils.getFormatTime(time));
+
+        note.setContent(file.getName());
+        note.setType(CvsNote.TYPE_IMAGE);
+        note.setExtend(String.valueOf(file.length()));
         return note;
     }
 }

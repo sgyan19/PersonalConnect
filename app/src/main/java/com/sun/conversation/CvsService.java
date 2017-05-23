@@ -31,6 +31,7 @@ import com.sun.utils.BoxObject;
 import com.sun.utils.FormatUtils;
 import com.sun.utils.GsonUtils;
 import com.sun.utils.IdUtils;
+import com.sun.utils.NoteHelper;
 
 import java.io.File;
 import java.lang.ref.WeakReference;
@@ -46,6 +47,7 @@ public class CvsService extends Service {
     private CvsService.ServiceBinder mServiceBinder;
     private ISocketServiceBinder mSocketBinder;
     private LinkedHashMap<String, CvsNote> mRequestHistory = new LinkedHashMap<>();
+    private LinkedHashMap<String, File> mUploadFileHistory = new LinkedHashMap<>();
     private WeakReference<CvsListener> mCvsListenerReference;
     private ServiceConnection mSocketConn;
 
@@ -77,13 +79,7 @@ public class CvsService extends Service {
         public boolean onError(String key, String error) {
             CvsNote note;
             if((note = mRequestHistory.remove(key)) != null){
-                note.setSendStatus(CvsNote.STATUS_FAL);
-                Application.App.getCvsHistoryManager().updateCache(note.getId());
-//                mRequestHistory.remove(key);
-                CvsListener listener;
-                if(( listener = getOnCvsListener()) != null){
-                    listener.onSendFailed(key, note, error);
-                }
+                NoteError(note, key, error);
                 return true;
             }else {
                 return false;
@@ -150,6 +146,22 @@ public class CvsService extends Service {
                     }
                 }
                 return true;
+            }else if( data instanceof String){
+                CvsNote note;
+                if((note = mRequestHistory.remove(key)) != null ) {
+                    if(note.getContent().equals(data)) {
+                        RequestJson requestJson = FormatUtils.makeCvsRequest(null, note);
+                        try {
+                            mSocketBinder.request(requestJson.getRequestId(), SocketMessage.SOCKET_TYPE_JSON, GsonUtils.mGson.toJson(requestJson));
+                            mRequestHistory.put(requestJson.getRequestId(), note);
+                        } catch (RemoteException e) {
+                            e.printStackTrace();
+                        }
+                    }else{
+                        NoteError(note,key, (String)data);
+                    }
+                    return true;
+                }
             }
             return false;
         }
@@ -160,6 +172,16 @@ public class CvsService extends Service {
         }
     };
 
+    private void NoteError(CvsNote note, String key, String errorInfo){
+        note.setSendStatus(CvsNote.STATUS_FAL);
+        Application.App.getCvsHistoryManager().updateCache(note.getId());
+//                mRequestHistory.remove(key);
+        CvsListener listener;
+        if(( listener = getOnCvsListener()) != null){
+            listener.onSendFailed(key, note, errorInfo);
+        }
+    }
+
     public class ServiceBinder extends Binder {
         public CvsService getService() {
             return CvsService.this;
@@ -169,14 +191,12 @@ public class CvsService extends Service {
             if(mSocketBinder == null){
                 return null;
             }
-            BoxObject objects = new BoxObject();
-            RequestJson requestJson = FormatUtils.makeCvsRequest(null, new BoxObject(),file);
-            CvsNote note = (CvsNote)objects.data;
-            if(note != null)
-                mRequestHistory.put(requestJson.getRequestId(), note);
+            CvsNote note = NoteHelper.makeImageCvsNote(file);
+            String id = IdUtils.make();
             try {
-                mSocketBinder.request(requestJson.getRequestId(), SocketMessage.SOCKET_TYPE_JSON, GsonUtils.mGson.toJson(requestJson));
-                mSocketBinder.request(requestJson.getRequestId(), SocketMessage.SOCKET_TYPE_RAW, file.getName());
+                mRequestHistory.put(id,note);
+                mUploadFileHistory.put(id, file);
+                mSocketBinder.request(id, SocketMessage.SOCKET_TYPE_RAW, file.getName());
             } catch (RemoteException e) {
                 e.printStackTrace();
             }

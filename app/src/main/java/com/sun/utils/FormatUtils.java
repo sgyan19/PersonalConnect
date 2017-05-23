@@ -87,6 +87,20 @@ public class FormatUtils {
         return requestJson;
     }
 
+    public static RequestJson makeCvsRequest(String key, CvsNote note){
+        if(TextUtils.isEmpty(key)){
+            key = IdUtils.make();
+        }
+        RequestJson requestJson = new RequestJson();
+        requestJson.setDeviceId(Application.App.getDeviceId());
+        requestJson.setRequestId(key);
+
+        requestJson.setCode(RequestDataHelper.MobileTerminalJson);
+        requestJson.addArg(CvsNote.class.getName());
+        requestJson.addArg(GsonUtils.mGson.toJson(note));
+        return requestJson;
+    }
+
     public static RequestJson makeCvsRequest(String key, BoxObject box,File file){
         if(TextUtils.isEmpty(key)){
             key = IdUtils.make();
@@ -111,7 +125,6 @@ public class FormatUtils {
         requestJson.setCode(RequestDataHelper.MobileTerminalJson);
         requestJson.addArg(CvsNote.class.getName());
         requestJson.addArg(GsonUtils.mGson.toJson(note));
-        requestJson.setRequestId(IdUtils.make());
         if(box != null){
             box.data = note;
         }

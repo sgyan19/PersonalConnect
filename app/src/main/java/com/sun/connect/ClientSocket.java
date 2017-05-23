@@ -142,7 +142,7 @@ public class ClientSocket {
                 Log.d(TAG, "requestRaw file suc");
                 response = receive();
             } catch (IOException e) {
-                Log.d(TAG, "requestRawWithoutBack exception:" + e.toString());
+                Log.d(TAG, "requestRaw exception:" + e.toString());
                 mLastException = e;
                 if (e instanceof SocketException) {
                     mRemoteClosed = true;
@@ -174,7 +174,7 @@ public class ClientSocket {
                         Log.d(TAG, "receive md5 check suc");
                         response = receive();
                     }else if(recBuffer[0] == HEADER_CK_FAIL_RAW){
-                        Log.d(TAG, "receive md5 check suc");
+                        Log.d(TAG, "receive md5 check fail");
                         sendRawFrame(outputStream, name);
                         Log.d(TAG, "requestRaw file suc");
                         response = receive();
@@ -374,15 +374,20 @@ public class ClientSocket {
     }
 
     private void receiveTrash(InputStream stream) throws IOException{
+        receiveTrash(stream,5000);
+    }
+
+    private void receiveTrash(InputStream stream, int timeout) throws IOException{
         int len;
         int old = mSocket.getSoTimeout();
-        mSocket.setSoTimeout(5000);
+        mSocket.setSoTimeout(timeout);
         try {
             while ((len = stream.read(recBuffer)) > 0) {
                 Log.d(TAG, String.format("receiveTrash len:%d", len));
             }
         }catch (IOException e){
-            e.printStackTrace();
+//            e.printStackTrace();
+            Log.d(TAG, String.format("known exception: %s", e.toString()));
             mLastException = e;
         }
         mSocket.setSoTimeout(old);
@@ -414,11 +419,12 @@ public class ClientSocket {
         synchronized (lock) {
             try {
                 mSocket.setSoTimeout(0);
-
                 OutputStream outputStream = mSocket.getOutputStream();
+                InputStream stream = mSocket.getInputStream();
+                receiveTrash(stream, 500);
+
                 outputStream.write(mHeartBeatData);
                 outputStream.flush();
-                InputStream stream = mSocket.getInputStream();
                 int len  = stream.read(recBuffer,0,1);
                 if(len >= 1){
                     if(recBuffer[0] != HeartBeatANS){

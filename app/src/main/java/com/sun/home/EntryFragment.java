@@ -22,7 +22,7 @@ import com.sun.connect.EventNetwork;
 import com.sun.device.AnswerNote;
 import com.sun.device.AskNote;
 import com.sun.device.DeviceInfo;
-import com.sun.device.NoteHelper;
+import com.sun.utils.NoteHelper;
 import com.sun.gps.GaoDeMapActivity;
 import com.sun.level.UpdateOrderNote;
 import com.sun.personalconnect.Application;

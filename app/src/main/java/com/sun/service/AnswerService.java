@@ -15,7 +15,7 @@ import android.widget.Toast;
 import com.sun.connect.EventNetwork;
 import com.sun.connect.NetworkChannel;
 import com.sun.device.AskNote;
-import com.sun.device.NoteHelper;
+import com.sun.utils.NoteHelper;
 import com.sun.gps.GpsListener;
 import com.sun.gps.GpsRequest;
 import com.sun.gps.GpsResponse;
