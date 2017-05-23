@@ -248,6 +248,21 @@ public class NetworkChannel {
         return key;
     }
 
+    public String uploadAndMakeCvs(File file){
+        if(!file.exists()) return null;
+        File newFile = new File(Application.App.getSocketRawFolder(), file.getName());
+        newFile.delete();
+        try {
+            FileUtils.copyFile(file, newFile);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+        String key = IdUtils.make();
+        uploadRaw(key, newFile.getName());
+        return key;
+    }
+
     public String download(RequestJson json){
         String key = json.getRequestId();
         String request = GsonUtils.mGson.toJson(json);

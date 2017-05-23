@@ -278,6 +278,10 @@ public class CvsFragment extends Fragment implements View.OnClickListener,CvsSer
             }
         }
     }
+
+    public void onEvent(File file){
+        submitImage(file);
+    }
     //endregion
 
     //region 私有内部类。ScrollSpeedLinearLayoutManger，RecyclerView滑动速度
@@ -361,6 +365,11 @@ public class CvsFragment extends Fragment implements View.OnClickListener,CvsSer
         if ( null == uri ) return;
         String path = UriUtils.getPath(getContext(), uri);
         File file = new File(path);
+        submitImage(file);
+
+    }
+
+    private void submitImage(File file){
         if(!file.exists()) return;
         File newFile = new File(Application.App.getSocketRawFolder(), Utils.makeSoleName());
         if(newFile.exists()) newFile.delete();
