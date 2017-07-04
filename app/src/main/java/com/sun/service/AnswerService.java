@@ -12,6 +12,8 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.sun.camera.CameraActivity;
+import com.sun.camera.PictureRequest;
 import com.sun.connect.EventNetwork;
 import com.sun.connect.NetworkChannel;
 import com.sun.device.AskNote;
@@ -26,6 +28,8 @@ import com.sun.utils.FormatUtils;
 import com.sun.utils.ToastUtils;
 
 import java.io.File;
+
+import static android.content.Intent.FLAG_ACTIVITY_NEW_TASK;
 
 /**
  * Created by sun on 2017/5/21.
@@ -74,6 +78,10 @@ public class AnswerService extends Service implements NetworkChannel.INetworkLis
 //            if(LevelCenter.serverCheck(gpsRequest.getUserId())){
             Application.App.getModelManager().addGpsHardListener(this);
             Application.App.getModelManager().setGpsStatus(mLastGpsRequest.getGpsGear());
+        }else if(obj instanceof PictureRequest){
+            Intent intent = new Intent(this, CameraActivity.class);
+            intent.setFlags(FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
         }
     }
 
@@ -105,7 +113,7 @@ public class AnswerService extends Service implements NetworkChannel.INetworkLis
     private void install(File apkFile){
         Intent intent = new Intent(Intent.ACTION_VIEW);
         intent.addCategory("android.intent.category.DEFAULT");
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        intent.setFlags(FLAG_ACTIVITY_NEW_TASK);
         intent.setDataAndType(Uri.fromFile(apkFile), "application/vnd.android.package-archive");
         startActivity(intent);
     }

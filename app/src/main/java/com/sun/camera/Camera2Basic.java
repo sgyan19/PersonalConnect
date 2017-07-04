@@ -603,7 +603,7 @@ public class Camera2Basic {
     /**
      * Opens the camera specified by {@link Camera2BasicFragment#mCameraId}.
      */
-    private void openCamera(int width, int height) {
+    public void openCamera(int width, int height) {
         BaseActivity.getAnyInstance().requestPermission(new Permission(Manifest.permission.CAMERA, new OpenCameraRunnable(width, height)));
     }
 
@@ -723,7 +723,7 @@ public class Camera2Basic {
      * @param viewWidth  The width of `mTextureView`
      * @param viewHeight The height of `mTextureView`
      */
-    private void configureTransform(int viewWidth, int viewHeight) {
+    public void configureTransform(int viewWidth, int viewHeight) {
         if (null == mTextureView || null == mPreviewSize) {
             return;
         }
@@ -750,7 +750,7 @@ public class Camera2Basic {
     /**
      * Initiate a still image capture.
      */
-    private void takePicture() {
+     void takePicture() {
         lockFocus();
     }
 

@@ -18,6 +18,11 @@
         android:layout_height="60dp"
         android:text="摄像头"/>
     <Button
+        android:id="@+id/btn_entry_remote_camera"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:text="远程摄像头"/>
+    <Button
         android:id="@+id/btn_entry_upgrade"
         android:layout_width="match_parent"
         android:layout_height="60dp"

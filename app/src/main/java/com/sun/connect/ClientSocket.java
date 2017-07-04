@@ -21,8 +21,8 @@ import java.net.SocketTimeoutException;
 public class ClientSocket {
     public static final String TAG = "ClientSocket";
     public static final Host[] HostList = new Host[]{
+            new Host(0,"hanclt.eicp.net"),
             new Host(0,"maths326009812.oicp.net"),
-            new Host(0,"192.168.137.1"),
     };
 
     public static Host Host;
@@ -482,12 +482,13 @@ public class ClientSocket {
     }
 
     private Host choseHost(){
-//        for(int i = 0 ; i < HostList.length; i ++){
-//            if(HostList[i].tryTimes < 3){
-//                return HostList[i];
-//            }
-//        }
-        return HostList[0];
+        int minIndex = 0;
+        for(int i = 1 ; i < HostList.length; i ++){
+            if(HostList[i].tryTimes < HostList[minIndex].tryTimes){
+                minIndex = i;
+            }
+        }
+        return HostList[minIndex];
 //        return HostList[0].tryTimes <= HostList[1].tryTimes ? HostList[0] : HostList[1];
     }
 

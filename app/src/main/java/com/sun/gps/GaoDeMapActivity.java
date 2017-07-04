@@ -149,6 +149,7 @@ public class GaoDeMapActivity extends BaseActivity implements GpsListener,Locati
 
     @Override
     protected void onDestroy() {
+        Application.App.getNetworkService().request(FormatUtils.makeGpsRequest(null,null,GpsGear.None));
         EventBus.getDefault().unregister(this);
         super.onDestroy();
         mMapView.onDestroy();

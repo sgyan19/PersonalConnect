@@ -16,6 +16,7 @@ import android.widget.Toast;
 
 import com.sun.account.AccountActivity;
 import com.sun.camera.CameraActivity;
+import com.sun.camera.PictureRequest;
 import com.sun.common.SessionNote;
 import com.sun.connect.NetworkChannel;
 import com.sun.connect.EventNetwork;
@@ -54,7 +55,7 @@ public class EntryFragment extends Fragment implements OnClickListener{
     private StatusFragment mUserCountFragment;
     private List<AnswerNote> mAnswerNotes;
     private enum AskStatus{
-        Info,Update,Upgrade,Gps
+        Info,Update,Upgrade,Gps,Picture
     }
     private AskStatus mAskStatus = AskStatus.Info;
     private UpdateOrderNote mUpdateOrderNote;
@@ -103,6 +104,9 @@ public class EntryFragment extends Fragment implements OnClickListener{
                         mUpdateOrderNote = NoteHelper.makeUpdateOrderNote(note);
                         mUpdateOrderNote.setApkName(file.getName());
                         break;
+                    case Picture:
+                        askPictureNote(note);
+                        break;
                 }
             }
         });
@@ -114,11 +118,7 @@ public class EntryFragment extends Fragment implements OnClickListener{
         switch (id){
             case R.id.btn_entry_users:
                 mAskStatus = AskStatus.Info;
-                AskNote ask = new AskNote();
-                NetworkChannel.getInstance().request(FormatUtils.makeRequest(null,ask));
-                InfoKeeper.getInstance().putAnswer((AnswerNote) NoteHelper.makeAnswer(ask));
-                updateAnswerNoteList();
-                PageFragmentActivity.fastJump(getActivity(), mUserCountFragment);
+                jumpChosePage();
                 break;
             case R.id.btn_entry_gps:
                 startActivity(new Intent(getActivity(), GaoDeMapActivity.class));
@@ -130,7 +130,7 @@ public class EntryFragment extends Fragment implements OnClickListener{
                 break;
         }
     }
-    @Click({R.id.btn_entry_camera,R.id.btn_entry_upgrade})
+    @Click({R.id.btn_entry_camera,R.id.btn_entry_upgrade,R.id.btn_entry_remote_camera})
     public void click(View view){
         switch(view.getId()){
             case R.id.btn_entry_camera:  //
@@ -138,11 +138,11 @@ public class EntryFragment extends Fragment implements OnClickListener{
                 break;
             case R.id.btn_entry_upgrade:
                 mAskStatus = AskStatus.Upgrade;
-                AskNote ask = new AskNote();
-                NetworkChannel.getInstance().request(FormatUtils.makeRequest(null,ask));
-                InfoKeeper.getInstance().putAnswer((AnswerNote) NoteHelper.makeAnswer(ask));
-                updateAnswerNoteList();
-                PageFragmentActivity.fastJump(getActivity(), mUserCountFragment);
+                jumpChosePage();
+                break;
+            case R.id.btn_entry_remote_camera:
+                mAskStatus = AskStatus.Picture;
+                jumpChosePage();
                 break;
         }
     }
@@ -213,7 +213,25 @@ public class EntryFragment extends Fragment implements OnClickListener{
         }
     }
 
-    private void orderUpgrade(AnswerNote note){
+    private void askPictureNote(AnswerNote note){
+        PictureRequest pictureRequest = new PictureRequest();
+        pictureRequest.setSessionType(SessionNote.TYPE_DEVICE);
+        pictureRequest.addSessionCondition(note.getDeviceId());
+        pictureRequest.addSessionCondition(Application.App.getDeviceId());
+        if(note.getDeviceId().equals(Application.App.getDeviceId())){
+            //do nothing
+            startActivity(new Intent(getActivity(), CameraActivity.class));
+        }else{
+            NetworkChannel.getInstance().request(FormatUtils.makeRequest(null, pictureRequest));
+        }
+    }
+
+    private void jumpChosePage(){
+        AskNote ask = new AskNote();
+        NetworkChannel.getInstance().request(FormatUtils.makeRequest(null,ask));
+        InfoKeeper.getInstance().putAnswer((AnswerNote) NoteHelper.makeAnswer(ask));
+        updateAnswerNoteList();
+        PageFragmentActivity.fastJump(getActivity(), mUserCountFragment);
 
     }
 
