@@ -1,19 +1,34 @@
 package com.sun.camera;
 
-import android.annotation.SuppressLint;
+import android.content.Context;
+import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
 import android.hardware.Camera.CameraInfo;
 import android.hardware.Camera.Parameters;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.util.Log;
-import java.util.List;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+import android.util.Size;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 
-public class CameraManager {
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+
+public class CameraBasic {
     
-    private static final String TAG = CameraManager.class.getSimpleName();
+    private static final String TAG = CameraBasic.class.getSimpleName();
+
+    public interface Callback {
+        void onPreviewSize(Size size);
+        void onConfigured();
+        void onCaptureCompleted(File file);
+    }
 
     public static int DEFAULT_NUMBER_OF_CAMERAS = 1;
 
@@ -27,34 +42,202 @@ public class CameraManager {
     
     private int MIN_SIZE = MIN_SIZE_NORMAL;
 
-//    private static CameraManager sInstance = new CameraManager();
+//    private static CameraBasic sInstance = new CameraBasic();
     
     private Camera mCamera;
 
-//    public static CameraManager getInstance() {
+//    public static CameraBasic getInstance() {
 //        return sInstance;
 //    }
 
     private AsyncTask<Void, Void, Camera> mCameraOpeningTask;
 
-    private Lock mCameraLock;
+    private SurfaceHolder mSurfaceHolder;
 
-    @SuppressLint("DefaultLocale") private CameraManager() {
-//    	String model = android.os.Build.MODEL;
-//    	if (StringUtil.isNullOrEmpty(model)) {
-//    		MIN_SIZE = MIN_SIZE_MI;
-//    	} else {
-//    		if (model.toUpperCase().contains("MI")) {
-//    			if (StringUtil.getFirstNumber(model) < 3) {
-//    				MIN_SIZE = MIN_SIZE_MI;
-//    			}
-//    		}
-//    	}
+    private SurfaceTexture mSurfaceTexture;
 
-        mCameraLock = new ReentrantLock();
+    private static final int DEFAULT_WIDTH = 800;
+    private static final int DEFAULT_HEIGHT = 480;
+
+    private  int _width = 800;
+    private  int _height = 480;
+
+    private boolean mSetDisplay = false;
+
+    private Context mContext;
+
+    private boolean mMuteShutterSound = false;
+    private int mFacing = CAMERA_FACING_BACK;
+    private Callback mOutCallback;
+    private boolean mAutoFocus;
+    private boolean mInitialized = false;
+    private SensorManager mSensorManager;
+    private Sensor mAccel;
+    private float mLastX = 0;
+    private float mLastY = 0;
+    private float mLastZ = 0;
+
+
+    public void CameraBasic(Context context){
+        mContext = context;
+    }
+
+    public void setDisplay(SurfaceHolder holder){
+        mSurfaceHolder = holder;
+        mSetDisplay = true;
+        onResume();
+    }
+
+    public void setDisplay(){
+        setDisplay(null, DEFAULT_WIDTH, DEFAULT_HEIGHT);
+    }
+
+    public void setDisplay(SurfaceTexture surfaceTexture){
+        setDisplay(surfaceTexture, DEFAULT_WIDTH, DEFAULT_HEIGHT);
+    }
+
+    public void setDisplay(SurfaceTexture surfaceTexture, int width, int height){
+        mSurfaceTexture = surfaceTexture;
+        mSetDisplay = true;
+        _width = width;
+        _height = height;
+        onResume();
+    }
+
+    public void onResume(){
+        if (null == mSurfaceHolder) {
+            if(mSurfaceTexture == null) {
+                if(!mSetDisplay){
+                    return;
+                }
+                mSurfaceTexture = new SurfaceTexture(10);
+            }
+        }
+        if(mCamera == null){
+            open();
+        }
+        if(mCamera == null){
+            return;
+        }
+
+        mSensorManager = (SensorManager) mContext.getSystemService(Context.
+                SENSOR_SERVICE);
+        mSensorManager.registerListener(mSensorHandler, mAccel,
+                SensorManager.SENSOR_DELAY_UI);
+        try {
+            if(mSurfaceHolder != null) {
+                mCamera.setPreviewDisplay(mSurfaceHolder);
+            }else{
+                mCamera.setPreviewTexture(mSurfaceTexture);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    public void onPause(){
+
+    }
+
+    public void muteShutterSound(boolean isMute){
+        mMuteShutterSound = isMute;
+    }
+
+    public void setFacing(int facing){
+        mFacing = facing;
+    }
+
+    public void setCaptureCallback(Callback callback){
+        mOutCallback = callback;
+    }
+
+    /**
+     * Initiate a still image capture.
+     */
+    public void takePicture(){
+
+    }
+
+    private Camera.AutoFocusCallback mAutoFocusCallback = new Camera.AutoFocusCallback() {
+
+        @Override
+        public void onAutoFocus(boolean success, Camera camera) {
+            // TODO Auto-generated method stub
+
+            mAutoFocus = true;
+
+            if (mCamera != null) {
+                try {
+                    mCamera.cancelAutoFocus();
+                }catch (Exception e){
+                    Log.e(TAG , e.toString());
+                }
+            }
+
+            if(success) {
+                Log.w(TAG, "myAutoFocusCallback: success...");
+            } else {
+                Log.w(TAG, "myAutoFocusCallback: failed...");
+            }
+        }
     };
-    private static Object mUser;
-    public Camera open(Object user , final int facing) {
+
+    private SensorEventListener mSensorHandler = new SensorEventListener() {
+        @Override
+        public void onSensorChanged(SensorEvent event) {
+            float x = event.values[0];
+            float y = event.values[1];
+            float z = event.values[2];
+            if (!mInitialized){
+                mLastX = x;
+                mLastY = y;
+                mLastZ = z;
+                mInitialized = true;
+            }
+            float deltaX  = Math.abs(mLastX - x);
+            float deltaY = Math.abs(mLastY - y);
+            float deltaZ = Math.abs(mLastZ - z);
+
+            if (deltaX > .5 && mAutoFocus){ //AUTOFOCUS (while it is not autofocusing)
+                mAutoFocus = false;
+                setCameraFocus();
+            }
+            if (deltaY > .5 && mAutoFocus){ //AUTOFOCUS (while it is not autofocusing)
+                mAutoFocus = false;
+                setCameraFocus();
+            }
+            if (deltaZ > .5 && mAutoFocus){ //AUTOFOCUS (while it is not autofocusing) */
+                mAutoFocus = false;
+                setCameraFocus();
+            }
+
+            mLastX = x;
+            mLastY = y;
+            mLastZ = z;
+        }
+
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
+        }
+    };
+
+    public void setCameraFocus(){
+        if(mCamera == null){
+            return;
+        }
+        try {
+            if (mCamera.getParameters().getFocusMode().equals(mCamera.getParameters().FOCUS_MODE_AUTO) ||
+                    mCamera.getParameters().getFocusMode().equals(mCamera.getParameters().FOCUS_MODE_MACRO)) {
+                mCamera.autoFocus(mAutoFocusCallback);
+            }
+        }catch (Exception e){
+            Log.e(TAG, "setCameraFocus()," + e.toString());
+        }
+    }
+
+    private void open() {
         Camera camera = null;
 
 //        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) {
@@ -64,7 +247,7 @@ public class CameraManager {
             for (int cameraId = 0; cameraId < numberOfCameras; ++cameraId) {
                 Camera.getCameraInfo(cameraId, cameraInfo);
 
-                if (facing != cameraInfo.facing) {
+                if (mFacing != cameraInfo.facing) {
                     continue;
                 }
                 try {
@@ -84,41 +267,22 @@ public class CameraManager {
             camera = Camera.open();
         }
         mCamera = camera;
-        mUser = user;
-        return camera;
     }
 
-    public void releaseCamera(Object user, boolean force){
-        if(mUser != user && !force) {
-            return;
-        }
+    public void release(){
         if(mCamera != null){
-            mCameraLock.lock();
             try {
                 mCamera.stopPreview();
                 mCamera.release();
                 mCamera = null;
-            }finally {
-                mCameraLock.unlock();
+            }catch (Exception e){
+                e.printStackTrace();
             }
         }
-        mUser = null;
-    }
-
-    public void unAllowRelease(){
-        mCameraLock.lock();
-    }
-
-    public void allowRelease(){
-        mCameraLock.unlock();
     }
 
     public Camera getOpenedCamera(){
         return mCamera;
-    }
-
-    public boolean isCameraMine(Object obj){
-        return mUser == obj;
     }
 
     public boolean isCameraReady(){
@@ -136,9 +300,8 @@ public class CameraManager {
 
             @Override
             protected Camera doInBackground(Void... params) {
-                Camera camera = open(this,facing);
-
-                return camera;
+                open();
+                return mCamera;
             }
 
             @Override
@@ -151,7 +314,10 @@ public class CameraManager {
             @Override
             protected void onPostExecute(Camera camera) {
 
-                if (null != listener) {
+                if (null != mOutCallback) {
+                    mOutCallback.onConfigured();
+                }
+                if(listener != null){
                     listener.onOpeningComplete(camera);
                 }
 

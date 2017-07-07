@@ -18,12 +18,7 @@ package com.sun.camera;
 
 import android.Manifest;
 import android.app.Activity;
-import android.app.AlertDialog;
-import android.app.Dialog;
-import android.app.DialogFragment;
 import android.content.Context;
-import android.content.DialogInterface;
-import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.ImageFormat;
 import android.graphics.Matrix;
@@ -42,11 +37,10 @@ import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageReader;
-import android.os.Bundle;
+import android.media.MediaActionSound;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.support.annotation.NonNull;
-import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 import android.util.Size;
 import android.util.SparseIntArray;
@@ -60,6 +54,7 @@ import com.sun.personalconnect.Permission;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -69,12 +64,30 @@ import java.util.List;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * 摄像头封装，camera2 api 未找到关闭快门声的方法
+ */
 public class Camera2Basic {
 
     public Camera2Basic(Context context){
         mFile = new File(context.getExternalFilesDir(null), "pic.jpg");
         mContext = context;
     }
+
+    public interface Callback {
+        void onPreviewSize(Size size);
+        void onConfigured(CameraCaptureSession session);
+        void onCaptureCompleted(File file);
+    }
+
+    private static final int DEFAULT_WIDTH = 800;
+    private static final int DEFAULT_HEIGHT = 480;
+
+    private  int _width = 800;
+    private  int _height = 480;
+    private int mAEModel = CameraMetadata.CONTROL_AE_MODE_ON;
+    private int mEffectModel = CameraMetadata.CONTROL_EFFECT_MODE_OFF;
+    private int mFacing = CameraCharacteristics.LENS_FACING_FRONT;
 
     private Context mContext;
 
@@ -159,6 +172,13 @@ public class Camera2Basic {
 
     };
 
+    private SurfaceTexture.OnFrameAvailableListener mOnFrameAvailableListener = new SurfaceTexture.OnFrameAvailableListener() {
+        @Override
+        public void onFrameAvailable(SurfaceTexture surfaceTexture) {
+            openCamera(_width, _height);
+        }
+    };
+
     /**
      * ID of the current {@link CameraDevice}.
      */
@@ -168,6 +188,10 @@ public class Camera2Basic {
      * An {@link AutoFitTextureView} for camera preview.
      */
     private AutoFitTextureView mTextureView;
+
+    private SurfaceTexture mSurfaceTexture;
+
+    private boolean mSetDisplay = false;
 
     /**
      * A {@link CameraCaptureSession } for camera preview.
@@ -238,6 +262,8 @@ public class Camera2Basic {
      */
     private File mFile;
 
+    private Callback mOutCallback;
+
     /**
      * This a callback object for the {@link ImageReader}. "onImageAvailable" will be called when a
      * still image is ready to be saved.
@@ -301,7 +327,8 @@ public class Camera2Basic {
                     if (afState == null) {
                         captureStillPicture();
                     } else if (CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED == afState ||
-                            CaptureResult.CONTROL_AF_STATE_NOT_FOCUSED_LOCKED == afState) {
+                            CaptureResult.CONTROL_AF_STATE_NOT_FOCUSED_LOCKED == afState ||
+                            CaptureResult.CONTROL_AF_STATE_INACTIVE == afState) {
                         // CONTROL_AE_STATE can be null on some devices
                         Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
                         if (aeState == null ||
@@ -350,6 +377,11 @@ public class Camera2Basic {
             process(result);
         }
 
+        @Override
+        public void onCaptureStarted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, long timestamp, long frameNumber) {
+            //super.onCaptureStarted(session, request, timestamp, frameNumber);
+
+        }
     };
 
     /**
@@ -419,21 +451,56 @@ public class Camera2Basic {
         }
     }
 
-    public void setDisplay(AutoFitTextureView texturView){
-        mTextureView = texturView;
+    public void setDisplay(AutoFitTextureView textureView){
+        mTextureView = textureView;
+        mSetDisplay = true;
+        onResume();
+    }
+
+    public void setDisplay(){
+        setDisplay(null, DEFAULT_WIDTH, DEFAULT_HEIGHT);
+    }
+
+    public void setDisplay(SurfaceTexture surfaceTexture){
+        setDisplay(surfaceTexture, DEFAULT_WIDTH, DEFAULT_HEIGHT);
+    }
+
+    public void setDisplay(SurfaceTexture surfaceTexture, int width, int height){
+        mSurfaceTexture = surfaceTexture;
+        mSetDisplay = true;
+        _width = width;
+        _height = height;
+        onResume();
+    }
+
+    public void setCaptureCallback(Callback callback){
+        mOutCallback = callback;
     }
     
     public void onResume() {
         startBackgroundThread();
 
+        if (null == mTextureView) {
+            if(mSurfaceTexture == null) {
+                if(!mSetDisplay){
+                    return;
+                }
+                mSurfaceTexture = new SurfaceTexture(10);
+            }
+        }
         // When the screen is turned off and turned back on, the SurfaceTexture is already
         // available, and "onSurfaceTextureAvailable" will not be called. In that case, we can open
         // a camera and start preview from here (otherwise, we wait until the surface is ready in
         // the SurfaceTextureListener).
-        if (mTextureView.isAvailable()) {
-            openCamera(mTextureView.getWidth(), mTextureView.getHeight());
-        } else {
-            mTextureView.setSurfaceTextureListener(mSurfaceTextureListener);
+        if(mTextureView != null) {
+            if (mTextureView.isAvailable()) {
+                openCamera(mTextureView.getWidth(), mTextureView.getHeight());
+            } else {
+                mTextureView.setSurfaceTextureListener(mSurfaceTextureListener);
+            }
+        }else{
+            openCamera(_width, _height);
+//            mSurfaceTexture.setOnFrameAvailableListener(mOnFrameAvailableListener);
         }
     }
 
@@ -457,7 +524,7 @@ public class Camera2Basic {
 
                 // We don't use a front facing camera in this sample.
                 Integer facing = characteristics.get(CameraCharacteristics.LENS_FACING);
-                if (facing != null && facing == CameraCharacteristics.LENS_FACING_FRONT) {
+                if (facing == null || facing != mFacing) {
                     continue;
                 }
 
@@ -546,15 +613,19 @@ public class Camera2Basic {
                 mPreviewSize = chooseOptimalSize(map.getOutputSizes(SurfaceTexture.class),
                         rotatedPreviewWidth, rotatedPreviewHeight, maxPreviewWidth,
                         maxPreviewHeight, largest);
-
-                // We fit the aspect ratio of TextureView to the size of preview we picked.
-                int orientation = mContext.getResources().getConfiguration().orientation;
-                if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
-                    mTextureView.setAspectRatio(
-                            mPreviewSize.getWidth(), mPreviewSize.getHeight());
-                } else {
-                    mTextureView.setAspectRatio(
-                            mPreviewSize.getHeight(), mPreviewSize.getWidth());
+                if(mTextureView != null) {
+                    // We fit the aspect ratio of TextureView to the size of preview we picked.
+                    int orientation = mContext.getResources().getConfiguration().orientation;
+                    if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
+                        mTextureView.setAspectRatio(
+                                mPreviewSize.getWidth(), mPreviewSize.getHeight());
+                    } else {
+                        mTextureView.setAspectRatio(
+                                mPreviewSize.getHeight(), mPreviewSize.getWidth());
+                    }
+                }
+                if(mOutCallback != null){
+                    mOutCallback.onPreviewSize(mPreviewSize);
                 }
 
                 // Check if the flash is supported.
@@ -660,7 +731,7 @@ public class Camera2Basic {
      */
     private void createCameraPreviewSession() {
         try {
-            SurfaceTexture texture = mTextureView.getSurfaceTexture();
+            SurfaceTexture texture = mTextureView == null ?  mSurfaceTexture:mTextureView.getSurfaceTexture();
             assert texture != null;
 
             // We configure the size of default buffer to be the size of camera preview we want.
@@ -692,12 +763,16 @@ public class Camera2Basic {
                                 mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,
                                         CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
                                 // Flash is automatically enabled when necessary.
-                                setAutoFlash(mPreviewRequestBuilder);
+                                fillOutsideModel(mPreviewRequestBuilder);
 
                                 // Finally, we start displaying the camera preview.
                                 mPreviewRequest = mPreviewRequestBuilder.build();
                                 mCaptureSession.setRepeatingRequest(mPreviewRequest,
                                         mCaptureCallback, mBackgroundHandler);
+
+                                if(mOutCallback != null){
+                                    mOutCallback.onConfigured(mCaptureSession);
+                                }
                             } catch (CameraAccessException e) {
                                 e.printStackTrace();
                             }
@@ -723,9 +798,9 @@ public class Camera2Basic {
      * @param viewWidth  The width of `mTextureView`
      * @param viewHeight The height of `mTextureView`
      */
-    public void configureTransform(int viewWidth, int viewHeight) {
-        if (null == mTextureView || null == mPreviewSize) {
-            return;
+    public Matrix configureTransform(int viewWidth, int viewHeight) {
+        if (null == mPreviewSize) {
+            return null;
         }
         int rotation = ((Activity)mContext).getWindowManager().getDefaultDisplay().getRotation();
         Matrix matrix = new Matrix();
@@ -744,13 +819,16 @@ public class Camera2Basic {
         } else if (Surface.ROTATION_180 == rotation) {
             matrix.postRotate(180, centerX, centerY);
         }
-        mTextureView.setTransform(matrix);
+        if(mTextureView != null) {
+            mTextureView.setTransform(matrix);
+        }
+        return matrix;
     }
 
     /**
      * Initiate a still image capture.
      */
-     void takePicture() {
+    public void takePicture() {
         lockFocus();
     }
 
@@ -806,7 +884,7 @@ public class Camera2Basic {
             // Use the same AE and AF modes as the preview.
             captureBuilder.set(CaptureRequest.CONTROL_AF_MODE,
                     CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
-            setAutoFlash(captureBuilder);
+            fillOutsideModel(captureBuilder);
 
             // Orientation
             int rotation = ((Activity)mContext).getWindowManager().getDefaultDisplay().getRotation();
@@ -819,9 +897,12 @@ public class Camera2Basic {
                 public void onCaptureCompleted(@NonNull CameraCaptureSession session,
                                                @NonNull CaptureRequest request,
                                                @NonNull TotalCaptureResult result) {
-                    notifyInfo("Saved: " + mFile);
+                    //notifyInfo("Saved: " + mFile);
                     Log.d(TAG, mFile.toString());
                     unlockFocus();
+                    if(mOutCallback != null){
+                        mOutCallback.onCaptureCompleted(mFile);
+                    }
                 }
             };
 
@@ -855,7 +936,7 @@ public class Camera2Basic {
             // Reset the auto-focus trigger
             mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,
                     CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
-            setAutoFlash(mPreviewRequestBuilder);
+            fillOutsideModel(mPreviewRequestBuilder);
             mCaptureSession.capture(mPreviewRequestBuilder.build(), mCaptureCallback,
                     mBackgroundHandler);
             // After this, the camera will go back to the normal state of preview.
@@ -867,11 +948,28 @@ public class Camera2Basic {
         }
     }
 
-    private void setAutoFlash(CaptureRequest.Builder requestBuilder) {
+    /**
+     * 设置拍照AEModel
+     * @param mode
+     *  CameraMetadata.CONTROL_AE_MODE_OFF 关闭自动曝光；用户控制曝光，增益，帧周期和闪光灯。
+     *  CameraMetadata.CONTROL_AE_MODE_ON  标准的自动聚焦，闪光灯关闭。用户设置闪光灯启动或者手电筒模式。
+     *  CameraMetadata.CONTROL_AE_MODE_ON_AUTO_FLASH 标准自动曝光，开启闪光灯。HAL层精确控制捕获前和捕获静态图片时闪光。用户可控制闪光灯关闭。
+     *  CameraMetadata.CONTROL_AE_MODE_ON_ALWAYS_FLASH 标准自动曝光，拍照时闪光灯一直开启。HAL层精确控制捕获前闪光。用户可控制闪光灯关闭。
+     *  CameraMetadata.CONTROL_AE_MODE_ON_AUTO_FLASH_REDEYE 标准自动曝光。HAL层精确控制预闪和捕获静态图片时闪光。在前面捕获序列的最后一帧启动一次闪光灯，以减少后面图片中的红眼现象。用户可控制闪光灯关闭
+     */
+    public void setAEModel(int mode){
+        mAEModel = mode;
+    }
+    public void setEffectModel(int mode){
+        mEffectModel = mode;
+    }
+
+    private void fillOutsideModel(CaptureRequest.Builder requestBuilder) {
         if (mFlashSupported) {
             requestBuilder.set(CaptureRequest.CONTROL_AE_MODE,
-                    CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH);
+                    mAEModel);
         }
+//        requestBuilder.set(CaptureRequest.CONTROL_EFFECT_MODE, mEffectModel);
     }
 
     /**
@@ -929,6 +1027,41 @@ public class Camera2Basic {
                     (long) rhs.getWidth() * rhs.getHeight());
         }
 
+    }
+
+
+    private static final String[] MY_SOUND_FILES = {
+            "/test",
+            "/test",
+            "/test",
+            "/test"
+    };
+
+    private static String[] old;
+
+    public void muteShutterSound(boolean isMute){
+        try {
+            Field nameField = MediaActionSound.class.getDeclaredField("SOUND_FILES");
+//                    Field modifiersField = Field.class.getDeclaredField("accessFlags"); //①
+//                    modifiersField.setAccessible(true);
+//                    modifiersField.setInt(nameField, nameField.getModifiers() & ~Modifier.FINAL); //②
+            nameField.setAccessible(true); //这个同样不能少，除非上面把 private 也拿掉了，可能还得 public
+            old = (String[])nameField.get(null);
+            nameField.set(null, MY_SOUND_FILES);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * witch camera you want?
+     * @param facing
+     * CameraCharacteristics.LENS_FACING_FRONT
+     * CameraCharacteristics.LENS_FACING_BACK (default)
+     * CameraCharacteristics.LENS_FACING_EXTERNAL
+     */
+    public void setFacing(int facing){
+        mFacing = facing;
     }
 
 }

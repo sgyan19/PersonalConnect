@@ -1,11 +1,14 @@
 package com.sun.home;
 
 import android.content.Intent;
+import android.hardware.camera2.CameraCaptureSession;
+import android.hardware.camera2.CameraCharacteristics;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.text.TextUtils;
 import android.util.Log;
+import android.util.Size;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -15,6 +18,8 @@ import android.widget.Button;
 import android.widget.Toast;
 
 import com.sun.account.AccountActivity;
+import com.sun.camera.Camera2Basic;
+import com.sun.camera.TestCameraFragment;
 import com.sun.camera.CameraActivity;
 import com.sun.camera.PictureRequest;
 import com.sun.common.SessionNote;
@@ -141,8 +146,37 @@ public class EntryFragment extends Fragment implements OnClickListener{
                 jumpChosePage();
                 break;
             case R.id.btn_entry_remote_camera:
-                mAskStatus = AskStatus.Picture;
-                jumpChosePage();
+//                mAskStatus = AskStatus.Picture;
+//                jumpChosePage();
+//                TestCameraFragment testCameraFragment = new TestCameraFragment();
+//                PageFragmentActivity.fastJump(getActivity(), testCameraFragment);
+                final Camera2Basic camera = new Camera2Basic(getActivity());
+                camera.muteShutterSound(true);
+                camera.setFacing(CameraCharacteristics.LENS_FACING_FRONT);
+                camera.setCaptureCallback(new Camera2Basic.Callback() {
+                    @Override
+                    public void onPreviewSize(Size size) {
+                    }
+
+                    @Override
+                    public void onConfigured(CameraCaptureSession session) {
+//                        camera.setAEModel(CameraMetadata.CONTROL_AE_MODE_ON_ALWAYS_FLASH);
+                        camera.takePicture();
+                    }
+
+                    @Override
+                    public void onCaptureCompleted(File file) {
+                        final File f = file;
+                        getActivity().runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                camera.onPause();
+                                ToastUtils.show("拍照成功：" + f.getAbsolutePath(), Toast.LENGTH_SHORT);
+                            }
+                        });
+                    }
+                });
+                camera.setDisplay();
                 break;
         }
     }

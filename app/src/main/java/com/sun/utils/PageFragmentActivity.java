@@ -2,6 +2,7 @@ package com.sun.utils;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
@@ -31,13 +32,14 @@ public class PageFragmentActivity extends AppCompatActivity {
 		setContentView(R.layout.activity_pagefragment_layout);
 		args = getIntent().getBundleExtra(EXTRA_KEY_FRAGMENT_ARGS);
 		String fClassName = args.getString(EXTRA_KEY_FRAGMENT_NAME);
-		if(TextUtils.isEmpty(fClassName) && sf != null){
-			f = sf;
-			sf = null;
-		}else {
-			if (!createFragmentInstance(fClassName)) {
-				finish();
-				return;
+		if(f == null) {
+			if (TextUtils.isEmpty(fClassName) && sf != null) {
+				f = sf;
+			} else {
+				if (!createFragmentInstance(fClassName)) {
+					finish();
+					return;
+				}
 			}
 		}
 		FragmentTransaction fTransaction = getSupportFragmentManager().beginTransaction();
