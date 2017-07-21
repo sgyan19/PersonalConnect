@@ -1,8 +1,6 @@
 package com.sun.home;
 
 import android.content.Intent;
-import android.hardware.camera2.CameraCaptureSession;
-import android.hardware.camera2.CameraCharacteristics;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
@@ -18,16 +16,19 @@ import android.widget.Button;
 import android.widget.Toast;
 
 import com.sun.account.AccountActivity;
-import com.sun.camera.Camera2Basic;
-import com.sun.camera.TestCameraFragment;
+import com.sun.camera.CameraBasic;
 import com.sun.camera.CameraActivity;
 import com.sun.camera.PictureRequest;
 import com.sun.common.SessionNote;
 import com.sun.connect.NetworkChannel;
 import com.sun.connect.EventNetwork;
+import com.sun.connect.RequestJson;
+import com.sun.conversation.CvsNote;
 import com.sun.device.AnswerNote;
 import com.sun.device.AskNote;
 import com.sun.device.DeviceInfo;
+import com.sun.utils.FileUtils;
+import com.sun.utils.IdUtils;
 import com.sun.utils.NoteHelper;
 import com.sun.gps.GaoDeMapActivity;
 import com.sun.level.UpdateOrderNote;
@@ -38,6 +39,7 @@ import com.sun.utils.FormatUtils;
 import com.sun.utils.PageFragmentActivity;
 import com.sun.utils.StatusFragment;
 import com.sun.utils.ToastUtils;
+import com.sun.utils.Utils;
 
 import org.androidannotations.annotations.Click;
 import org.androidannotations.annotations.EFragment;
@@ -146,37 +148,10 @@ public class EntryFragment extends Fragment implements OnClickListener{
                 jumpChosePage();
                 break;
             case R.id.btn_entry_remote_camera:
-//                mAskStatus = AskStatus.Picture;
-//                jumpChosePage();
-//                TestCameraFragment testCameraFragment = new TestCameraFragment();
-//                PageFragmentActivity.fastJump(getActivity(), testCameraFragment);
-                final Camera2Basic camera = new Camera2Basic(getActivity());
-                camera.muteShutterSound(true);
-                camera.setFacing(CameraCharacteristics.LENS_FACING_FRONT);
-                camera.setCaptureCallback(new Camera2Basic.Callback() {
-                    @Override
-                    public void onPreviewSize(Size size) {
-                    }
+                mAskStatus = AskStatus.Picture;
+                jumpChosePage();
 
-                    @Override
-                    public void onConfigured(CameraCaptureSession session) {
-//                        camera.setAEModel(CameraMetadata.CONTROL_AE_MODE_ON_ALWAYS_FLASH);
-                        camera.takePicture();
-                    }
-
-                    @Override
-                    public void onCaptureCompleted(File file) {
-                        final File f = file;
-                        getActivity().runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                camera.onPause();
-                                ToastUtils.show("拍照成功：" + f.getAbsolutePath(), Toast.LENGTH_SHORT);
-                            }
-                        });
-                    }
-                });
-                camera.setDisplay();
+//                candidTakePicture();
                 break;
         }
     }

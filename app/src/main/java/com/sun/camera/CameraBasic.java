@@ -1,7 +1,12 @@
 package com.sun.camera;
 
+import android.app.Activity;
 import android.content.Context;
+import android.graphics.Matrix;
+import android.graphics.Rect;
+import android.graphics.RectF;
 import android.graphics.SurfaceTexture;
+import android.graphics.YuvImage;
 import android.hardware.Camera;
 import android.hardware.Camera.CameraInfo;
 import android.hardware.Camera.Parameters;
@@ -13,16 +18,19 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.util.Log;
 import android.util.Size;
+import android.view.Surface;
 import android.view.SurfaceHolder;
-import android.view.SurfaceView;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.List;
 
 public class CameraBasic {
     
-    private static final String TAG = CameraBasic.class.getSimpleName();
+    private static final String TAG = "CameraBasic";
 
     public interface Callback {
         void onPreviewSize(Size size);
@@ -69,17 +77,101 @@ public class CameraBasic {
     private boolean mMuteShutterSound = false;
     private int mFacing = CAMERA_FACING_BACK;
     private Callback mOutCallback;
-    private boolean mAutoFocus;
+    private boolean mAutoFocus = true;
     private boolean mInitialized = false;
     private SensorManager mSensorManager;
     private Sensor mAccel;
     private float mLastX = 0;
     private float mLastY = 0;
     private float mLastZ = 0;
+    private Size mPreviewSize;
+    private int mAutoTakePicture = 0;
+    private int mPreviewFormat;
+    private boolean mAutoClose = false;
+    private boolean mAutoFocusTake = false;
 
+    private boolean mAutoFocusSupported;
+    private boolean mZoomSupported;
+    private boolean mSmoothZoomSupported;
+    private int mMaxZoom;
+    private File mFile;
+    private CameraInfo mCameraInfo;
 
-    public void CameraBasic(Context context){
+    private Camera.PreviewCallback mTakePicturePreviewCallback = new Camera.PreviewCallback() {
+        @Override
+        public void onPreviewFrame(byte[] data, Camera camera) {
+            YuvImage yuvImage  = new YuvImage(data, mPreviewFormat,mPreviewSize.getWidth(),mPreviewSize.getHeight(), null);
+            OutputStream outputStream = null;
+            try {
+                outputStream = new FileOutputStream(mFile);
+                yuvImage.compressToJpeg( new Rect(0,0,mPreviewSize.getWidth(),mPreviewSize.getHeight()),100,outputStream);
+            }catch (IOException e){
+                e.printStackTrace();
+            }finally {
+                try{
+                    outputStream.close();
+                }catch (Exception e){
+
+                }
+            }
+            complete();
+        }
+    };
+
+    private Camera.ShutterCallback mShutterCallback = new Camera.ShutterCallback() {
+        @Override
+        public void onShutter() {
+            Log.d(TAG, "mShutterCallback onShutter");
+        }
+    };
+    private Camera.PictureCallback mRawImageCallback = new Camera.PictureCallback() {
+        @Override
+        public void onPictureTaken(byte[] data, Camera camera) {
+            Log.d(TAG, "mRawImageCallback onPictureTaken");
+        }
+    };
+
+    private Camera.PictureCallback mPostviewCallback = new Camera.PictureCallback() {
+        @Override
+        public void onPictureTaken(byte[] data, Camera camera) {
+            Log.d(TAG, "mPostviewCallback onPictureTaken");
+        }
+    };
+
+    private Camera.PictureCallback mJpegCallback = new Camera.PictureCallback() {
+        @Override
+        public void onPictureTaken(byte[] data, Camera camera) {
+            Log.d(TAG, "mJpegCallback onPictureTaken");
+            OutputStream outputStream = null;
+            try {
+                outputStream = new FileOutputStream(mFile);
+                outputStream.write(data);
+                outputStream.flush();
+
+                complete();
+            }catch (IOException e){
+                e.printStackTrace();
+            }finally {
+                try{
+                    outputStream.close();
+                }catch (Exception e){
+
+                }
+            }
+
+        }
+    };
+
+    private Camera.OnZoomChangeListener mZoomChangeListener = new Camera.OnZoomChangeListener() {
+        @Override
+        public void onZoomChange(int zoomValue, boolean stopped, Camera camera) {
+            Log.d(TAG, "mZoomChangeListener onZoomChange");
+        }
+    };
+
+    public CameraBasic(Context context){
         mContext = context;
+        mFile = new File(context.getExternalFilesDir(null), "pic1.jpg");
     }
 
     public void setDisplay(SurfaceHolder holder){
@@ -119,9 +211,12 @@ public class CameraBasic {
         if(mCamera == null){
             return;
         }
+        initCamera();
 
         mSensorManager = (SensorManager) mContext.getSystemService(Context.
                 SENSOR_SERVICE);
+        mAccel = mSensorManager.getDefaultSensor(Sensor.
+                TYPE_ACCELEROMETER);
         mSensorManager.registerListener(mSensorHandler, mAccel,
                 SensorManager.SENSOR_DELAY_UI);
         try {
@@ -133,11 +228,18 @@ public class CameraBasic {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        mCamera.startPreview();
 
+        if(mOutCallback != null){
+            mOutCallback.onConfigured();
+        }
+        if(mAutoTakePicture > 0){
+            takePictureWhenFoced();
+        }
     }
 
     public void onPause(){
-
+        release();
     }
 
     public void muteShutterSound(boolean isMute){
@@ -152,11 +254,25 @@ public class CameraBasic {
         mOutCallback = callback;
     }
 
+    public void takePictureWhenFoced(){
+        if(mCamera != null){
+            mAutoFocusTake = true;
+            mCamera.autoFocus(mAutoFocusCallback);
+        }
+    }
+
     /**
      * Initiate a still image capture.
      */
     public void takePicture(){
-
+        if(mCamera == null){
+            return;
+        }
+        if( mMuteShutterSound &&  !mCameraInfo.canDisableShutterSound) {
+            mCamera.setOneShotPreviewCallback(mTakePicturePreviewCallback);
+        }else{
+            mCamera.takePicture(mShutterCallback, mRawImageCallback, mPostviewCallback, mJpegCallback);
+        }
     }
 
     private Camera.AutoFocusCallback mAutoFocusCallback = new Camera.AutoFocusCallback() {
@@ -164,7 +280,10 @@ public class CameraBasic {
         @Override
         public void onAutoFocus(boolean success, Camera camera) {
             // TODO Auto-generated method stub
-
+            if(mAutoFocusTake){
+                takePicture();
+                mAutoFocusTake = false;
+            }
             mAutoFocus = true;
 
             if (mCamera != null) {
@@ -243,11 +362,11 @@ public class CameraBasic {
 //        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) {
 
             int numberOfCameras = Camera.getNumberOfCameras();
-            CameraInfo cameraInfo = new CameraInfo();
+            mCameraInfo = new CameraInfo();
             for (int cameraId = 0; cameraId < numberOfCameras; ++cameraId) {
-                Camera.getCameraInfo(cameraId, cameraInfo);
+                Camera.getCameraInfo(cameraId, mCameraInfo);
 
-                if (mFacing != cameraInfo.facing) {
+                if (mFacing != mCameraInfo.facing) {
                     continue;
                 }
                 try {
@@ -269,7 +388,7 @@ public class CameraBasic {
         mCamera = camera;
     }
 
-    public void release(){
+    private void release(){
         if(mCamera != null){
             try {
                 mCamera.stopPreview();
@@ -278,6 +397,9 @@ public class CameraBasic {
             }catch (Exception e){
                 e.printStackTrace();
             }
+        }
+        if(mSensorManager != null) {
+            mSensorManager.unregisterListener(mSensorHandler);
         }
     }
 
@@ -431,5 +553,171 @@ public class CameraBasic {
     interface CameraOpeningListener {
 
         void onOpeningComplete(Camera camera);
+    }
+
+    private int[] getNearSupport(List<int[]> supportFpss,int matchFps){
+        int[] result = null;
+        supportFpss.iterator();
+        for(int i = supportFpss.size() - 1; i >= 0; i--){
+            if(supportFpss.get(i)[1] >= matchFps){
+                result = supportFpss.get(i);
+            }
+        }
+        return result;
+    }
+
+    protected void initCamera() {
+
+        if (mCamera != null) {
+            Log.w(TAG, "initCamera");
+
+            Camera.Parameters params = mCamera.getParameters();
+            Camera.Size size = getMinSize(params, _width,_height);
+            mPreviewSize = new Size(size.width,size.height);
+            params.setPreviewSize(size.width, size.height);
+            mPreviewFormat = params.getPreviewFormat();
+            if(mOutCallback != null){
+                mOutCallback.onPreviewSize(mPreviewSize);
+            }
+            if(mCameraInfo.canDisableShutterSound) {
+                boolean muteSuc = mCamera.enableShutterSound(!mMuteShutterSound);
+                Log.d(TAG, "mute shutter sound " + (muteSuc ? "success" : "failed"));
+            }
+
+            List<String> focuses = params.getSupportedFocusModes();
+            if (focuses.contains(Camera.Parameters.FOCUS_MODE_AUTO)) {
+                mAutoFocusSupported = true;
+            }
+            mCamera.cancelAutoFocus();
+            mCamera.setParameters(params);
+            mZoomSupported = params.isZoomSupported();
+
+            mSmoothZoomSupported = params.isSmoothZoomSupported();
+
+            mMaxZoom = params.getMaxZoom();
+
+
+            mCamera.setZoomChangeListener(mZoomChangeListener);
+        }
+    }
+
+    /**
+     * Configures the necessary {@link Matrix} transformation to `mTextureView`.
+     * This method should be called after the camera preview size is determined in
+     * setUpCameraOutputs and also the size of `mTextureView` is fixed.
+     *
+     * @param viewWidth  The width of `mTextureView`
+     * @param viewHeight The height of `mTextureView`
+     */
+    public Matrix configureTransform(int viewWidth, int viewHeight) {
+        if (null == mPreviewSize) {
+            return null;
+        }
+        int rotation = ((Activity)mContext).getWindowManager().getDefaultDisplay().getRotation();
+        Matrix matrix = new Matrix();
+        RectF viewRect = new RectF(0, 0, viewWidth, viewHeight);
+        RectF bufferRect = new RectF(0, 0, mPreviewSize.getWidth(), mPreviewSize.getHeight());
+        float centerX = viewRect.centerX();
+        float centerY = viewRect.centerY();
+        if (Surface.ROTATION_180 == rotation || Surface.ROTATION_0 == rotation) {
+            bufferRect.offset(centerX - bufferRect.centerX(), centerY - bufferRect.centerY());
+            matrix.setRectToRect(viewRect, bufferRect, Matrix.ScaleToFit.FILL);
+            float scale = Math.max(
+                    (float) viewHeight / mPreviewSize.getHeight(),
+                    (float) viewWidth / mPreviewSize.getWidth());
+            matrix.postScale(scale, scale, centerX, centerY);
+            matrix.postRotate( 90 * (rotation + 1) , centerX, centerY);
+        } else if (Surface.ROTATION_90 == rotation) {
+            matrix.postRotate(0, centerX, centerY);
+        }else if (Surface.ROTATION_270 == rotation){
+            matrix.postRotate(180, centerX, centerY);
+        }
+        return matrix;
+    }
+
+    public void focusOnTouch(int x, int y) {
+        Log.d(TAG, "手动对焦");
+        if(mCamera == null) return;
+        Rect focusRect = calculateTapArea(x, y, 1f); // 对焦区域
+        Rect meteringRect = calculateTapArea(x, y, 1.5f); // 测光区域
+
+        Camera.Parameters parameters = mCamera.getParameters();
+        if (parameters.getMaxNumFocusAreas() > 0) {
+            List<Camera.Area> focusAreas = new ArrayList<Camera.Area>();
+            focusAreas.add(new Camera.Area(focusRect, 2));
+            parameters.setFocusAreas(focusAreas);
+        }
+
+        if (parameters.getMaxNumMeteringAreas() > 0) {
+            List<Camera.Area> meteringAreas = new ArrayList<Camera.Area>();
+            meteringAreas.add(new Camera.Area(meteringRect, 1000));
+
+            parameters.setMeteringAreas(meteringAreas);
+        }
+
+
+        try {
+            mCamera.cancelAutoFocus();
+            mCamera.setParameters(parameters);
+            mCamera.autoFocus(mAutoFocusCallback);
+
+        }catch (Exception e){
+            Log.e(TAG,"手动对焦异常");
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Convert touch position x:y to {@link Camera.Area} position -1000:-1000 to 1000:1000.
+     */
+    private Rect calculateTapArea(float x, float y, float coefficient) {
+        float focusAreaSize = 300;
+        int areaSize = Float.valueOf(focusAreaSize * coefficient).intValue();
+
+        int centerX = (int) (x / mPreviewSize.getWidth() * 2000 - 1000);
+        int centerY = (int) (y / mPreviewSize.getHeight() * 2000 - 1000);
+
+        int left = clamp(centerX - areaSize / 2, -1000, 1000);
+        int right = clamp(left + areaSize, -1000, 1000);
+        int top = clamp(centerY - areaSize / 2, -1000, 1000);
+        int bottom = clamp(top + areaSize, -1000, 1000);
+
+        return new Rect(left, top, right, bottom);
+    }
+
+    private int clamp(int x, int min, int max) {
+        if (x > max) {
+            return max;
+        }
+        if (x < min) {
+            return min;
+        }
+        return x;
+    }
+
+    public Size getPreviewSize(){
+        return mPreviewSize;
+    }
+
+    private void complete(){
+        mAutoTakePicture--;
+        if(mAutoTakePicture > 0){
+            takePictureWhenFoced();
+        }else {
+            if (mOutCallback != null) {
+                mOutCallback.onCaptureCompleted(mFile);
+            }
+            if(mAutoClose){
+                onPause();
+            }
+        }
+    }
+
+    public void setAutoTakePicture(int count){
+        mAutoTakePicture = count;
+    }
+
+    public void setAutoClose(boolean is){
+        mAutoClose = is;
     }
 }

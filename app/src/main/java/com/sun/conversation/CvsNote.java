@@ -1,5 +1,7 @@
 package com.sun.conversation;
 
+import com.sun.common.SessionNote;
+
 import org.greenrobot.greendao.annotation.Entity;
 import org.greenrobot.greendao.annotation.Id;
 import org.greenrobot.greendao.annotation.Index;
@@ -14,7 +16,7 @@ import org.greenrobot.greendao.annotation.Generated;
 @Entity(indexes = {
         @Index(value = "timeStamp ASC", unique = true)
 })
-public class CvsNote implements Serializable {
+public class CvsNote extends SessionNote implements Serializable {
     private static final long serialVersionUID = 1L;
     public static final int STATUS_SENDING = 0;
     public static final int STATUS_SUC = 1;

