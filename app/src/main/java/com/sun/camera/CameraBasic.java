@@ -2,6 +2,7 @@ package com.sun.camera;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.res.Configuration;
 import android.graphics.Matrix;
 import android.graphics.Rect;
 import android.graphics.RectF;
@@ -25,6 +26,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -64,11 +66,11 @@ public class CameraBasic {
 
     private SurfaceTexture mSurfaceTexture;
 
-    private static final int DEFAULT_WIDTH = 800;
-    private static final int DEFAULT_HEIGHT = 480;
+    private static final int DEFAULT_WIDTH = 1920;
+    private static final int DEFAULT_HEIGHT = 1080;
 
-    private  int _width = 800;
-    private  int _height = 480;
+    private  int _width = 1920;
+    private  int _height = 1080;
 
     private boolean mSetDisplay = false;
 
@@ -97,14 +99,44 @@ public class CameraBasic {
     private File mFile;
     private CameraInfo mCameraInfo;
 
+    private int mDegree;
+    private byte[] mRotateBuffer;
+
     private Camera.PreviewCallback mTakePicturePreviewCallback = new Camera.PreviewCallback() {
         @Override
         public void onPreviewFrame(byte[] data, Camera camera) {
-            YuvImage yuvImage  = new YuvImage(data, mPreviewFormat,mPreviewSize.getWidth(),mPreviewSize.getHeight(), null);
+            int w = mPreviewSize.getWidth();
+            int h = mPreviewSize.getHeight();
+            byte[] d = data;
+            if(mDegree != 0) {
+                if (mRotateBuffer == null || mRotateBuffer.length < data.length) {
+                    mRotateBuffer = new byte[data.length];
+                }
+                int tmp = w;
+                switch (mDegree){
+                    case 90:
+                        GraphUtils.yuv420pRotate90(data, mRotateBuffer, w,h);
+                        w = h;h = tmp;
+                        break;
+                    case 180:
+                        GraphUtils.yuv420pRotate180(data, mRotateBuffer, w,h);
+                        break;
+                    case 270:
+                        GraphUtils.yuv420pRotate270(data, mRotateBuffer, w,h);
+                        w = h;h = tmp;
+                        break;
+                    default:
+                        mRotateBuffer = data;
+                        break;
+                }
+                d = mRotateBuffer;
+            }
+
+            YuvImage yuvImage  = new YuvImage(d, mPreviewFormat,w ,h, null);
             OutputStream outputStream = null;
             try {
                 outputStream = new FileOutputStream(mFile);
-                yuvImage.compressToJpeg( new Rect(0,0,mPreviewSize.getWidth(),mPreviewSize.getHeight()),100,outputStream);
+                yuvImage.compressToJpeg( new Rect(0,0,w,h),100,outputStream);
             }catch (IOException e){
                 e.printStackTrace();
             }finally {
@@ -225,10 +257,12 @@ public class CameraBasic {
             }else{
                 mCamera.setPreviewTexture(mSurfaceTexture);
             }
+            mCamera.startPreview();
         } catch (IOException e) {
             e.printStackTrace();
+            release();
+            return;
         }
-        mCamera.startPreview();
 
         if(mOutCallback != null){
             mOutCallback.onConfigured();
@@ -270,6 +304,7 @@ public class CameraBasic {
         }
         if( mMuteShutterSound &&  !mCameraInfo.canDisableShutterSound) {
             mCamera.setOneShotPreviewCallback(mTakePicturePreviewCallback);
+            //mCamera.setPreviewCallback(mTakePicturePreviewCallback);
         }else{
             mCamera.takePicture(mShutterCallback, mRawImageCallback, mPostviewCallback, mJpegCallback);
         }
@@ -570,10 +605,10 @@ public class CameraBasic {
 
         if (mCamera != null) {
             Log.w(TAG, "initCamera");
-
             Camera.Parameters params = mCamera.getParameters();
             Camera.Size size = getMinSize(params, _width,_height);
             mPreviewSize = new Size(size.width,size.height);
+
             params.setPreviewSize(size.width, size.height);
             mPreviewFormat = params.getPreviewFormat();
             if(mOutCallback != null){
@@ -719,5 +754,35 @@ public class CameraBasic {
 
     public void setAutoClose(boolean is){
         mAutoClose = is;
+    }
+
+    public void rotate(int degree, boolean display){
+        if(display && mCamera != null){
+            mCamera.setDisplayOrientation(degree);
+        }
+        mDegree = degree;
+    }
+
+    public void rotateByOrientation(int orientation, boolean display) {
+        switch (orientation) {
+            case Surface.ROTATION_0:
+                mDegree = 90;
+                break;
+            case Surface.ROTATION_90:
+                mDegree = 0;
+                break;
+            case Surface.ROTATION_180:
+                mDegree = 270;
+                break;
+            case Surface.ROTATION_270:
+                mDegree = 180;
+                break;
+            default:
+                mDegree = 0;
+                Log.e(TAG, "Display rotation is invalid: " + orientation);
+        }
+        if(display && mCamera != null){
+            mCamera.setDisplayOrientation(mDegree);
+        }
     }
 }

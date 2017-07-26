@@ -3,9 +3,7 @@ package com.sun.camera;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.res.Configuration;
-import android.graphics.Matrix;
 import android.graphics.SurfaceTexture;
-import android.hardware.Camera;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
@@ -56,6 +54,8 @@ public class TestCamera1Fragment extends Fragment
                     mTextureView.setAspectRatio(
                             size.getHeight(), size.getWidth());
                 }
+
+                mCamera.rotateByOrientation(getActivity().getWindowManager().getDefaultDisplay().getRotation(), true);
             }
 
             @Override
@@ -73,18 +73,18 @@ public class TestCamera1Fragment extends Fragment
             @Override
             public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
                 mCamera.setDisplay(surface,width ,height);
-                Matrix matrix = mCamera.configureTransform(width,height);
-                if(matrix != null) {
-                    mTextureView.setTransform(matrix);
-                }
+//                Matrix matrix = mCamera.configureTransform(width,height);
+//                if(matrix != null) {
+//                    mTextureView.setTransform(matrix);
+//                }
             }
 
             @Override
             public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
-                Matrix matrix = mCamera.configureTransform(width,height);
-                if(matrix != null) {
-                    mTextureView.setTransform(matrix);
-                }
+//                Matrix matrix = mCamera.configureTransform(width,height);
+//                if(matrix != null) {
+//                    mTextureView.setTransform(matrix);
+//                }
             }
 
             @Override
@@ -147,9 +147,6 @@ public class TestCamera1Fragment extends Fragment
     @Override
     public void onResume() {
         super.onResume();
-        if(mCamera != null) {
-            mCamera.onResume();
-        }
     }
 
     @Override

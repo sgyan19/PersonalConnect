@@ -7,4 +7,5 @@ import com.sun.common.SessionNote;
  */
 
 public class PictureRequest extends SessionNote {
+    public int facing;
 }

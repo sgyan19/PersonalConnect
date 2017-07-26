@@ -92,6 +92,7 @@ public class AsyncImageView extends ImageView {
 					.showImageOnFail(defaultDrawable)
 					.showImageOnLoading(defaultDrawable).cacheOnDisk(true)
 					.imageScaleType(ImageScaleType.LOW_QUALITY)
+					.considerExifParams(true)
 					.bitmapConfig(Bitmap.Config.RGB_565).build();
 		}
 	}

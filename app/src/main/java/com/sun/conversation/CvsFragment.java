@@ -26,6 +26,7 @@ import com.sun.account.Account;
 import com.sun.account.AccountActivity;
 import com.sun.level.LocalCmd;
 import com.sun.personalconnect.Application;
+import com.sun.personalconnect.BaseActivity;
 import com.sun.personalconnect.R;
 import com.sun.utils.FileUtils;
 import com.sun.utils.FormatUtils;
@@ -130,8 +131,10 @@ public class CvsFragment extends Fragment implements View.OnClickListener,CvsSer
     @Override
     public void onPause() {
         super.onPause();
-        if(mCvsServiceBinder != null){
-            mCvsServiceBinder.clearListener(this);
+        if(BaseActivity.isBackground(getActivity())) {
+            if (mCvsServiceBinder != null) {
+                mCvsServiceBinder.clearListener(this);
+            }
         }
     }
 
@@ -145,6 +148,9 @@ public class CvsFragment extends Fragment implements View.OnClickListener,CvsSer
 
     @Override
     public void onDestroy() {
+        if(mCvsServiceBinder != null){
+            mCvsServiceBinder.clearListener(this);
+        }
         if(mCvsServiceConn != null) {
             getActivity().unbindService(mCvsServiceConn);
         }

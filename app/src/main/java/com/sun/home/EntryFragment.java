@@ -1,12 +1,12 @@
 package com.sun.home;
 
 import android.content.Intent;
+import android.hardware.Camera;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.text.TextUtils;
 import android.util.Log;
-import android.util.Size;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -16,19 +16,15 @@ import android.widget.Button;
 import android.widget.Toast;
 
 import com.sun.account.AccountActivity;
-import com.sun.camera.CameraBasic;
 import com.sun.camera.CameraActivity;
 import com.sun.camera.PictureRequest;
+import com.sun.camera.TestCamera1Fragment;
 import com.sun.common.SessionNote;
 import com.sun.connect.NetworkChannel;
 import com.sun.connect.EventNetwork;
-import com.sun.connect.RequestJson;
-import com.sun.conversation.CvsNote;
 import com.sun.device.AnswerNote;
 import com.sun.device.AskNote;
 import com.sun.device.DeviceInfo;
-import com.sun.utils.FileUtils;
-import com.sun.utils.IdUtils;
 import com.sun.utils.NoteHelper;
 import com.sun.gps.GaoDeMapActivity;
 import com.sun.level.UpdateOrderNote;
@@ -39,7 +35,6 @@ import com.sun.utils.FormatUtils;
 import com.sun.utils.PageFragmentActivity;
 import com.sun.utils.StatusFragment;
 import com.sun.utils.ToastUtils;
-import com.sun.utils.Utils;
 
 import org.androidannotations.annotations.Click;
 import org.androidannotations.annotations.EFragment;
@@ -151,6 +146,9 @@ public class EntryFragment extends Fragment implements OnClickListener{
                 mAskStatus = AskStatus.Picture;
                 jumpChosePage();
 
+//                TestCamera1Fragment f = new TestCamera1Fragment();
+//                PageFragmentActivity.fastJump(getActivity(),f);
+
 //                candidTakePicture();
                 break;
         }
@@ -224,6 +222,7 @@ public class EntryFragment extends Fragment implements OnClickListener{
 
     private void askPictureNote(AnswerNote note){
         PictureRequest pictureRequest = new PictureRequest();
+        pictureRequest.facing = Camera.CameraInfo.CAMERA_FACING_FRONT;
         pictureRequest.setSessionType(SessionNote.TYPE_DEVICE);
         pictureRequest.addSessionCondition(note.getDeviceId());
         pictureRequest.addSessionCondition(Application.App.getDeviceId());

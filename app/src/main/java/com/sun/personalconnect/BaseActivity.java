@@ -1,14 +1,19 @@
 package com.sun.personalconnect;
 
 import android.Manifest;
+import android.app.ActivityManager;
+import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.PersistableBundle;
+import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import com.sun.utils.PermissionUtils;
 
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 
 /**
  * Created by guoyao on 2017/2/6.
@@ -17,6 +22,16 @@ public class BaseActivity extends AppCompatActivity {
     private static LinkedList<BaseActivity> InstanceStack = new LinkedList<>();
     public static LinkedList<Permission> WaitForRequest = new LinkedList<>();
     public static LinkedList<Permission> WaitForCallback = new LinkedList<>();
+    public final static int LIVE_UNKOWN = -1;
+    public final static int LIVE_CREATE = 0;
+    public final static int LIVE_RESUME = 1;
+    public final static int LIVE_START = 2;
+    public final static int LIVE_PAUSE = 3;
+    public final static int LIVE_STOP = 4;
+    public final static int LIVE_DESTROY = 5;
+
+
+    private int mLiveStatus = LIVE_UNKOWN;
 
     public Permission[] PermissionData = new Permission[]{
             new Permission(Manifest.permission.WRITE_EXTERNAL_STORAGE, new Permission.Runnable() {
@@ -41,6 +56,7 @@ public class BaseActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        mLiveStatus = LIVE_CREATE;
         InstanceStack.add(this);
         if(WaitForRequest.size() > 0 ) {
             Iterator<Permission> iterator = WaitForRequest.iterator();
@@ -51,6 +67,44 @@ public class BaseActivity extends AppCompatActivity {
             }
         }
     }
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState, @Nullable PersistableBundle persistentState) {
+        super.onCreate(savedInstanceState, persistentState);
+        mLiveStatus = LIVE_CREATE;
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        mLiveStatus = LIVE_START;
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        mLiveStatus = LIVE_RESUME;
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        mLiveStatus = LIVE_PAUSE;
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        mLiveStatus = LIVE_STOP;
+    }
+
+    @Override
+    protected void onDestroy() {
+        InstanceStack.remove(this);
+        mLiveStatus = LIVE_DESTROY;
+        super.onDestroy();
+    }
+
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
@@ -115,9 +169,32 @@ public class BaseActivity extends AppCompatActivity {
         return InstanceStack.getLast();
     }
 
-    @Override
-    protected void onDestroy() {
-        InstanceStack.remove(this);
-        super.onDestroy();
+    public static boolean isBackground(){
+        if(InstanceStack.size() == 0){
+            return true;
+        }
+        for(BaseActivity activity : InstanceStack){
+            if(activity.mLiveStatus == LIVE_RESUME){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static boolean isBackground(Context context) {
+        ActivityManager activityManager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+        List<ActivityManager.RunningAppProcessInfo> appProcesses = activityManager.getRunningAppProcesses();
+        for (ActivityManager.RunningAppProcessInfo appProcess : appProcesses) {
+            if (appProcess.processName.equals(context.getPackageName())) {
+                if (appProcess.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND) {
+                    System.out.print(String.format("Foreground App:", appProcess.processName));
+                    return false;
+                }else{
+                    System.out.print("Background App:"+appProcess.processName);
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }

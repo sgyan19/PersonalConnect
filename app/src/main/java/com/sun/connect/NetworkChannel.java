@@ -235,13 +235,16 @@ public class NetworkChannel {
 
     public String upload(File file){
         if(!file.exists()) return null;
-        File newFile = new File(Application.App.getSocketRawFolder(), file.getName());
-        newFile.delete();
-        try {
-            FileUtils.copyFile(file, newFile);
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
+        File newFile = file;
+        if(!file.getAbsolutePath().startsWith(Application.App.getSocketRawFolder())) {
+            newFile = new File(Application.App.getSocketRawFolder(), file.getName());
+            newFile.delete();
+            try {
+                FileUtils.copyFile(file, newFile);
+            } catch (IOException e) {
+                e.printStackTrace();
+
+            }
         }
         String key = IdUtils.make();
         uploadRaw(key, newFile.getName());

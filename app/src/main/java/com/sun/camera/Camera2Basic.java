@@ -87,7 +87,7 @@ public class Camera2Basic {
     private  int _height = 480;
     private int mAEModel = CameraMetadata.CONTROL_AE_MODE_ON;
     private int mEffectModel = CameraMetadata.CONTROL_EFFECT_MODE_OFF;
-    private int mFacing = CameraCharacteristics.LENS_FACING_FRONT;
+    private int mFacing = CameraCharacteristics.LENS_FACING_BACK;
 
     private Context mContext;
 
@@ -144,6 +144,9 @@ public class Camera2Basic {
      */
     private static final int MAX_PREVIEW_HEIGHT = 1080;
 
+    private int mAutoTakePicture = 0;
+
+    private boolean mAutoClose = false;
     /**
      * {@link TextureView.SurfaceTextureListener} handles several lifecycle events on a
      * {@link TextureView}.
@@ -548,7 +551,7 @@ public class Camera2Basic {
                 int displayRotation;
                 boolean swappedDimensions = false;
                 if(mContext instanceof Activity){
-                    displayRotation = ((Activity)mContext).getWindowManager().getDefaultDisplay().getRotation();
+                    displayRotation = ((Activity) mContext).getWindowManager().getDefaultDisplay().getRotation();
                     //noinspection ConstantConditions
                     mSensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
                     switch (displayRotation) {
@@ -585,7 +588,11 @@ public class Camera2Basic {
                 }
 
                 Point displaySize = new Point();
-                ((Activity)mContext).getWindowManager().getDefaultDisplay().getSize(displaySize);
+                if(mContext instanceof Activity){
+                    ((Activity)mContext).getWindowManager().getDefaultDisplay().getSize(displaySize);
+                }else if(BaseActivity.getAnyInstance() != null){
+                    BaseActivity.getAnyInstance().getWindowManager().getDefaultDisplay().getSize(displaySize);
+                }
 //                mContext.getResources().getDisplayMetrics().get
                 int rotatedPreviewWidth = width;
                 int rotatedPreviewHeight = height;
@@ -773,6 +780,9 @@ public class Camera2Basic {
                                 if(mOutCallback != null){
                                     mOutCallback.onConfigured(mCaptureSession);
                                 }
+                                if(mAutoTakePicture > 0){
+                                    takePicture();
+                                }
                             } catch (CameraAccessException e) {
                                 e.printStackTrace();
                             }
@@ -802,7 +812,14 @@ public class Camera2Basic {
         if (null == mPreviewSize) {
             return null;
         }
-        int rotation = ((Activity)mContext).getWindowManager().getDefaultDisplay().getRotation();
+        int rotation;
+        if(mContext instanceof Activity) {
+            rotation = ((Activity) mContext).getWindowManager().getDefaultDisplay().getRotation();
+        }else if(BaseActivity.getAnyInstance() != null){
+            rotation = BaseActivity.getAnyInstance().getWindowManager().getDefaultDisplay().getRotation();
+        }else{
+            rotation = Surface.ROTATION_0;
+        }
         Matrix matrix = new Matrix();
         RectF viewRect = new RectF(0, 0, viewWidth, viewHeight);
         RectF bufferRect = new RectF(0, 0, mPreviewSize.getHeight(), mPreviewSize.getWidth());
@@ -887,7 +904,14 @@ public class Camera2Basic {
             fillOutsideModel(captureBuilder);
 
             // Orientation
-            int rotation = ((Activity)mContext).getWindowManager().getDefaultDisplay().getRotation();
+            int rotation;
+            if(mContext instanceof Activity) {
+                rotation = ((Activity) mContext).getWindowManager().getDefaultDisplay().getRotation();
+            }else if(BaseActivity.getAnyInstance() != null){
+                rotation = BaseActivity.getAnyInstance().getWindowManager().getDefaultDisplay().getRotation();
+            }else{
+                rotation = Surface.ROTATION_0;
+            }
             captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, getOrientation(rotation));
 
             CameraCaptureSession.CaptureCallback CaptureCallback
@@ -902,6 +926,14 @@ public class Camera2Basic {
                     unlockFocus();
                     if(mOutCallback != null){
                         mOutCallback.onCaptureCompleted(mFile);
+                    }
+                    mAutoTakePicture--;
+                    if(mAutoTakePicture > 0){
+                        takePicture();
+                    }else{
+                        if(mAutoClose){
+                            onPause();
+                        }
                     }
                 }
             };
@@ -1064,4 +1096,11 @@ public class Camera2Basic {
         mFacing = facing;
     }
 
+    public void setAutoTakePicture(int count){
+        mAutoTakePicture = count;
+    }
+
+    public void setAutoClose(boolean is){
+        mAutoClose = is;
+    }
 }
