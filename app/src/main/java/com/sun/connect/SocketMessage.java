@@ -24,4 +24,6 @@ public class SocketMessage {
 
     public SocketMessage(){
     }
+
+    public final static SocketMessage EmptyMessage = new SocketMessage(SOCKET_TYPE_NONE, "");
 }

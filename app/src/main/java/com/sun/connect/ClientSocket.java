@@ -27,13 +27,13 @@ public class ClientSocket {
 
     public static Host Host;
     public static final int Port = 19193;
-    public static final byte HeartBeatASK = 0x19;
-    public static final byte HeartBeatANS = (byte)0x91;
-    public static final byte HEADER_RAW = (byte)0x2B;
-    public static final byte HEADER_CKRAW = (byte)0x3B;
+    public static final byte[] HeartBeatASK = new byte[]{(byte)0x19, 0x19 +1, 0x19 +2 ,0x19 + 3};
+    public static final byte[] HeartBeatANS = new byte[]{(byte)0x91, (byte)0x91 +1, (byte)0x91 +2 ,(byte)0x91 + 3};
+    public static final byte[] HEADER_RAW = new byte[]{(byte)0x2B, 0x2B +1, 0x2B +2 ,0x2B + 3};
+    public static final byte[] HEADER_CKRAW = new byte[]{(byte)0x3B, 0x3B +1, 0x3B +2 ,0x3B + 3};
     public static final byte HEADER_CK_SUC_RAW = (byte)0x3C;
     public static final byte HEADER_CK_FAIL_RAW = (byte)0x3D;
-    public static final byte HEADER_JSON = (byte)0x7B;
+    public static final byte[] HEADER_JSON = new byte[]{(byte)0x7B, 0x7B +1, 0x7B +2 ,0x7B + 3};
 
     public final Object lock = new Object();
     private static String mRawDir = "/sdcard/ClientSocket";
@@ -49,7 +49,7 @@ public class ClientSocket {
 
     private byte[] sendBuffer = new byte[1024 * 10];
     private byte[] recBuffer = new byte[1024 * 10];
-    private byte[] mHeartBeatData = new byte[]{HeartBeatASK};
+    private byte[] mHeartBeatData = HeartBeatASK;
     private Socket mSocket;
     private Throwable mLastException;
 
@@ -173,12 +173,10 @@ public class ClientSocket {
                 if(len > 0 ){
                     if(recBuffer[0] == HEADER_CK_SUC_RAW) {
                         Log.d(TAG, "receive md5 check suc");
-                        response = receive(10000);
+                        response = SocketMessage.EmptyMessage;
                     }else if(recBuffer[0] == HEADER_CK_FAIL_RAW){
                         Log.d(TAG, "receive md5 check fail");
-                        sendRawFrame(outputStream, name);
-                        Log.d(TAG, "requestRaw file suc");
-                        response = receive(10000);
+                        response = requestRaw(name);
                     }else {
                         Log.d(TAG, "receive md5 check unknown code:" + recBuffer[0]);
                     }
@@ -247,28 +245,28 @@ public class ClientSocket {
         mSocket.setSoTimeout(timeOut);
         SocketMessage response = new SocketMessage();
         InputStream stream = mSocket.getInputStream();
-        int len  = stream.read(recBuffer,0,1);
+        int len  = stream.read(recBuffer,0,4);
         if(len >= 1){
-            if(recBuffer[0] == HeartBeatANS) {
+            if(recBuffer[0] == HeartBeatANS[0] && recBuffer[1] == HeartBeatANS[1]&& recBuffer[2] == HeartBeatANS[2]&& recBuffer[3] == HeartBeatANS[3]) {
                 Log.d(TAG, "HeartBeatANS");
-            }else if(recBuffer[0] == HEADER_RAW){
+            }else if(recBuffer[0] == HEADER_RAW[0] && recBuffer[1] == HEADER_RAW[1]&& recBuffer[2] == HEADER_RAW[2]&& recBuffer[3] == HEADER_RAW[3]){
                 response.type = SocketMessage.SOCKET_TYPE_RAW;
                 Log.d(TAG, "HEADER_RAW");
                 response.data = receiveTextFrame(stream);
                 Log.d(TAG, "receiveTextFrame suc:" + response.data);
                 receiveRawFrame(stream, response.data);
-            }else if(recBuffer[0] == HEADER_JSON){
+            }else if(recBuffer[0] == HEADER_JSON[0] && recBuffer[1] == HEADER_JSON[1]&& recBuffer[2] == HEADER_JSON[2]&& recBuffer[3] == HEADER_JSON[3]){
                 Log.d(TAG, "HEADER_JSON");
                 response.type = SocketMessage.SOCKET_TYPE_JSON;
                 response.data = receiveTextFrame(stream);
                 Log.d(TAG, "receiveTextFrame suc:" + response.data);
             }else{
-                Log.d(TAG, "unknown code:" + recBuffer[0]);
+                Log.d(TAG, String.format("unknown code:%d,%d,%d,%d" , recBuffer[0],recBuffer[1],recBuffer[2],recBuffer[3]));
                 receiveTrash(stream);
                 response = null;
             }
         }else{
-            Log.d(TAG, "len < -1" );
+            Log.d(TAG, "len < 1" );
             mRemoteClosed = true;
         }
         mSocket.setSoTimeout(oldTimeOut);
@@ -437,9 +435,9 @@ public class ClientSocket {
 
                 outputStream.write(mHeartBeatData);
                 outputStream.flush();
-                int len  = stream.read(recBuffer,0,1);
-                if(len >= 1){
-                    if(recBuffer[0] != HeartBeatANS){
+                int len  = stream.read(recBuffer,0,4);
+                if(len >= 4){
+                    if(recBuffer[0] != HeartBeatANS[0] &&recBuffer[1] != HeartBeatANS[1] &&recBuffer[2] != HeartBeatANS[2] &&recBuffer[3] != HeartBeatANS[3]){
                         Log.d(TAG, "not HeartBeatANS" + recBuffer[0]);
                         receiveTrash(stream);
                     }
